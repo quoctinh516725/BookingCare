@@ -1,0 +1,131 @@
+# Các bước cụ thể để sửa lỗi và cải thiện hệ thống
+
+## 1. Cập nhật ServiceMapper để xử lý null (Đã hoàn thành)
+- Đã thêm kiểm tra null cho service.getCategory()
+
+## 2. Cải thiện các phương thức tính toán trong SkinTestServiceImpl
+- Cần cập nhật các phương thức calculateMatchScore và generateRecommendationReason với logic thực tế
+- Hiện tại chúng chỉ trả về giá trị giả, cần xây dựng thuật toán thực để tính toán:
+
+```java
+private int calculateMatchScore(ServiceEntity service, SkinType skinType) {
+    // Nếu loại da và dịch vụ hoàn toàn khớp
+    if (service.getSuitableForSkinType() == skinType) {
+        return 100;
+    }
+    
+    // Tính điểm dựa trên mức độ tương thích
+    // Ví dụ: da hỗn hợp có thể phù hợp với các dịch vụ cho da dầu hoặc da khô ở mức thấp hơn
+    switch(skinType) {
+        case OILY:
+            return service.getSuitableForSkinType() == SkinType.COMBINATION ? 70 : 30;
+        case DRY:
+            return service.getSuitableForSkinType() == SkinType.COMBINATION ? 70 : 30;
+        case COMBINATION:
+            return (service.getSuitableForSkinType() == SkinType.OILY || 
+                   service.getSuitableForSkinType() == SkinType.DRY) ? 60 : 30;
+        case SENSITIVE:
+            // Các dịch vụ dành cho da nhạy cảm thường chỉ phù hợp với da nhạy cảm
+            return 30;
+        case NORMAL:
+            // Da thường có thể phù hợp với nhiều loại dịch vụ khác
+            return 50;
+        default:
+            return 30;
+    }
+}
+
+private String generateRecommendationReason(ServiceEntity service, SkinType skinType) {
+    if (service.getSuitableForSkinType() == skinType) {
+        return String.format("Dịch vụ này được thiết kế đặc biệt cho làn da %s của bạn.", skinType.name().toLowerCase());
+    } else {
+        return String.format("Dịch vụ này có thể phù hợp với làn da %s của bạn với một số điều chỉnh.", skinType.name().toLowerCase());
+    }
+}
+```
+
+## 3. Thêm migration script
+Tạo file `V1_2__Add_SuitableForSkinType_To_Services.sql` trong thư mục resources/db/migration:
+
+```sql
+ALTER TABLE services ADD COLUMN suitable_for_skin_type VARCHAR(20);
+UPDATE services SET suitable_for_skin_type = 'NORMAL' WHERE suitable_for_skin_type IS NULL;
+```
+
+## 4. Kiểm tra và xử lý trường hợp ServiceRecommendationResponse
+Đảm bảo ServiceRecommendationResponse có đầy đủ các trường cần thiết:
+
+```java
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ServiceRecommendationResponse {
+    private String serviceId;
+    private String serviceName;
+    private String description;
+    private double price;
+    private String imageUrl;
+    private String categoryName;
+    private int matchScore;
+    private String recommendationReason;
+}
+```
+
+## 5. Cập nhật SkinTest UI (nếu có)
+- Đảm bảo giao diện hiển thị đúng thông tin về loại da và dịch vụ đề xuất
+
+## 6. Viết Unit Test
+### 6.1 Test cho ServiceMapper
+```java
+@Test
+public void testToServiceResponse_withNullCategory() {
+    // Arrange
+    ServiceEntity service = new ServiceEntity();
+    service.setId("1");
+    service.setName("Test Service");
+    service.setDescription("Description");
+    service.setPrice(100.0);
+    service.setDurationMinutes(60);
+    service.setCategory(null);
+    
+    // Act
+    ServiceResponse response = serviceMapper.toServiceResponse(service);
+    
+    // Assert
+    assertNotNull(response);
+    assertEquals("1", response.getId());
+    assertEquals("Test Service", response.getName());
+    assertNull(response.getCategoryId());
+    assertNull(response.getCategoryName());
+}
+```
+
+### 6.2 Test cho phương thức findBySuitableForSkinType
+```java
+@Test
+public void testFindBySuitableForSkinType() {
+    // Arrange
+    ServiceEntity service = new ServiceEntity();
+    service.setName("Oily Skin Treatment");
+    service.setSuitableForSkinType(SkinType.OILY);
+    serviceRepository.save(service);
+    
+    // Act
+    List<ServiceEntity> results = serviceRepository.findBySuitableForSkinType(SkinType.OILY);
+    
+    // Assert
+    assertFalse(results.isEmpty());
+    assertEquals(SkinType.OILY, results.get(0).getSuitableForSkinType());
+}
+```
+
+## 7. Cập nhật Swagger/API Documentation
+Cập nhật tài liệu API để bao gồm thông tin về trường `suitableForSkinType` mới
+
+## 8. Kiểm tra Tích hợp
+- Test API endpoint cho việc tạo và cập nhật Service với trường mới
+- Test API endpoint cho các đề xuất dịch vụ dựa trên kết quả kiểm tra da
+
+## 9. Cập nhật dữ liệu mẫu (nếu có)
+Đảm bảo dữ liệu mẫu hoặc dữ liệu seed ban đầu cũng bao gồm trường `suitableForSkinType` 

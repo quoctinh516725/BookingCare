@@ -1,0 +1,230 @@
+# THỨ TỰ TRIỂN KHAI DỰ ÁN BEAUTIFUL CARE
+
+## TỔNG QUAN
+
+Tài liệu này hướng dẫn thứ tự triển khai đúng cho các thành phần của dự án để tránh lỗi phụ thuộc và lỗi 500 khi chạy ứng dụng. Việc tuân theo thứ tự này sẽ đảm bảo các mối quan hệ giữa các entity được thiết lập đúng cách.
+
+## NGUYÊN TẮC CHUNG
+
+1. Luôn tạo các entity không phụ thuộc trước, sau đó mới tạo các entity có phụ thuộc
+2. Khi có quan hệ hai chiều, hãy đảm bảo entity cha được tạo trước
+3. Khi tạo các bảng trung gian (join table), entity ở cả hai phía phải tồn tại trước
+
+---
+
+## THỨ TỰ TRIỂN KHAI ENTITY
+
+### 1. Các Entity Cơ sở
+
+```
+1. User (người dùng)
+2. Role (vai trò)
+3. ServiceCategory (danh mục dịch vụ)
+4. BlogCategory (danh mục blog)
+```
+
+Những entity này không phụ thuộc vào các entity khác, nên cần được tạo đầu tiên.
+
+### 2. Các Entity Cấp 2
+
+```
+5. Customer (khách hàng) - phụ thuộc vào User
+6. Specialist (chuyên gia) - phụ thuộc vào User
+7. Service (dịch vụ) - phụ thuộc vào ServiceCategory
+8. Blog (bài viết) - phụ thuộc vào BlogCategory và User (author)
+```
+
+Những entity này có mối quan hệ một chiều hoặc nhiều-một (ManyToOne) với các entity cơ sở.
+
+### 3. Các Entity Cấp 3
+
+```
+9. SkinTest (kiểm tra da) - phụ thuộc vào User
+10. SkinTestQuestion (câu hỏi kiểm tra da) - phụ thuộc vào SkinTest
+11. SkinTestResult (kết quả kiểm tra da) - phụ thuộc vào SkinTest
+```
+
+### 4. Các Entity Quan hệ và Giao dịch
+
+```
+12. Booking (đặt lịch) - phụ thuộc vào Customer và Specialist
+13. BookingDetail (chi tiết đặt lịch) - phụ thuộc vào Booking và Service
+14. Payment (thanh toán) - phụ thuộc vào Booking
+15. Review (đánh giá) - phụ thuộc vào Service, Specialist và Customer
+```
+
+### 5. Các Bảng Trung gian (Join Tables)
+
+```
+16. specialist_service (quan hệ giữa Specialist và Service)
+17. user_role (quan hệ giữa User và Role)
+```
+
+---
+
+## QUAN HỆ ENTITY VÀ CẤU HÌNH BIDIRECTIONAL
+
+Dưới đây là hướng dẫn thiết lập các mối quan hệ hai chiều (bidirectional) đúng cách:
+
+### User - Role (ManyToMany)
+
+```java
+// Trong User.java
+@ManyToMany
+@JoinTable(
+    name = "user_role",
+    joinColumns = @JoinColumn(name = "user_id"),
+    inverseJoinColumns = @JoinColumn(name = "role_id")
+)
+private Set<Role> roles = new HashSet<>();
+
+// Trong Role.java
+@ManyToMany(mappedBy = "roles")
+private Set<User> users = new HashSet<>();
+```
+
+### Service - Specialist (ManyToMany)
+
+```java
+// Trong Service.java
+@ManyToMany(mappedBy = "services")
+private Set<Specialist> specialists = new HashSet<>();
+
+// Trong Specialist.java
+@ManyToMany
+@JoinTable(
+    name = "specialist_service",
+    joinColumns = @JoinColumn(name = "specialist_id"),
+    inverseJoinColumns = @JoinColumn(name = "service_id")
+)
+private Set<Service> services = new HashSet<>();
+```
+
+### Service - BookingDetail (OneToMany)
+
+```java
+// Trong Service.java
+@OneToMany(mappedBy = "service")
+private Set<BookingDetail> bookingDetails = new HashSet<>();
+
+// Trong BookingDetail.java
+@ManyToOne
+@JoinColumn(name = "service_id")
+private Service service;
+```
+
+### Booking - BookingDetail (OneToMany)
+
+```java
+// Trong Booking.java
+@OneToMany(mappedBy = "booking", cascade = CascadeType.ALL)
+private Set<BookingDetail> bookingDetails = new HashSet<>();
+
+// Trong BookingDetail.java
+@ManyToOne
+@JoinColumn(name = "booking_id")
+private Booking booking;
+```
+
+---
+
+## TRÁNH CÁC LỖI PHÁT SINH 500
+
+### 1. Vấn đề ID Generator
+
+Đảm bảo rằng CustomIdGenerator được triển khai đúng cách trước khi sử dụng:
+
+```java
+@Component
+public class CustomIdGenerator implements IdentifierGenerator {
+    @Override
+    public Serializable generate(SharedSessionContractImplementor session, Object object) throws HibernateException {
+        return UUID.randomUUID().toString().replace("-", "");
+    }
+}
+```
+
+Nếu gặp vấn đề, hãy sử dụng UUID tích hợp sẵn:
+
+```java
+@Id
+@GeneratedValue(strategy = GenerationType.UUID)
+private String id;
+```
+
+### 2. Vấn đề Circular Dependency
+
+Tránh tham chiếu vòng tròn giữa các entity. Nếu cần, sử dụng lazy loading:
+
+```java
+@ManyToOne(fetch = FetchType.LAZY)
+@JoinColumn(name = "parent_id")
+private Entity parent;
+```
+
+### 3. Vấn đề Cascade
+
+Cẩn thận với cascade, nhất là CascadeType.ALL và CascadeType.REMOVE có thể gây xóa dữ liệu không mong muốn:
+
+```java
+// An toàn hơn
+@OneToMany(mappedBy = "parent", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+private Set<Child> children = new HashSet<>();
+```
+
+### 4. Vấn đề Hibernate LazyInitializationException
+
+Giải quyết bằng cách tải trước dữ liệu (eager loading) hoặc giữ session mở:
+
+```java
+@Transactional(readOnly = true)
+public Entity findWithRelationships(String id) {
+    // Session sẽ mở trong suốt phương thức này
+    return repository.findById(id).orElseThrow();
+}
+```
+
+---
+
+## THỨ TỰ TRIỂN KHAI REPOSITORY VÀ SERVICE
+
+```
+1. Các repository cơ sở (UserRepository, RoleRepository, v.v.)
+2. Các service cơ sở (UserService, RoleService, v.v.)
+3. Các repository phụ thuộc (CustomerRepository, SpecialistRepository, v.v.)
+4. Các service phụ thuộc (CustomerService, SpecialistService, v.v.)
+5. Các repository giao dịch (BookingRepository, PaymentRepository, v.v.)
+6. Các service giao dịch (BookingService, PaymentService, v.v.)
+```
+
+---
+
+## KHỞI TẠO DỮ LIỆU
+
+```
+1. Khởi tạo vai trò (ADMIN, USER, CONTENT_CREATOR, SPECIALIST)
+2. Khởi tạo người dùng admin mặc định
+3. Khởi tạo danh mục dịch vụ
+4. Khởi tạo danh mục blog
+5. Khởi tạo dữ liệu mẫu khác (nếu cần)
+```
+
+---
+
+## KIỂM TRA ĐỂ TRÁNH LỖI
+
+1. **Kiểm tra schema**: Xem xét script tạo bảng trước khi chạy ứng dụng
+2. **Validate entity**: Sử dụng hibernate.hbm2ddl.auto=validate để kiểm tra mapping
+3. **Kiểm tra quan hệ**: Đảm bảo owner side và non-owner side được cấu hình đúng
+4. **Kiểm tra phiên bản**: Đảm bảo các phiên bản Spring Boot, Hibernate tương thích
+
+---
+
+## KẾT LUẬN
+
+Tuân thủ thứ tự triển khai được khuyến nghị trong tài liệu này sẽ giảm thiểu đáng kể các lỗi 500 do vấn đề phụ thuộc. Nếu vẫn gặp vấn đề, hãy kiểm tra log ứng dụng để xác định nguyên nhân cụ thể và tham khảo phần "Tránh các lỗi phát sinh 500" ở trên.
+
+---
+
+**Version**: 1.0.0
+**Last Updated**: 2025-03-22 

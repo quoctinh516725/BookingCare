@@ -1,0 +1,105 @@
+# Consolidation Plan for User, Authentication and Customer Controllers
+
+## Current Analysis
+
+### 1. UserController
+- Mapped to `/users`
+- Handles generic user CRUD operations
+- Uses UserService for all operations
+- Operations:
+  - Create user
+  - Get all users
+  - Get user by ID
+  - Update user
+  - Delete user
+
+### 2. AuthenticationController
+- Mapped to `/auth`
+- Handles authentication operations
+- Uses AuthenticationService
+- Operations:
+  - Authenticate (generate token)
+  - Token introspection (validate token)
+
+### 3. CustomerController
+- Mapped to `/api/v1/customers`
+- Handles customer-specific operations
+- Uses CustomerService
+- Operations:
+  - Create customer
+  - Get all customers
+  - Get customer by ID
+  - Update customer
+  - Delete customer
+  - Get customer bookings
+  - Get customer skin test results
+
+## Issues Identified
+1. Inconsistent URL patterns (`/users` vs `/api/v1/customers` vs `/auth`)
+2. Duplicated functionality (create/update/delete operations for both users and customers)
+3. Separation of related functionalities across multiple controllers
+4. Authentication is closely related to user management but separate
+5. No consistent REST API versioning
+
+## Consolidation Strategy
+
+### 1. Create a new consolidated controller: `UserManagementController`
+- Base URL: `/api/v1/users`
+- Will handle all user-related operations, including authentication and customer-specific operations
+
+### 2. Consolidate endpoints as follows:
+
+#### Authentication endpoints
+- POST `/api/v1/users/auth/login` - User login (from AuthenticationController)
+- POST `/api/v1/users/auth/validate` - Token validation (from AuthenticationController)
+
+#### Generic user endpoints
+- POST `/api/v1/users` - Create user (from UserController)
+- GET `/api/v1/users` - Get all users (from UserController)
+- GET `/api/v1/users/{id}` - Get user by ID (from UserController)
+- PUT `/api/v1/users/{id}` - Update user (from UserController)
+- DELETE `/api/v1/users/{id}` - Delete user (from UserController)
+
+#### Customer-specific endpoints
+- POST `/api/v1/users/customers` - Create customer (from CustomerController)
+- GET `/api/v1/users/customers` - Get all customers (from CustomerController)
+- GET `/api/v1/users/customers/{id}` - Get customer by ID (from CustomerController)
+- PUT `/api/v1/users/customers/{id}` - Update customer (from CustomerController)
+- DELETE `/api/v1/users/customers/{id}` - Delete customer (from CustomerController)
+- GET `/api/v1/users/customers/{id}/bookings` - Get customer bookings (from CustomerController)
+- GET `/api/v1/users/customers/{id}/skin-test-results` - Get customer skin test results (from CustomerController)
+
+### 3. Service Layer Updates
+- No changes to service implementations required
+- Will continue to use:
+  - AuthenticationService for authentication
+  - UserService for general user operations
+  - CustomerService for customer-specific operations
+
+### 4. Implementation Steps
+1. Create new UserManagementController class
+2. Inject all required services (AuthenticationService, UserService, CustomerService)
+3. Implement consolidated endpoints with clear method names
+4. Add appropriate request mapping annotations following the new URL structure
+5. Ensure consistent response format using APIResponse wrapper
+6. Add proper documentation with Swagger/OpenAPI annotations
+7. Add appropriate role-based access control where needed
+8. Implement proper error handling for all operations
+9. Add validation for request payloads
+10. Deprecate old controllers but keep them temporarily for backward compatibility
+11. Update API documentation to reflect the new structure
+
+### 5. Testing Strategy
+1. Create unit tests for the new controller
+2. Create integration tests for all endpoints
+3. Verify backward compatibility
+4. Test authentication and authorization
+5. Test error scenarios and edge cases
+
+## Expected Benefits
+1. Consistent API structure and URL patterns
+2. Simplified client integration
+3. Better organization of related functionality
+4. Proper versioning for future evolution
+5. Reduced code duplication
+6. Improved maintenance and extensibility 

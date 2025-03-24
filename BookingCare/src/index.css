@@ -1,0 +1,32 @@
+@import "tailwindcss";
+* {
+  box-sizing: border-box;
+}
+@layer base {
+  :root {
+    --primary-color: #eb4799;
+    --background-color: #f9fafb;
+  }
+}
+body {
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background-color: var(--background-color);
+}
+button {
+  min-width: 200px;
+  padding: 20px;
+  height: 50px;
+  background: var(--primary-color);
+  color: white;
+  font-weight: 500;
+  border-radius: 10px;
+  font-size: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+button:hover {
+  opacity: 70%;
+}
