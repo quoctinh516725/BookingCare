@@ -1,7 +1,14 @@
 import { Link, useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
 import logo from "../../assets/logo.png";
+import { useNavigate } from "react-router-dom";
 function Header() {
   const location = useLocation();
+  const { username, email } = useSelector((state) => state.user);
+  const navigate = useNavigate();
+  const handleLogin = () => {
+    navigate("/login");
+  };
   const page = [
     {
       name: "Trang chủ",
@@ -58,9 +65,18 @@ function Header() {
               })}
             </ul>
           </nav>
-          <div className="rounded-[5px] h[30px] p-2 px-5 bg-white space-x-2 shadow-2xl cursor-pointer">
-            <i className="fa-solid fa-user text-xl text-[var(--primary-color)]"></i>
-            <span className="text-[13px] font-semibold">Tài khoản</span>
+
+          <div
+            className="rounded-[5px] h[30px] p-2 px-5 bg-white shadow-2xl cursor-pointer"
+            onClick={!username ? handleLogin : undefined}
+          >
+            <div className="flex items-center space-x-2">
+              <i className="fa-solid fa-user text-xl text-[var(--primary-color)]" />
+
+              <span className="text-[13px] font-semibold">
+                {username ? username : "Đăng nhập"}
+              </span>
+            </div>
           </div>
         </div>
       </div>

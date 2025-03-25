@@ -1,7 +1,29 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate} from "react-router-dom";
+import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import UserService from "../../services/UserService";
 import logo from "../../assets/logo.png";
 
 function SignUp() {
+  const [isShowPassword, setIsShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [username, setUserName] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const navigate = useNavigate();
+  const mutation = useMutation({
+    mutationFn: (data) => UserService.signUpUser(data),
+
+    onError: (error) => {
+      setErrorMessage(error?.response?.data?.message);
+    },
+  });
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    mutation.mutate({ username, email, password, confirmPassword });
+    navigate("/login");
+  };
   return (
     <>
       <div className="mt-30">
@@ -18,51 +40,93 @@ function SignUp() {
               <div className="text-xl text-black/70">Tạo tài khoản mới</div>
             </div>
             <div className="mt-10">
-              <label for="name" className="text-xl font-semibold">
-                Họ và tên
-              </label>
-              <br />
-              <input
-                type="text"
-                name="name"
-                id="name"
-                placeholder="Nhập họ và tên..."
-                className="w-full p-2 border-2 border-[var(--primary-color)]/30 rounded-md outline-none my-3"
-              />
-              <label for="email" className="text-xl font-semibold">
-                Email
-              </label>
-              <br />
-              <input
-                type="email"
-                name="email"
-                id="email"
-                placeholder="Nhập email..."
-                className="w-full p-2 border-2 border-[var(--primary-color)]/30 rounded-md outline-none my-3"
-              />
-              <label for="email" className="text-xl font-semibold">
-                Mật khẩu
-              </label>
-              <br />
-              <input
-                type="password"
-                name="password"
-                id="password"
-                placeholder="Nhập mật khẩu..."
-                className="w-full p-2 border-2 border-[var(--primary-color)]/30 rounded-md outline-none my-3"
-              />
-              <label for="email" className="text-xl font-semibold">
-                Xác nhận mật khẩu
-              </label>
-              <br />
-              <input
-                type="password"
-                name="password"
-                id="password"
-                placeholder="Nhập lại mật khẩu..."
-                className="w-full p-2 border-2 border-[var(--primary-color)]/30 rounded-md outline-none my-3"
-              />
-              <button className="w-full my-3">Đăng ký</button>
+              <form onSubmit={handleSubmit}>
+                <div>
+                  <label htmlFor="name" className="text-xl font-semibold">
+                    Tên tài khoản
+                  </label>
+                  <br />
+                  <input
+                    value={username}
+                    onChange={(e) => setUserName(e.target.value)}
+                    type="text"
+                    name="name"
+                    id="name"
+                    placeholder="Nhập tên tài khoản..."
+                    className="w-full p-2 border-2 border-[var(--primary-color)]/30 rounded-md outline-none my-3"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="email" className="text-xl font-semibold">
+                    Email
+                  </label>
+                  <br />
+                  <input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    type="email"
+                    name="email"
+                    id="email"
+                    placeholder="Nhập email..."
+                    className="w-full p-2 border-2 border-[var(--primary-color)]/30 rounded-md outline-none my-3"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="email" className="text-xl font-semibold">
+                    Mật khẩu
+                  </label>
+                  <br />
+                  <div className="relative">
+                    <input
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      type={isShowPassword ? "text" : "password"}
+                      name="password"
+                      id="password"
+                      placeholder="Nhập mật khẩu..."
+                      className="w-full p-2 border-2 border-[var(--primary-color)]/30 rounded-md outline-none my-3"
+                    />
+                    <i
+                      onClick={() => setIsShowPassword(!isShowPassword)}
+                      className={`text-[var(--primary-color)] fa-solid ${
+                        isShowPassword ? "fa-eye" : "fa-eye-slash"
+                      } absolute right-3 top-[26px] cursor-pointer`}
+                    ></i>
+                  </div>
+                </div>
+                <div>
+                  <label
+                    htmlFor="confirmPassword"
+                    className="text-xl font-semibold"
+                  >
+                    Xác nhận mật khẩu
+                  </label>
+                  <br />
+                  <div className="relative">
+                    <input
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      type={isShowPassword ? "text" : "password"}
+                      name="password"
+                      id="confirmPassword"
+                      placeholder="Nhập lại mật khẩu..."
+                      className="w-full p-2 border-2 border-[var(--primary-color)]/30 rounded-md outline-none my-3"
+                    />
+                    <i
+                      onClick={() => setIsShowPassword(!isShowPassword)}
+                      className={`text-[var(--primary-color)] fa-solid ${
+                        isShowPassword ? "fa-eye" : "fa-eye-slash"
+                      } absolute right-3 top-[26px] cursor-pointer`}
+                    ></i>
+                  </div>
+                </div>
+                {mutation.isError && (
+                  <p className="text-red-500 mt-2">{errorMessage}</p>
+                )}
+                <button type="submit" className="w-full my-3">
+                  Đăng ký
+                </button>
+              </form>
               <div className="text-center text-xl">
                 <p>
                   Chưa có tài khoản?
