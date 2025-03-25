@@ -29,7 +29,7 @@ function Login() {
       navigate("/");
       message.success("Đăng nhập thành công");
       const token = data?.data?.token;
-      localStorage.setItem("access_token", token);
+      localStorage.setItem("access_token", JSON.stringify(token));
       if (token) {
         const decoded = jwtDecode(token);
         if (decoded?.userId) {
@@ -41,7 +41,6 @@ function Login() {
   const handleGetDetailsUser = async (id, token) => {
     try {
       const response = await UserService.getDetailUser(id, token);
-      console.log(response);
       dispatch(setUser(response?.data, token));
     } catch (error) {
       console.log("Error get details user", error);

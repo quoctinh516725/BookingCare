@@ -152,7 +152,7 @@ const Test = () => {
               </div>
               <div className="mb-4 h-2 bg-gray-200 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-[var(--primary-color)]"
+                  className="h-full bg-[var(--primary-color)] transition-[width] duration-1000 ease-in-out"
                   style={{ width: `${progress}%` }}
                 ></div>
               </div>
