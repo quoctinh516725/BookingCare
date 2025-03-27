@@ -1,7 +1,7 @@
-import { Link, useNavigate} from "react-router-dom";
-import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import UserService from "../../services/UserService";
+import UserService from "../../../services/UserService";
 import logo from "../../assets/logo.png";
 
 function SignUp() {
@@ -21,9 +21,24 @@ function SignUp() {
   });
   const handleSubmit = (e) => {
     e.preventDefault();
-    mutation.mutate({ username, email, password, confirmPassword });
-    navigate("/login");
+    if (password !== confirmPassword) {
+      setErrorMessage("Mật khẩu xác nhận không khớp");
+      return;
+    }
+    const registerData = {
+      username,
+      email,
+      password,
+    };
+    mutation.mutate(registerData);
   };
+  const { data, isLoading, isSuccess } = mutation;
+
+  useEffect(() => {
+    if (isSuccess) {
+      navigate("/login");
+    }
+  }, [isSuccess]);
   return (
     <>
       <div className="mt-30">

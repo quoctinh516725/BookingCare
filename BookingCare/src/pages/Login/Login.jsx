@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useContext, useEffect } from "react";
 import logo from "../../assets/logo.png";
-import UserService from "../../services/UserService";
+import UserService from "../../../services/UserService";
 import { useMutation } from "@tanstack/react-query";
 import { MessageContext } from "../../contexts/MessageProvider.jsx";
 import { jwtDecode } from "jwt-decode";
@@ -18,18 +18,25 @@ function Login() {
   const mutation = useMutation({
     mutationFn: (data) => UserService.loginUser(data),
   });
+
   const handleSubmit = (e) => {
     e.preventDefault();
     mutation.mutate({ username, password });
   };
+
   const { data, isLoading, isSuccess } = mutation;
+  console.log(data);
 
   useEffect(() => {
     if (isSuccess) {
       navigate("/");
       message.success("Đăng nhập thành công");
-      const token = data?.data?.token;
+      const token = data?.token;
+      const refreshToken = data?.refreshToken;
+
+      // Only store the access token in localStorage
       localStorage.setItem("access_token", JSON.stringify(token));
+
       if (token) {
         const decoded = jwtDecode(token);
         if (decoded?.userId) {
@@ -41,7 +48,7 @@ function Login() {
   const handleGetDetailsUser = async (id, token) => {
     try {
       const response = await UserService.getDetailUser(id, token);
-      dispatch(setUser(response?.data, token));
+      dispatch(setUser({ ...response, access_token: token }));
     } catch (error) {
       console.log("Error get details user", error);
     }

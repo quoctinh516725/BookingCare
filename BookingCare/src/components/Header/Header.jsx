@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 function Header() {
   const location = useLocation();
   const { username, email } = useSelector((state) => state.user);
+  
   const navigate = useNavigate();
   const handleLogin = () => {
     navigate("/login");
