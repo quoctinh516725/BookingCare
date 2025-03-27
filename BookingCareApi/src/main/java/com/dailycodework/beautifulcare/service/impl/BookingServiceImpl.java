@@ -1,185 +1,345 @@
 package com.dailycodework.beautifulcare.service.impl;
 
-import com.dailycodework.beautifulcare.dto.request.BookingCreateRequest;
-import com.dailycodework.beautifulcare.dto.request.BookingUpdateRequest;
-import com.dailycodework.beautifulcare.dto.request.SpecialistAssignmentRequest;
+import com.dailycodework.beautifulcare.dto.request.BookingRequest;
 import com.dailycodework.beautifulcare.dto.response.BookingResponse;
 import com.dailycodework.beautifulcare.entity.Booking;
 import com.dailycodework.beautifulcare.entity.BookingStatus;
-import com.dailycodework.beautifulcare.entity.Customer;
-import com.dailycodework.beautifulcare.entity.Specialist;
-import com.dailycodework.beautifulcare.exception.AppException;
-import com.dailycodework.beautifulcare.exception.ErrorCode;
+import com.dailycodework.beautifulcare.entity.Service;
+import com.dailycodework.beautifulcare.entity.User;
+import com.dailycodework.beautifulcare.exception.AccessDeniedException;
+import com.dailycodework.beautifulcare.exception.BookingConflictException;
+import com.dailycodework.beautifulcare.exception.InvalidBookingException;
+import com.dailycodework.beautifulcare.exception.InvalidOperationException;
+import com.dailycodework.beautifulcare.exception.ResourceNotFoundException;
+import com.dailycodework.beautifulcare.mapper.BookingMapper;
 import com.dailycodework.beautifulcare.repository.BookingRepository;
-import com.dailycodework.beautifulcare.repository.CustomerRepository;
 import com.dailycodework.beautifulcare.repository.ServiceRepository;
-import com.dailycodework.beautifulcare.repository.SpecialistRepository;
+import com.dailycodework.beautifulcare.security.SecurityUtils;
 import com.dailycodework.beautifulcare.service.BookingService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
+import java.time.LocalTime;
 import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Service
+@Component
 @RequiredArgsConstructor
+@Slf4j
 public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
-    private final CustomerRepository customerRepository;
+    private final BookingMapper bookingMapper;
     private final ServiceRepository serviceRepository;
-    private final SpecialistRepository specialistRepository;
+    private final SecurityUtils securityUtils;
 
     @Override
-    public BookingResponse createBooking(BookingCreateRequest request) {
-        // Find customer
-        Customer customer = customerRepository.findById(request.getCustomerId())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-
-        // Create new booking
-        Booking booking = new Booking();
-        booking.setCustomer(customer);
-        booking.setBookingTime(request.getBookingTime());
-        booking.setNote(request.getNote());
-        booking.setStatus(BookingStatus.PENDING);
-        booking.setCreatedAt(LocalDateTime.now());
-
-        // Save booking
-        Booking savedBooking = bookingRepository.save(booking);
-
-        // Convert to response
-        return mapToBookingResponse(savedBooking);
-    }
-
-    @Override
-    public List<BookingResponse> getAllBookings(BookingStatus status) {
-        List<Booking> bookings;
-
-        if (status != null) {
-            bookings = bookingRepository.findByStatus(status);
-        } else {
-            bookings = bookingRepository.findAll();
-        }
-
-        return bookings.stream()
-                .map(this::mapToBookingResponse)
+    public List<BookingResponse> getAllBookings() {
+        // Admin/Staff access is checked at controller level with @PreAuthorize
+        return bookingRepository.findAll().stream()
+                .map(bookingMapper::toBookingResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public BookingResponse getBookingById(String id) {
-        Booking booking = findBookingById(id);
-        return mapToBookingResponse(booking);
+    public BookingResponse getBookingById(UUID id) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        // Check if the user has permission to access this booking
+        if (!securityUtils.hasBookingAccess(booking)) {
+            throw new AccessDeniedException("You don't have permission to access this booking");
+        }
+
+        return bookingMapper.toBookingResponse(booking);
     }
 
     @Override
-    public BookingResponse updateBooking(String id, BookingUpdateRequest request) {
-        Booking booking = findBookingById(id);
+    @Transactional
+    public BookingResponse createBooking(BookingRequest request) {
+        log.info("Creating new booking");
 
-        // Update information
-        if (request.getBookingTime() != null) {
-            booking.setBookingTime(request.getBookingTime());
+        // Make sure customer ID matches the current user (unless admin/staff)
+        User currentUser = securityUtils.getCurrentUser();
+        if (!securityUtils.isAdminOrStaff() && !currentUser.getId().equals(request.getCustomerId())) {
+            throw new AccessDeniedException("You can only create bookings for yourself");
         }
 
-        if (request.getNote() != null) {
-            booking.setNote(request.getNote());
+        // Kiểm tra thời gian đặt lịch
+        if (request.getBookingDate().isBefore(LocalDate.now())) {
+            throw new InvalidBookingException("Cannot create booking for past dates");
         }
 
-        if (request.getStatus() != null) {
-            booking.setStatus(request.getStatus());
+        // Chuyển đổi ngày và giờ thành LocalDateTime
+        LocalDateTime appointmentTime = request.getBookingDate().atTime(request.getStartTime());
+
+        // Kiểm tra xung đột lịch
+        boolean hasConflict = checkBookingTimeConflict(
+                request.getBookingDate(),
+                request.getStartTime(),
+                request.getEndTime() != null ? request.getEndTime()
+                        : request.getStartTime().plusMinutes(calculateDuration(request.getServiceIds())));
+
+        if (hasConflict) {
+            throw new BookingConflictException("The requested time slot is not available");
         }
 
-        Booking updatedBooking = bookingRepository.save(booking);
-        return mapToBookingResponse(updatedBooking);
+        Booking booking = bookingMapper.toBooking(request);
+
+        // Tính toán tổng giá trị booking dựa trên dịch vụ
+        BigDecimal totalPrice = calculateTotalPrice(request.getServiceIds());
+        booking.setTotalPrice(totalPrice);
+
+        return bookingMapper.toBookingResponse(bookingRepository.save(booking));
     }
 
     @Override
-    public void cancelBooking(String id) {
-        Booking booking = findBookingById(id);
+    @Transactional
+    public BookingResponse updateBooking(UUID id, BookingRequest request) {
+        log.info("Updating booking with ID: {}", id);
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 
-        // Check if booking can be cancelled
-        if (booking.getStatus() == BookingStatus.COMPLETED ||
-                booking.getStatus() == BookingStatus.IN_PROGRESS) {
-            throw new AppException(ErrorCode.BOOKING_CANNOT_BE_CANCELLED);
+        // Check if the user has permission to update this booking
+        if (!securityUtils.hasBookingAccess(booking)) {
+            throw new AccessDeniedException("You don't have permission to update this booking");
         }
 
-        booking.setStatus(BookingStatus.CANCELLED);
-        bookingRepository.save(booking);
+        // Customers can only update their own bookings
+        User currentUser = securityUtils.getCurrentUser();
+        if (!securityUtils.isAdminOrStaff() && !currentUser.getId().equals(request.getCustomerId())) {
+            throw new AccessDeniedException("You can only update your own bookings");
+        }
+
+        // Kiểm tra trạng thái hiện tại của booking
+        if (booking.getStatus() == BookingStatus.CANCELLED ||
+                booking.getStatus() == BookingStatus.COMPLETED ||
+                booking.getStatus() == BookingStatus.NO_SHOW) {
+            throw new InvalidOperationException("Cannot update booking with status: " + booking.getStatus());
+        }
+
+        // Kiểm tra thời gian đặt lịch
+        if (request.getBookingDate().isBefore(LocalDate.now())) {
+            throw new InvalidBookingException("Cannot update booking to a past date");
+        }
+
+        // Kiểm tra xung đột lịch (trừ booking hiện tại)
+        boolean hasConflict = checkBookingTimeConflictExcludingCurrent(
+                id,
+                request.getBookingDate(),
+                request.getStartTime(),
+                request.getEndTime() != null ? request.getEndTime()
+                        : request.getStartTime().plusMinutes(calculateDuration(request.getServiceIds())));
+
+        if (hasConflict) {
+            throw new BookingConflictException("The requested time slot is not available");
+        }
+
+        bookingMapper.updateBooking(booking, request);
+
+        // Cập nhật lại tổng giá
+        BigDecimal totalPrice = calculateTotalPrice(request.getServiceIds());
+        booking.setTotalPrice(totalPrice);
+
+        return bookingMapper.toBookingResponse(bookingRepository.save(booking));
     }
 
     @Override
-    public BookingResponse updateBookingStatus(String id, BookingStatus status) {
-        Booking booking = findBookingById(id);
+    @Transactional
+    public void deleteBooking(UUID id) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        // Check if the user has permission to delete this booking
+        if (!securityUtils.hasBookingAccess(booking)) {
+            throw new AccessDeniedException("You don't have permission to delete this booking");
+        }
+
+        // Additional check for booking status - only allow deletion of pending or
+        // confirmed bookings
+        if (booking.getStatus() != BookingStatus.PENDING &&
+                booking.getStatus() != BookingStatus.CONFIRMED) {
+            throw new InvalidOperationException("Cannot delete booking with status: " + booking.getStatus());
+        }
+
+        bookingRepository.deleteById(id);
+    }
+
+    @Override
+    public List<BookingResponse> getBookingsByCustomer(UUID customerId) {
+        // If not admin/staff and not the customer, deny access
+        if (!securityUtils.isAdminOrStaff() && !securityUtils.getCurrentUser().getId().equals(customerId)) {
+            throw new AccessDeniedException("You don't have permission to view these bookings");
+        }
+
+        return bookingRepository.findByCustomerId(customerId).stream()
+                .map(bookingMapper::toBookingResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<BookingResponse> getBookingsByDate(LocalDate date) {
+        // Only admin and staff should be able to view bookings by date
+        if (!securityUtils.isAdminOrStaff()) {
+            throw new AccessDeniedException("Only administrators and staff can view bookings by date");
+        }
+
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.atTime(LocalTime.MAX);
+        return bookingRepository.findByAppointmentTimeBetween(startOfDay, endOfDay).stream()
+                .map(bookingMapper::toBookingResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public Page<BookingResponse> getAllBookings(BookingStatus status, Pageable pageable) {
+        // Admin/Staff access is checked at controller level with @PreAuthorize
+        if (status != null) {
+            return bookingRepository.findByStatus(status, pageable)
+                    .map(bookingMapper::toBookingResponse);
+        } else {
+            return bookingRepository.findAll(pageable)
+                    .map(bookingMapper::toBookingResponse);
+        }
+    }
+
+    @Override
+    @Transactional
+    public BookingResponse updateBookingStatus(UUID id, BookingStatus status) {
+        log.info("Updating status for booking ID: {} to {}", id, status);
+
+        // Only admin and staff should be able to update booking status
+        if (!securityUtils.isAdminOrStaff()) {
+            throw new AccessDeniedException("Only administrators and staff can update booking status");
+        }
+
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        // Validate status transitions
+        validateStatusTransition(booking.getStatus(), status);
+
         booking.setStatus(status);
-        Booking updatedBooking = bookingRepository.save(booking);
-        return mapToBookingResponse(updatedBooking);
+        return bookingMapper.toBookingResponse(bookingRepository.save(booking));
     }
 
-    @Override
-    public BookingResponse checkinCustomer(String id) {
-        Booking booking = findBookingById(id);
+    /**
+     * Validate that the status transition is allowed
+     */
+    private void validateStatusTransition(BookingStatus currentStatus, BookingStatus newStatus) {
+        // Define allowed transitions
+        boolean isAllowed = switch (currentStatus) {
+            case PENDING -> newStatus == BookingStatus.CONFIRMED ||
+                    newStatus == BookingStatus.CANCELLED;
+            case CONFIRMED -> newStatus == BookingStatus.COMPLETED ||
+                    newStatus == BookingStatus.CANCELLED ||
+                    newStatus == BookingStatus.NO_SHOW;
+            case COMPLETED, CANCELLED, NO_SHOW -> false; // Terminal states
+        };
 
-        // Check booking status
-        if (booking.getStatus() != BookingStatus.PENDING) {
-            throw new AppException(ErrorCode.BOOKING_INVALID_STATUS);
+        if (!isAllowed) {
+            throw new InvalidOperationException(
+                    "Cannot change booking status from " + currentStatus + " to " + newStatus);
+        }
+    }
+
+    /**
+     * Kiểm tra xung đột lịch với các booking khác
+     */
+    private boolean checkBookingTimeConflict(LocalDate date, LocalTime startTime, LocalTime endTime) {
+        LocalDateTime startDateTime = date.atTime(startTime);
+        LocalDateTime endDateTime = date.atTime(endTime);
+
+        // Lấy tất cả các booking trong cùng ngày và chưa bị hủy/hoàn thành
+        List<Booking> existingBookings = bookingRepository.findByAppointmentTimeBetweenAndStatusIn(
+                date.atStartOfDay(),
+                date.atTime(LocalTime.MAX),
+                List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED));
+
+        // Kiểm tra xung đột với từng booking hiện có
+        for (Booking booking : existingBookings) {
+            LocalDateTime bookingStart = booking.getAppointmentTime();
+            // Giả sử thời gian kết thúc là thời gian bắt đầu + tổng thời gian của các dịch
+            // vụ
+            LocalDateTime bookingEnd = bookingStart.plusMinutes(calculateBookingDuration(booking));
+
+            // Kiểm tra xung đột thời gian
+            if ((startDateTime.isBefore(bookingEnd) && endDateTime.isAfter(bookingStart))) {
+                return true; // Có xung đột
+            }
         }
 
-        booking.setStatus(BookingStatus.CHECKED_IN);
-        booking.setCheckinTime(LocalDateTime.now());
-
-        Booking updatedBooking = bookingRepository.save(booking);
-        return mapToBookingResponse(updatedBooking);
+        return false; // Không có xung đột
     }
 
-    @Override
-    public BookingResponse assignSpecialist(String id, SpecialistAssignmentRequest request) {
-        Booking booking = findBookingById(id);
+    /**
+     * Kiểm tra xung đột lịch với các booking khác, loại trừ booking được chỉ định
+     */
+    private boolean checkBookingTimeConflictExcludingCurrent(UUID bookingId, LocalDate date,
+            LocalTime startTime, LocalTime endTime) {
+        LocalDateTime startDateTime = date.atTime(startTime);
+        LocalDateTime endDateTime = date.atTime(endTime);
 
-        // Find specialist
-        Specialist specialist = specialistRepository.findById(request.getSpecialistId())
-                .orElseThrow(() -> new AppException(ErrorCode.SPECIALIST_NOT_FOUND));
+        // Lấy tất cả các booking trong cùng ngày và chưa bị hủy/hoàn thành, trừ booking
+        // hiện tại
+        List<Booking> existingBookings = bookingRepository.findByAppointmentTimeBetweenAndStatusInAndIdNot(
+                date.atStartOfDay(),
+                date.atTime(LocalTime.MAX),
+                List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED),
+                bookingId);
 
-        // TODO: Implement specialist assignment logic in booking detail
+        // Kiểm tra xung đột với từng booking hiện có
+        for (Booking booking : existingBookings) {
+            LocalDateTime bookingStart = booking.getAppointmentTime();
+            // Giả sử thời gian kết thúc là thời gian bắt đầu + tổng thời gian của các dịch
+            // vụ
+            LocalDateTime bookingEnd = bookingStart.plusMinutes(calculateBookingDuration(booking));
 
-        return mapToBookingResponse(booking);
-    }
-
-    @Override
-    public BookingResponse checkoutCustomer(String id) {
-        Booking booking = findBookingById(id);
-
-        // Check booking status
-        if (booking.getStatus() != BookingStatus.IN_PROGRESS) {
-            throw new AppException(ErrorCode.BOOKING_INVALID_STATUS);
+            // Kiểm tra xung đột thời gian
+            if ((startDateTime.isBefore(bookingEnd) && endDateTime.isAfter(bookingStart))) {
+                return true; // Có xung đột
+            }
         }
 
-        booking.setStatus(BookingStatus.COMPLETED);
-        booking.setCheckoutTime(LocalDateTime.now());
-
-        Booking updatedBooking = bookingRepository.save(booking);
-        return mapToBookingResponse(updatedBooking);
+        return false; // Không có xung đột
     }
 
-    // Helper methods
-    private Booking findBookingById(String id) {
-        return bookingRepository.findById(id)
-                .orElseThrow(() -> new AppException(ErrorCode.BOOKING_NOT_FOUND));
+    /**
+     * Tính tổng thời gian của một booking dựa trên các dịch vụ
+     */
+    private int calculateBookingDuration(Booking booking) {
+        return booking.getServices().stream()
+                .mapToInt(Service::getDuration)
+                .sum();
     }
 
-    private BookingResponse mapToBookingResponse(Booking booking) {
-        // Map Booking object to BookingResponse
-        return BookingResponse.builder()
-                .id(booking.getId())
-                .customerId(booking.getCustomer().getId())
-                .customerName(booking.getCustomer().getFirstName() + " " + booking.getCustomer().getLastName())
-                .bookingTime(booking.getBookingTime())
-                .status(booking.getStatus())
-                .note(booking.getNote())
-                .checkinTime(booking.getCheckinTime())
-                .checkoutTime(booking.getCheckoutTime())
-                .createdAt(booking.getCreatedAt())
-                // TODO: Map other fields when needed
-                .build();
+    /**
+     * Tính tổng thời gian các dịch vụ được chọn
+     */
+    private int calculateDuration(Set<UUID> serviceIds) {
+        return serviceIds.stream()
+                .map(id -> serviceRepository.findById(id)
+                        .orElseThrow(() -> new ResourceNotFoundException("Service not found with id: " + id)))
+                .mapToInt(Service::getDuration)
+                .sum();
+    }
+
+    /**
+     * Tính tổng giá trị các dịch vụ được chọn
+     */
+    private BigDecimal calculateTotalPrice(Set<UUID> serviceIds) {
+        return serviceIds.stream()
+                .map(id -> serviceRepository.findById(id)
+                        .orElseThrow(() -> new ResourceNotFoundException("Service not found with id: " + id)))
+                .map(Service::getPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }

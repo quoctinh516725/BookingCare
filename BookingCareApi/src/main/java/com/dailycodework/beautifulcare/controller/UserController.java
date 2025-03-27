@@ -1,19 +1,17 @@
 package com.dailycodework.beautifulcare.controller;
 
-import com.dailycodework.beautifulcare.dto.request.UserCreateRequest;
-import com.dailycodework.beautifulcare.dto.request.UserUpdateRequest;
-import com.dailycodework.beautifulcare.dto.response.ApiResponse;
+import com.dailycodework.beautifulcare.dto.request.UserRequest;
 import com.dailycodework.beautifulcare.dto.response.UserResponse;
 import com.dailycodework.beautifulcare.service.UserService;
+import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * @deprecated This controller is deprecated and will be removed in a future
@@ -21,54 +19,42 @@ import java.util.List;
  *             Please use {@link UserManagementController} instead.
  */
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/api/v1/users")
 @RequiredArgsConstructor
-@Slf4j
-@Deprecated(forRemoval = true)
-@Tag(name = "Users (Deprecated)", description = "Deprecated API for user management. Use /api/v1/users instead.")
+@Tag(name = "User", description = "User management APIs")
 public class UserController {
     private final UserService userService;
 
-    @PostMapping
-    @Deprecated
-    public ResponseEntity<ApiResponse<UserResponse>> createUser(@Valid @RequestBody UserCreateRequest request) {
-        log.info("REST request to create a new user (deprecated)");
-        UserResponse createdUser = userService.createUser(request);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("User created successfully", createdUser));
-    }
-
     @GetMapping
-    @Deprecated
-    public ResponseEntity<ApiResponse<List<UserResponse>>> getAllUsers() {
-        log.info("REST request to get all users (deprecated)");
-        List<UserResponse> users = userService.getAllUsers();
-        return ResponseEntity.ok(ApiResponse.success("Users retrieved successfully", users));
+    @Operation(summary = "Get all users")
+    public ResponseEntity<List<UserResponse>> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUsers());
     }
 
-    @GetMapping("/{userId}")
-    @Deprecated
-    public ResponseEntity<ApiResponse<UserResponse>> getUserById(@PathVariable("userId") String userId) {
-        log.info("REST request to get user by id: {} (deprecated)", userId);
-        UserResponse user = userService.getUserById(userId);
-        return ResponseEntity.ok(ApiResponse.success("User retrieved successfully", user));
+    @GetMapping("/{id}")
+    @Operation(summary = "Get user by ID")
+    public ResponseEntity<UserResponse> getUserById(@PathVariable UUID id) {
+        return ResponseEntity.ok(userService.getUserById(id));
     }
 
-    @PutMapping("/{userId}")
-    @Deprecated
-    public ResponseEntity<ApiResponse<UserResponse>> updateUser(
-            @PathVariable String userId,
-            @Valid @RequestBody UserUpdateRequest request) {
-        log.info("REST request to update user with id: {} (deprecated)", userId);
-        UserResponse updatedUser = userService.updateUser(userId, request);
-        return ResponseEntity.ok(ApiResponse.success("User updated successfully", updatedUser));
+    @PostMapping
+    @Operation(summary = "Create new user")
+    public ResponseEntity<UserResponse> createUser(@Valid @RequestBody UserRequest request) {
+        return ResponseEntity.ok(userService.createUser(request));
     }
 
-    @DeleteMapping("/{userId}")
-    @Deprecated
-    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable String userId) {
-        log.info("REST request to delete user with id: {} (deprecated)", userId);
-        userService.deleteUser(userId);
-        return ResponseEntity.ok(ApiResponse.success("User deleted successfully", null));
+    @PutMapping("/{id}")
+    @Operation(summary = "Update user")
+    public ResponseEntity<UserResponse> updateUser(
+            @PathVariable UUID id,
+            @Valid @RequestBody UserRequest request) {
+        return ResponseEntity.ok(userService.updateUser(id, request));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "Delete user")
+    public ResponseEntity<Void> deleteUser(@PathVariable UUID id) {
+        userService.deleteUser(id);
+        return ResponseEntity.ok().build();
     }
 }

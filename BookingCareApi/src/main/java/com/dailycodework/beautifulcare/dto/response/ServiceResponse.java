@@ -7,20 +7,20 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
-@NoArgsConstructor
 @AllArgsConstructor
+@NoArgsConstructor
 public class ServiceResponse {
-    private String id;
+    private UUID id;
     private String name;
     private String description;
     private BigDecimal price;
-    private Integer durationMinutes;
-    private String categoryId;
-    private String categoryName;
-    private String imageUrl;
+    private Integer duration;
+    private String image;
+    private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

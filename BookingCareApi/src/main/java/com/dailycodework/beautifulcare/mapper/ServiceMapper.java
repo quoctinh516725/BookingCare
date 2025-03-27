@@ -1,13 +1,15 @@
 package com.dailycodework.beautifulcare.mapper;
 
-import com.dailycodework.beautifulcare.dto.request.ServiceCreateRequest;
-import com.dailycodework.beautifulcare.dto.request.ServiceUpdateRequest;
+import com.dailycodework.beautifulcare.dto.request.ServiceRequest;
 import com.dailycodework.beautifulcare.dto.response.ServiceResponse;
 import com.dailycodework.beautifulcare.entity.Service;
-import com.dailycodework.beautifulcare.entity.ServiceCategory;
-import org.springframework.stereotype.Component;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 
 import java.util.List;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Mapper interface for Service entity.
@@ -19,7 +21,7 @@ import java.util.List;
  * @version 1.0
  * @since 2025-03-21
  */
-@Component
+@Mapper(componentModel = "spring")
 public interface ServiceMapper {
 
     /**
@@ -30,29 +32,33 @@ public interface ServiceMapper {
      * @param service the service entity to map
      * @return the mapped service response DTO
      */
+    @Mapping(target = "id", source = "id")
     ServiceResponse toServiceResponse(Service service);
 
     /**
-     * Maps a ServiceCreateRequest DTO to a Service entity.
+     * Maps a ServiceRequest DTO to a Service entity.
      * This method should create a new Service entity populated with data from the
      * request DTO.
      *
-     * @param request  the service create request DTO
-     * @param category the service category entity
+     * @param request the service request DTO
      * @return the mapped service entity
      */
-    Service toService(ServiceCreateRequest request, ServiceCategory category);
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    Service toService(ServiceRequest request);
 
     /**
-     * Updates a Service entity with values from a ServiceUpdateRequest DTO.
+     * Updates a Service entity with values from a ServiceRequest DTO.
      * This method should update only the fields that are specified in the request.
      *
-     * @param service  the service entity to update
-     * @param request  the service update request DTO
-     * @param category the service category entity
-     * @return the updated service entity
+     * @param service the service entity to update
+     * @param request the service request DTO
      */
-    Service updateService(Service service, ServiceUpdateRequest request, ServiceCategory category);
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", ignore = true)
+    void updateService(@MappingTarget Service service, ServiceRequest request);
 
     /**
      * Converts a list of Service entities to a list of ServiceResponse DTOs.
@@ -62,5 +68,5 @@ public interface ServiceMapper {
      * @param services the list of service entities
      * @return the list of service response DTOs
      */
-    List<ServiceResponse> toServiceResponseList(List<Service> services);
+    List<ServiceResponse> toServiceResponses(List<Service> services);
 }

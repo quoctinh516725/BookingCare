@@ -1,12 +1,14 @@
 package com.dailycodework.beautifulcare.service;
 
-import com.dailycodework.beautifulcare.dto.request.BookingCreateRequest;
-import com.dailycodework.beautifulcare.dto.request.BookingUpdateRequest;
-import com.dailycodework.beautifulcare.dto.request.SpecialistAssignmentRequest;
+import com.dailycodework.beautifulcare.dto.request.BookingRequest;
 import com.dailycodework.beautifulcare.dto.response.BookingResponse;
 import com.dailycodework.beautifulcare.entity.BookingStatus;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Service interface for managing booking operations
@@ -14,76 +16,75 @@ import java.util.List;
 public interface BookingService {
 
     /**
-     * Create a new booking
-     * 
-     * @param request Booking creation request
-     * @return BookingResponse with booking details
+     * Gets all bookings.
+     *
+     * @return a list of bookings
      */
-    BookingResponse createBooking(BookingCreateRequest request);
+    List<BookingResponse> getAllBookings();
 
     /**
-     * Get all bookings with optional status filter
-     * 
-     * @param status Optional status filter
-     * @return List of booking responses
+     * Gets a booking by its ID.
+     *
+     * @param id the booking ID
+     * @return the booking
      */
-    List<BookingResponse> getAllBookings(BookingStatus status);
+    BookingResponse getBookingById(UUID id);
 
     /**
-     * Get booking by ID
-     * 
-     * @param id Booking ID
-     * @return BookingResponse with booking details
+     * Creates a new booking for a customer.
+     *
+     * @param request the booking data
+     * @return the created booking
      */
-    BookingResponse getBookingById(String id);
+    BookingResponse createBooking(BookingRequest request);
 
     /**
-     * Update a booking
-     * 
-     * @param id      Booking ID
-     * @param request Booking update request
-     * @return Updated booking response
+     * Updates a booking with new information.
+     *
+     * @param id      the booking ID
+     * @param request the updated booking data
+     * @return the updated booking
      */
-    BookingResponse updateBooking(String id, BookingUpdateRequest request);
+    BookingResponse updateBooking(UUID id, BookingRequest request);
 
     /**
-     * Cancel a booking
-     * 
-     * @param id Booking ID
+     * Deletes a booking.
+     *
+     * @param id the booking ID
      */
-    void cancelBooking(String id);
+    void deleteBooking(UUID id);
 
     /**
-     * Update booking status
-     * 
-     * @param id     Booking ID
-     * @param status New status
-     * @return Updated booking response
+     * Updates the status of a booking.
+     *
+     * @param id     the booking ID
+     * @param status the new status
+     * @return the updated booking
      */
-    BookingResponse updateBookingStatus(String id, BookingStatus status);
+    BookingResponse updateBookingStatus(UUID id, BookingStatus status);
 
     /**
-     * Check-in a customer for their booking
-     * 
-     * @param id Booking ID
-     * @return Updated booking response
+     * Gets all bookings for a specific customer.
+     *
+     * @param customerId the customer ID
+     * @return a list of bookings
      */
-    BookingResponse checkinCustomer(String id);
+    List<BookingResponse> getBookingsByCustomer(UUID customerId);
 
     /**
-     * Assign a specialist to a booking
-     * 
-     * @param id      Booking ID
-     * @param request Specialist assignment request
-     * @return Updated booking response
+     * Gets all bookings for a specific date.
+     *
+     * @param date the date
+     * @return a list of bookings
      */
-    BookingResponse assignSpecialist(String id, SpecialistAssignmentRequest request);
+    List<BookingResponse> getBookingsByDate(LocalDate date);
 
     /**
-     * Check-out a customer after their booking is complete
-     * 
-     * @param id Booking ID
-     * @return Updated booking response
+     * Gets all bookings, optionally filtered by status.
+     *
+     * @param status   the status to filter by, or null for all bookings
+     * @param pageable pagination information
+     * @return a page of bookings
      */
-    BookingResponse checkoutCustomer(String id);
+    Page<BookingResponse> getAllBookings(BookingStatus status, Pageable pageable);
 }

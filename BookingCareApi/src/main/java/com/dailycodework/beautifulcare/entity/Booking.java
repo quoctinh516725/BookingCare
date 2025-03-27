@@ -2,52 +2,54 @@ package com.dailycodework.beautifulcare.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
-@Entity
 @Data
+@Entity
 @Table(name = "bookings")
 @EntityListeners(AuditingEntityListener.class)
 public class Booking {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+    @GeneratedValue(generator = "uuid2")
+    @GenericGenerator(name = "uuid2", strategy = "uuid2")
+    @Column(name = "id", columnDefinition = "BINARY(16)")
+    private UUID id;
 
-    @ManyToOne
-    @JoinColumn(name = "customer_id")
-    private Customer customer;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id", columnDefinition = "BINARY(16)", nullable = false)
+    private User customer;
 
-    @ManyToOne
-    @JoinColumn(name = "specialist_id")
-    private Specialist specialist;
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(name = "booking_services", joinColumns = @JoinColumn(name = "booking_id", columnDefinition = "BINARY(16)"), inverseJoinColumns = @JoinColumn(name = "service_id", columnDefinition = "BINARY(16)"))
+    private Set<Service> services = new HashSet<>();
 
-    private LocalDateTime bookingTime;
-    private String note;
+    @Column(nullable = false)
+    private LocalDateTime appointmentTime;
+
+    @Column(nullable = false)
+    private BigDecimal totalPrice;
 
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private BookingStatus status = BookingStatus.PENDING;
 
-    @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL)
-    private List<BookingDetail> bookingDetails = new ArrayList<>();
+    @Column(length = 1000)
+    private String notes;
 
-    @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL)
-    private Payment payment;
-
-    @OneToMany(mappedBy = "booking")
-    private List<Treatment> treatments = new ArrayList<>();
-
-    private LocalDateTime checkinTime;
-    private LocalDateTime checkoutTime;
-
-    @CreatedDate
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @LastModifiedDate
+    @UpdateTimestamp
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 }

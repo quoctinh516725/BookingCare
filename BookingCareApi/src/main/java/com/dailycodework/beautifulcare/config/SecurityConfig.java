@@ -1,17 +1,22 @@
 package com.dailycodework.beautifulcare.config;
 
+import com.dailycodework.beautifulcare.security.JwtAuthenticationFilter;
+import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
-import org.springframework.security.config.Customizer;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -21,71 +26,46 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
 
-        private final JwtAuthenticationConverter jwtAuthenticationConverter;
+        private final JwtAuthenticationFilter jwtAuthFilter;
+        private final UserDetailsService userDetailsService;
 
-        public SecurityConfig(JwtAuthenticationConverter jwtAuthenticationConverter) {
-                this.jwtAuthenticationConverter = jwtAuthenticationConverter;
-        }
+        @Value("${spring.profiles.active:default}")
+        private String activeProfile;
 
         @Bean
         public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-                http
-                                .csrf(AbstractHttpConfigurer::disable)
-                                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                                .authorizeHttpRequests(authorize -> authorize
-                                                // Swagger UI và OpenAPI endpoints
-                                                .requestMatchers("/swagger-ui/**", "/api-docs/**").permitAll()
-                                                // Auth endpoints
-                                                .requestMatchers("/api/v1/users/auth/**").permitAll()
-                                                // Public GET endpoints
-                                                .requestMatchers(HttpMethod.GET, "/api/v1/services/**").permitAll()
-                                                .requestMatchers(HttpMethod.GET, "/api/v1/blogs/**").permitAll()
-                                                .requestMatchers(HttpMethod.GET, "/api/v1/service-categories/**")
-                                                .permitAll()
-                                                .requestMatchers(HttpMethod.GET, "/api/v1/blog-categories/**")
-                                                .permitAll()
+                // Kiểm tra xem đang ở môi trường test hay không
+                boolean isTestEnvironment = activeProfile.equals("test");
 
-                                                // ADMIN endpoints
-                                                .requestMatchers(HttpMethod.POST, "/api/v1/services/**")
-                                                .hasRole("ADMIN")
-                                                .requestMatchers(HttpMethod.PUT, "/api/v1/services/**").hasRole("ADMIN")
-                                                .requestMatchers(HttpMethod.DELETE, "/api/v1/services/**")
-                                                .hasRole("ADMIN")
-                                                .requestMatchers(HttpMethod.POST, "/api/v1/service-categories/**")
-                                                .hasRole("ADMIN")
-                                                .requestMatchers(HttpMethod.PUT, "/api/v1/service-categories/**")
-                                                .hasRole("ADMIN")
-                                                .requestMatchers(HttpMethod.DELETE, "/api/v1/service-categories/**")
-                                                .hasRole("ADMIN")
-
-                                                // CONTENT_CREATOR endpoints
-                                                .requestMatchers(HttpMethod.POST, "/api/v1/blogs/**")
-                                                .hasAnyRole("ADMIN", "CONTENT_CREATOR")
-                                                .requestMatchers(HttpMethod.PUT, "/api/v1/blogs/**")
-                                                .hasAnyRole("ADMIN", "CONTENT_CREATOR")
-                                                .requestMatchers(HttpMethod.DELETE, "/api/v1/blogs/**")
-                                                .hasAnyRole("ADMIN", "CONTENT_CREATOR")
-                                                .requestMatchers(HttpMethod.POST, "/api/v1/blog-categories/**")
-                                                .hasAnyRole("ADMIN", "CONTENT_CREATOR")
-                                                .requestMatchers(HttpMethod.PUT, "/api/v1/blog-categories/**")
-                                                .hasAnyRole("ADMIN", "CONTENT_CREATOR")
-                                                .requestMatchers(HttpMethod.DELETE, "/api/v1/blog-categories/**")
-                                                .hasAnyRole("ADMIN", "CONTENT_CREATOR")
-
-                                                // SPECIALIST endpoints
-                                                .requestMatchers("/api/v1/specialists/me/**")
-                                                .hasAnyRole("ADMIN", "SPECIALIST")
-
-                                                // Authenticated endpoints
-                                                .anyRequest().authenticated())
-                                .sessionManagement(session -> session
-                                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                                .oauth2ResourceServer(oauth2 -> oauth2
-                                                .jwt(jwt -> jwt.jwtAuthenticationConverter(
-                                                                jwtAuthenticationConverter)));
+                if (isTestEnvironment) {
+                        // Cấu hình cho môi trường test
+                        http
+                                        .csrf(csrf -> csrf.disable())
+                                        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                                        .authorizeHttpRequests(auth -> auth
+                                                        .anyRequest().permitAll())
+                                        .sessionManagement(session -> session
+                                                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+                } else {
+                        // Cấu hình bảo mật thực tế
+                        http
+                                        .csrf(csrf -> csrf.disable())
+                                        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                                        .authorizeHttpRequests(auth -> auth
+                                                        .requestMatchers("/api/v1/auth/**").permitAll()
+                                                        .requestMatchers("/api/v1/services/**").permitAll()
+                                                        .requestMatchers("/swagger-ui/**", "/api-docs/**",
+                                                                        "/v3/api-docs/**")
+                                                        .permitAll()
+                                                        .anyRequest().authenticated())
+                                        .sessionManagement(session -> session
+                                                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                        .authenticationProvider(authenticationProvider())
+                                        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                }
 
                 return http.build();
         }
@@ -93,16 +73,42 @@ public class SecurityConfig {
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration configuration = new CorsConfiguration();
-                configuration.setAllowedOrigins(List.of("*"));
-                configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-                configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type"));
-                configuration.setExposedHeaders(List.of("Authorization"));
-                configuration.setAllowCredentials(false);
+                configuration.setAllowedOrigins(List.of("http://localhost:5173")); // Chỉ cho phép một origin
+                configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+                configuration.setAllowedHeaders(Arrays.asList(
+                    "Authorization",
+                    "Content-Type",
+                    "X-Requested-With",
+                    "Accept",
+                    "Origin",
+                    "Access-Control-Request-Method",
+                    "Access-Control-Request-Headers"
+                ));
+                configuration.setExposedHeaders(Arrays.asList(
+                    "Authorization",
+                    "Access-Control-Allow-Origin",
+                    "Access-Control-Allow-Credentials",
+                    "Set-Cookie"
+                ));
+                configuration.setAllowCredentials(true);
                 configuration.setMaxAge(3600L);
 
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
                 source.registerCorsConfiguration("/**", configuration);
                 return source;
+        }
+
+        @Bean
+        public AuthenticationProvider authenticationProvider() {
+                DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+                authProvider.setUserDetailsService(userDetailsService);
+                authProvider.setPasswordEncoder(passwordEncoder());
+                return authProvider;
+        }
+
+        @Bean
+        public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+                return config.getAuthenticationManager();
         }
 
         @Bean

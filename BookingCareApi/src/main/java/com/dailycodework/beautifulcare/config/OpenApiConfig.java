@@ -7,7 +7,6 @@ import io.swagger.v3.oas.annotations.info.Info;
 import io.swagger.v3.oas.annotations.info.License;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.security.SecurityScheme;
-import io.swagger.v3.oas.annotations.security.SecuritySchemes;
 import io.swagger.v3.oas.annotations.servers.Server;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
@@ -16,7 +15,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@OpenAPIDefinition(info = @Info(title = "Beautiful Care API", version = "1.0", description = "REST API cho ứng dụng quản lý salon làm đẹp", contact = @Contact(name = "Beautiful Care Team", email = "support@beautifulcare.com", url = "https://beautifulcare.com"), license = @License(name = "MIT License", url = "https://opensource.org/licenses/MIT")), servers = {
+@OpenAPIDefinition(info = @Info(title = "Beautiful Care API", version = "1.0", description = "RESTful API for Booking Care Application - Core Services", contact = @Contact(name = "Beautiful Care Team", email = "support@beautifulcare.com", url = "https://beautifulcare.com"), license = @License(name = "MIT License", url = "https://opensource.org/licenses/MIT")), servers = {
                 @Server(url = "http://localhost:8080", description = "Local Development Server")
 }, security = {
                 @SecurityRequirement(name = "Bearer Authentication")

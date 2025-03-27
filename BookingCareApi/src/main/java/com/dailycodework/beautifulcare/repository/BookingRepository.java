@@ -2,28 +2,33 @@ package com.dailycodework.beautifulcare.repository;
 
 import com.dailycodework.beautifulcare.entity.Booking;
 import com.dailycodework.beautifulcare.entity.BookingStatus;
-import com.dailycodework.beautifulcare.entity.Customer;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Repository
-public interface BookingRepository extends JpaRepository<Booking, String> {
+public interface BookingRepository extends JpaRepository<Booking, UUID> {
+    List<Booking> findByCustomerId(UUID customerId);
+
+    List<Booking> findByAppointmentTimeBetween(LocalDateTime startDateTime, LocalDateTime endDateTime);
+
+    Page<Booking> findByStatus(BookingStatus status, Pageable pageable);
+
     List<Booking> findByStatus(BookingStatus status);
 
-    List<Booking> findByCustomer(Customer customer);
+    List<Booking> findByAppointmentTimeBetweenAndStatusIn(
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime,
+            List<BookingStatus> statuses);
 
-    List<Booking> findByCustomerId(String customerId);
-
-    List<Booking> findByBookingTimeBetween(LocalDateTime startDateTime, LocalDateTime endDateTime);
-
-    List<Booking> findByCustomerIdAndStatus(String customerId, BookingStatus status);
-
-    List<Booking> findByTreatmentsSpecialistId(String specialistId);
-
-    long countByStatus(BookingStatus status);
-
-    long countByBookingTimeBetween(LocalDateTime start, LocalDateTime end);
+    List<Booking> findByAppointmentTimeBetweenAndStatusInAndIdNot(
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime,
+            List<BookingStatus> statuses,
+            UUID bookingId);
 }

@@ -1,19 +1,27 @@
 package com.dailycodework.beautifulcare.dto.response;
 
-import lombok.*;
-import lombok.experimental.FieldDefaults;
+import com.dailycodework.beautifulcare.entity.UserRole;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.UUID;
+
 @Data
 @Builder
-@AllArgsConstructor
 @NoArgsConstructor
-@FieldDefaults(level = AccessLevel.PRIVATE)
+@AllArgsConstructor
 public class UserResponse {
-     String username;
-     String id;
-     String password;
-     String firstName;
-     String lastName;
-     LocalDate dob;
+     private UUID id;
+     private String username;
+     private String firstName;
+     private String lastName;
+     private String fullName;
+     private String email;
+     private String phoneNumber;
+     private UserRole role;
+     private LocalDateTime createdAt;
+     private LocalDateTime updatedAt;
 }

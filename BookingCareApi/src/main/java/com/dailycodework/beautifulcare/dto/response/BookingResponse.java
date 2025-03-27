@@ -6,26 +6,46 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
+import java.time.LocalTime;
+import java.util.Set;
+import java.util.UUID;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class BookingResponse {
-    private String id;
-    private String customerId;
+    private UUID id;
+    private UUID customerId;
     private String customerName;
-    private CustomerResponse customer;
-    private LocalDateTime bookingTime;
-    private String note;
+    private String customerEmail;
+    private String customerPhone;
     private BookingStatus status;
-    private List<BookingDetailResponse> details;
-    private PaymentResponse payment;
-    private List<TreatmentResponse> treatments;
-    private LocalDateTime checkinTime;
-    private LocalDateTime checkoutTime;
+    private String statusDescription;
+    private LocalDate bookingDate;
+    private LocalTime startTime;
+    private LocalTime endTime;
+    private String formattedDateTime;
+    private String notes;
+    private BigDecimal totalPrice;
+    private Set<ServiceDetail> services;
+    private boolean canCancel;
     private LocalDateTime createdAt;
-    private double totalPrice;
+    private LocalDateTime updatedAt;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ServiceDetail {
+        private UUID id;
+        private String name;
+        private String description;
+        private BigDecimal price;
+        private Integer duration;
+        private String image;
+    }
 }

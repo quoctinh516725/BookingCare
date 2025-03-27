@@ -1,36 +1,44 @@
 package com.dailycodework.beautifulcare.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.GenericGenerator;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Entity
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Table(name = "feedbacks")
-@EntityListeners(AuditingEntityListener.class)
 public class Feedback {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private String id;
+    @GeneratedValue(generator = "uuid2")
+    @GenericGenerator(name = "uuid2", strategy = "uuid2")
+    @Column(name = "id", columnDefinition = "BINARY(16)")
+    private UUID id;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private User user;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "booking_id", columnDefinition = "BINARY(16)", nullable = false)
+    private Booking booking;
 
-    private String subject;
-    private String message;
-    private boolean read = false;
-    private String reply;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "customer_id", columnDefinition = "BINARY(16)", nullable = false)
+    private User customer;
 
-    @ManyToOne
-    @JoinColumn(name = "replied_by")
-    private User repliedBy;
+    @Column(nullable = false)
+    private Integer rating;
 
-    private LocalDateTime repliedAt;
+    @Column(length = 1000)
+    private String comment;
 
-    @CreatedDate
+    @CreationTimestamp
     private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
 }

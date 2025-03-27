@@ -4,33 +4,38 @@ spring:
   main:
     allow-bean-definition-overriding: true
   datasource:
-    url: jdbc:mysql://localhost:3306/beautiful_care?createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://localhost:3306/skincarebeauti?allowPublicKeyRetrieval=true&useSSL=false&createDatabaseIfNotExist=true&zeroDateTimeBehavior=CONVERT_TO_NULL
     username: root
-    password: root
+    password: Tinh516725@
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: update
     show-sql: true
     properties:
       hibernate:
         format_sql: true
+        dialect: org.hibernate.dialect.MySQLDialect
+        jdbc:
+          time_zone: UTC
         globally_quoted_identifiers: true
         globally_quoted_identifiers_skip_column_definitions: true
-        physical_naming_strategy: org.hibernate.boot.model.naming.PhysicalNamingStrategyStandardImpl
+        id:
+          new_generator_mappings: true
+          db_structure_naming_strategy: legacy
     database-platform: org.hibernate.dialect.MySQLDialect
     defer-datasource-initialization: true
   sql:
     init:
-      mode: always
-      platform: mysql
-      schema-locations: classpath:schema.sql
-      data-locations: classpath:data.sql
-      continue-on-error: true
+      mode: never
 
-jwt:
-  signerKey: "LGeKsGSd24VeML6rG6EiNGDDBUBDpzR5pkXdT/piWaXmEh8qrvsihcqnmm/NW9ou"
-  expiration: 86400000 # 24 hours
+application:
+  security:
+    jwt:
+      secret-key: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
+      expiration: 20000 # 24 hours
+      refresh-token:
+        expiration: 604800000 # 7 days
 
 # Cấu hình Swagger UI
 springdoc:
@@ -51,7 +56,7 @@ logging:
     root: INFO
     com.dailycodework.beautifulcare: DEBUG
     org.springframework.web: INFO
-    org.springframework.security: INFO
+    org.springframework.security: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
