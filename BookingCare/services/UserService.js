@@ -8,31 +8,23 @@ const axiosJWT = axios.create({
 });
 
 const signUpUser = async (data) => {
-  try {
-    const response = await axios.post(`/api/v1/auth/register`, data, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-      withCredentials: true,
-    });
-    return response.data;
-  } catch (e) {
-    throw e;
-  }
+  const response = await axios.post(`/api/v1/auth/register`, data, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+    withCredentials: true,
+  });
+  return response.data;
 };
 
 const loginUser = async (data) => {
-  try {
-    const response = await axios.post(`/api/v1/auth/login`, data, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-      withCredentials: true,
-    });
-    return response.data;
-  } catch (e) {
-    throw e;
-  }
+  const response = await axios.post(`/api/v1/auth/login`, data, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+    withCredentials: true,
+  });
+  return response.data;
 };
 
 const getDetailUser = async (id, token) => {
@@ -48,6 +40,42 @@ const getDetailUser = async (id, token) => {
     return response.data;
   } catch (e) {
     console.log("Error in getDetailUser:", e);
+    throw e;
+  }
+};
+
+const updateUserInfo = async (id, data, token) => {
+  try {
+    console.log("Updating user info with data:", data);
+    const response = await axiosJWT.put(`/api/v1/users/${id}`, data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      withCredentials: true,
+    });
+    
+    console.log("Update user response:", response.data);
+    return response.data;
+  } catch (e) {
+    console.error("Error in updateUserInfo:", e);
+    throw e;
+  }
+};
+
+const changePassword = async (id, data, token) => {
+  try {
+    const response = await axiosJWT.post(`/api/v1/users/${id}/change-password`, data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      withCredentials: true,
+    });
+    
+    return response.data;
+  } catch (e) {
+    console.log("Error in changePassword:", e);
     throw e;
   }
 };
@@ -69,7 +97,11 @@ const refreshToken = async () => {
     }
 
     // The API expects an empty body because it reads from cookies
+    // Chỉ gửi refresh token trong body nếu không tìm thấy trong cookie
     const requestBody = {};
+    if (!refreshTokenValue) {
+      console.log("No refresh token in cookies, trying to use stored token...");
+    }
 
     const response = await axios.post(
       `/api/v1/auth/refresh-token`,
@@ -81,44 +113,51 @@ const refreshToken = async () => {
         withCredentials: true,
       }
     );
-    console.log("Token refreshed successfully:", response.data);
+    
+    if (response.data && response.data.token) {
+      console.log("Token refreshed successfully");
+      // Lưu token mới vào localStorage
+      localStorage.setItem("access_token", JSON.stringify(response.data.token));
+    } else {
+      console.warn("Token refresh response didn't contain expected token");
+    }
+    
     return response.data;
   } catch (e) {
     console.error("Error refreshing token:", e);
+    // Xử lý lỗi cụ thể
+    if (e.response && e.response.status === 401) {
+      console.log("Unauthorized - clearing local storage");
+      localStorage.removeItem("access_token");
+      // Có thể chuyển hướng về trang login ở đây nếu cần
+      window.location.href = "/login";
+    }
     throw e;
   }
 };
 
 const logoutUser = async () => {
-  try {
-    const response = await axios.post(
-      `/api/v1/auth/logout`,
-      {},
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-        withCredentials: true,
-      }
-    );
-    return response.data;
-  } catch (e) {
-    throw e;
-  }
-};
-
-const bookingUser = async (data) => {
-  try {
-    const response = await axios.post(`/api/v1/users/booking`, data, {
+  const response = await axios.post(
+    `/api/v1/auth/logout`,
+    {},
+    {
       headers: {
         "Content-Type": "application/json",
       },
       withCredentials: true,
-    });
-    return response.data;
-  } catch (e) {
-    throw e;
-  }
+    }
+  );
+  return response.data;
+};
+
+const bookingUser = async (data) => {
+  const response = await axios.post(`/api/v1/users/booking`, data, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+    withCredentials: true,
+  });
+  return response.data;
 };
 
 export default {
@@ -128,5 +167,7 @@ export default {
   bookingUser,
   refreshToken,
   logoutUser,
+  updateUserInfo,
+  changePassword,
   axiosJWT,
 };

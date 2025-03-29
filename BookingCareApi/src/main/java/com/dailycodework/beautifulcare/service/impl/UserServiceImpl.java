@@ -1,6 +1,7 @@
 package com.dailycodework.beautifulcare.service.impl;
 
 import com.dailycodework.beautifulcare.dto.request.UserRequest;
+import com.dailycodework.beautifulcare.dto.request.UserUpdateRequest;
 import com.dailycodework.beautifulcare.dto.response.UserResponse;
 import com.dailycodework.beautifulcare.entity.User;
 import com.dailycodework.beautifulcare.exception.ResourceNotFoundException;
@@ -9,6 +10,7 @@ import com.dailycodework.beautifulcare.repository.UserRepository;
 import com.dailycodework.beautifulcare.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,12 +18,16 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.dailycodework.beautifulcare.dto.request.PasswordChangeRequest;
+import com.dailycodework.beautifulcare.exception.BadRequestException;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public List<UserResponse> getAllUsers() {
@@ -60,10 +66,57 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    public UserResponse updateUser(UUID id, UserUpdateRequest request) {
+        log.info("Updating user with ID: {} using UserUpdateRequest", id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        // Cập nhật từng trường nếu có dữ liệu
+        if (request.getEmail() != null) {
+            user.setEmail(request.getEmail());
+        }
+        if (request.getFirstName() != null) {
+            user.setFirstName(request.getFirstName());
+        }
+        if (request.getLastName() != null) {
+            user.setLastName(request.getLastName());
+        }
+        if (request.getPhone() != null) {
+            user.setPhone(request.getPhone());
+        }
+        if (request.getPassword() != null) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+
+        User savedUser = userRepository.save(user);
+        log.info("User updated successfully: {}", savedUser.getId());
+        return userMapper.toUserResponse(savedUser);
+    }
+
+    @Override
+    @Transactional
     public void deleteUser(UUID id) {
         if (!userRepository.existsById(id)) {
             throw new ResourceNotFoundException("User not found");
         }
         userRepository.deleteById(id);
+    }
+
+    @Override
+    @Transactional
+    public void changePassword(UUID id, PasswordChangeRequest request) {
+        log.info("Changing password for user ID: {}", id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        
+        // Verify current password
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new BadRequestException("Current password is incorrect");
+        }
+        
+        // Update with new password
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        log.info("Password successfully changed for user ID: {}", id);
     }
 }

@@ -1,14 +1,20 @@
 package com.dailycodework.beautifulcare.controller;
 
 import com.dailycodework.beautifulcare.dto.request.UserRequest;
+import com.dailycodework.beautifulcare.dto.request.UserUpdateRequest;
+import com.dailycodework.beautifulcare.dto.request.PasswordChangeRequest;
 import com.dailycodework.beautifulcare.dto.response.UserResponse;
+import com.dailycodework.beautifulcare.entity.User;
+import com.dailycodework.beautifulcare.security.SecurityUtils;
 import com.dailycodework.beautifulcare.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.util.List;
 import java.util.UUID;
@@ -24,6 +30,7 @@ import java.util.UUID;
 @Tag(name = "User", description = "User management APIs")
 public class UserController {
     private final UserService userService;
+    private final SecurityUtils securityUtils;
 
     @GetMapping
     @Operation(summary = "Get all users")
@@ -47,7 +54,13 @@ public class UserController {
     @Operation(summary = "Update user")
     public ResponseEntity<UserResponse> updateUser(
             @PathVariable UUID id,
-            @Valid @RequestBody UserRequest request) {
+            @Valid @RequestBody UserUpdateRequest request) {
+        // Verify if the user is updating their own info or is an admin
+        User currentUser = securityUtils.getCurrentUser();
+        if (!currentUser.getId().equals(id) && !securityUtils.isAdmin()) {
+            throw new AccessDeniedException("You can only update your own information");
+        }
+        
         return ResponseEntity.ok(userService.updateUser(id, request));
     }
 
@@ -56,5 +69,20 @@ public class UserController {
     public ResponseEntity<Void> deleteUser(@PathVariable UUID id) {
         userService.deleteUser(id);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/{id}/change-password")
+    @Operation(summary = "Change user password")
+    public ResponseEntity<Void> changePassword(
+            @PathVariable UUID id,
+            @Valid @RequestBody PasswordChangeRequest request) {
+        // Verify if the user is changing their own password or is an admin
+        User currentUser = securityUtils.getCurrentUser();
+        if (!currentUser.getId().equals(id) && !securityUtils.isAdmin()) {
+            throw new AccessDeniedException("You can only change your own password");
+        }
+        
+        userService.changePassword(id, request);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 }

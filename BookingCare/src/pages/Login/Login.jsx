@@ -7,6 +7,7 @@ import { MessageContext } from "../../contexts/MessageProvider.jsx";
 import { jwtDecode } from "jwt-decode";
 import { useDispatch } from "react-redux";
 import { setUser } from "../../redux/slices/userSlice.js";
+
 function Login() {
   const [isShowPassword, setIsShowPassword] = useState(false);
   const [username, setUserName] = useState("");
@@ -24,113 +25,142 @@ function Login() {
     mutation.mutate({ username, password });
   };
 
-  const { data, isLoading, isSuccess } = mutation;
-  console.log(data);
+  const { data, isLoading, isSuccess, isError, error } = mutation;
+
+  const handleGetDetailsUser = async (id, token) => {
+    try {
+      const response = await UserService.getDetailUser(id, token);
+      dispatch(setUser({ ...response, access_token: token, id }));
+      return response;
+    } catch (error) {
+      console.log("Error get details user", error);
+      throw error;
+    }
+  };
 
   useEffect(() => {
     if (isSuccess) {
-      navigate("/");
-      message.success("Đăng nhập thành công");
       const token = data?.token;
-      const refreshToken = data?.refreshToken;
-
-      // Only store the access token in localStorage
+      // Store the access token in localStorage
       localStorage.setItem("access_token", JSON.stringify(token));
 
       if (token) {
         const decoded = jwtDecode(token);
         if (decoded?.userId) {
-          handleGetDetailsUser(decoded?.userId, token);
+          // Sử dụng IIFE async để đợi và xử lý kết quả đồng bộ
+          (async () => {
+            try {
+              // Đợi lấy chi tiết người dùng thành công
+              await handleGetDetailsUser(decoded?.userId, token);
+              
+              // Chỉ hiển thị thông báo và chuyển hướng sau khi đã lấy dữ liệu thành công
+              message.success("Đăng nhập thành công");
+              navigate("/");
+            } catch (error) {
+              console.error("Lỗi khi lấy thông tin người dùng:", error);
+              message.error("Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại.");
+            }
+          })();
         }
       }
     }
-  }, [isSuccess]);
-  const handleGetDetailsUser = async (id, token) => {
-    try {
-      const response = await UserService.getDetailUser(id, token);
-      dispatch(setUser({ ...response, access_token: token }));
-    } catch (error) {
-      console.log("Error get details user", error);
+    
+    if (isError) {
+      message.error(error?.response?.data?.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.");
     }
-  };
+  }, [isSuccess, isError, error]);
+
   return (
-    <>
-      <div className="mt-30">
-        <div className="w-[600px] mx-auto">
-          <div className="p-10 border-3 border-[var(--primary-color)]/50  rounded-2xl z-10 relative bg-white">
-            <div className="flex flex-col items-center">
-              <div className="flex items-center space-x-2">
-                <img className="h-[40px] rounded-xl" src={logo} alt="" />
-                <span className="text-[var(--primary-color)] font-semibold text-2xl">
-                  BeautyCare
-                </span>
-              </div>
-              <div className="text-3xl font-bold mt-5 mb-3">Đăng nhập</div>
-              <div className="text-xl text-black/70">
-                Nhập thông tin tài khoản của bạn
-              </div>
+    <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-[var(--background-color)]">
+      <div className="w-full max-w-[500px] mx-auto relative z-10">
+        <div className="bg-white rounded-xl shadow-sm p-6 md:p-8">
+          <div className="flex flex-col items-center">
+            <div className="flex items-center space-x-2">
+              <img className="h-[40px] rounded-xl" src={logo} alt="BeautyCare Logo" />
+              <span className="text-[var(--primary-color)] font-semibold text-xl md:text-2xl">
+                BeautyCare
+              </span>
             </div>
-            <div className="mt-10">
-              <form onSubmit={handleSubmit}>
-                <div>
-                  <label htmlFor="username" className="text-xl font-semibold">
-                    Tên tài khoản
-                  </label>{" "}
-                  <br />
-                  <input
-                    value={username}
-                    onChange={(e) => setUserName(e.target.value)}
-                    type="text"
-                    name="username"
-                    id="username"
-                    placeholder="Nhập tên tài khoản..."
-                    className="w-full p-2 border-2 border-[var(--primary-color)]/30 rounded-md outline-none my-3"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="password" className="text-xl font-semibold">
-                    Mật khẩu
-                  </label>
-                  <br />
-                  <div className="relative">
-                    <input
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      type={isShowPassword ? "text" : "password"}
-                      name="password"
-                      id="password"
-                      placeholder="Nhập mật khẩu..."
-                      className="w-full p-2 border-2 border-[var(--primary-color)]/30 rounded-md outline-none my-3"
-                    />
-                    <i
-                      onClick={() => setIsShowPassword(!isShowPassword)}
-                      className={`text-[var(--primary-color)] fa-solid ${
-                        isShowPassword ? "fa-eye" : "fa-eye-slash"
-                      } absolute right-3 top-[26px] cursor-pointer`}
-                    ></i>
-                  </div>
-                </div>
-                <button type="submit" className="w-full my-3">
-                  Đăng nhập
-                </button>
-              </form>
-              <div className="text-center text-xl">
-                <p>
-                  Chưa có tài khoản?
-                  <Link
-                    to="/sign-up"
-                    className="text-[var(--primary-color)] mx-2"
-                  >
-                    Đăng ký
-                  </Link>
-                </p>
+            <h1 className="text-2xl md:text-3xl font-bold mt-5 mb-2">Đăng nhập</h1>
+            <p className="text-base md:text-lg text-gray-600">
+              Nhập thông tin tài khoản của bạn
+            </p>
+          </div>
+          
+          <div className="mt-8">
+            <form onSubmit={handleSubmit}>
+              <div className="mb-4">
+                <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                  Tên tài khoản
+                </label>
+                <input
+                  value={username}
+                  onChange={(e) => setUserName(e.target.value)}
+                  type="text"
+                  name="username"
+                  id="username"
+                  placeholder="Nhập tên tài khoản..."
+                  className="w-full h-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[var(--primary-color)] text-sm"
+                />
               </div>
+              
+              <div className="mb-6">
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                  Mật khẩu
+                </label>
+                <div className="relative">
+                  <input
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    type={isShowPassword ? "text" : "password"}
+                    name="password"
+                    id="password"
+                    placeholder="Nhập mật khẩu..."
+                    className="w-full h-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[var(--primary-color)] text-sm"
+                  />
+                  <button
+                    type="button"
+                    tabIndex="-1"
+                    onClick={() => setIsShowPassword(!isShowPassword)}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500"
+                  >
+                    <i className={`fa-solid ${isShowPassword ? "fa-eye" : "fa-eye-slash"}`}></i>
+                  </button>
+                </div>
+              </div>
+              
+              <button 
+                type="submit" 
+                className="w-full h-10 bg-[var(--primary-color)] hover:opacity-90 text-white rounded-md font-medium flex items-center justify-center transition-colors"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Đang xử lý...
+                  </>
+                ) : "Đăng nhập"}
+              </button>
+            </form>
+            
+            <div className="text-center mt-6">
+              <p className="text-sm text-gray-600">
+                Chưa có tài khoản?
+                <Link
+                  to="/sign-up"
+                  className="text-[var(--primary-color)] font-medium ml-1 hover:underline"
+                >
+                  Đăng ký
+                </Link>
+              </p>
             </div>
           </div>
         </div>
-        <div className="fixed left-0 top-0 w-full h-full bg-black/30"></div>
       </div>
-    </>
+    </div>
   );
 }
 

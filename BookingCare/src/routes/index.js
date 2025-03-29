@@ -6,6 +6,8 @@ import Service from "../pages/Service";
 import Specialist from "../pages/Specialist";
 import Booking from "../pages/Booking";
 import Test from "../pages/Test";
+import Profile from "../pages/Profile";
+
 const routes = [
   {
     path: "/",
@@ -46,6 +48,11 @@ const routes = [
     path: "/sign-up",
     page: SignUp,
     isDefaultPage: false,
+  },
+  {
+    path: "/profile",
+    page: Profile,
+    isDefaultPage: true,
   },
 ];
 
