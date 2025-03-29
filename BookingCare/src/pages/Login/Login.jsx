@@ -41,13 +41,11 @@ function Login() {
   useEffect(() => {
     if (isSuccess) {
       const token = data?.token;
-      // Store the access token in localStorage
       localStorage.setItem("access_token", JSON.stringify(token));
 
       if (token) {
         const decoded = jwtDecode(token);
         if (decoded?.userId) {
-          // Sử dụng IIFE async để đợi và xử lý kết quả đồng bộ
           (async () => {
             try {
               // Đợi lấy chi tiết người dùng thành công
@@ -118,14 +116,13 @@ function Login() {
                     placeholder="Nhập mật khẩu..."
                     className="w-full h-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[var(--primary-color)] text-sm"
                   />
-                  <button
-                    type="button"
-                    tabIndex="-1"
+                  <div
+                   
                     onClick={() => setIsShowPassword(!isShowPassword)}
                     className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500"
                   >
                     <i className={`fa-solid ${isShowPassword ? "fa-eye" : "fa-eye-slash"}`}></i>
-                  </button>
+                  </div>
                 </div>
               </div>
               

@@ -96,8 +96,6 @@ const refreshToken = async () => {
       console.error("Error reading cookies:", e);
     }
 
-    // The API expects an empty body because it reads from cookies
-    // Chỉ gửi refresh token trong body nếu không tìm thấy trong cookie
     const requestBody = {};
     if (!refreshTokenValue) {
       console.log("No refresh token in cookies, trying to use stored token...");

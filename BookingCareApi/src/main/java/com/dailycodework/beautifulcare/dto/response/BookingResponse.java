@@ -1,10 +1,9 @@
 package com.dailycodework.beautifulcare.dto.response;
 
 import com.dailycodework.beautifulcare.entity.BookingStatus;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -14,9 +13,8 @@ import java.util.Set;
 import java.util.UUID;
 
 @Data
-@Builder
+@SuperBuilder
 @NoArgsConstructor
-@AllArgsConstructor
 public class BookingResponse {
     private UUID id;
     private UUID customerId;
@@ -37,9 +35,8 @@ public class BookingResponse {
     private LocalDateTime updatedAt;
 
     @Data
-    @Builder
+    @SuperBuilder
     @NoArgsConstructor
-    @AllArgsConstructor
     public static class ServiceDetail {
         private UUID id;
         private String name;

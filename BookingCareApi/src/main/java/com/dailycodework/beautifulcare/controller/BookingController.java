@@ -1,7 +1,9 @@
 package com.dailycodework.beautifulcare.controller;
 
 import com.dailycodework.beautifulcare.dto.request.BookingRequest;
+import com.dailycodework.beautifulcare.dto.request.UpdateBookingRequest;
 import com.dailycodework.beautifulcare.dto.response.BookingResponse;
+import com.dailycodework.beautifulcare.dto.response.UpdateBookingResponse;
 import com.dailycodework.beautifulcare.entity.BookingStatus;
 import com.dailycodework.beautifulcare.security.SecurityUtils;
 import com.dailycodework.beautifulcare.service.BookingService;
@@ -72,6 +74,14 @@ public class BookingController {
             @Valid @RequestBody BookingRequest request) {
         // SecurityUtils will check access in service layer
         return ResponseEntity.ok(bookingService.updateBooking(id, request));
+    }
+
+    @PutMapping("/update")
+    @Operation(summary = "Update booking with details")
+    public ResponseEntity<UpdateBookingResponse> updateBookingWithDetails(
+            @Valid @RequestBody UpdateBookingRequest request) {
+        // SecurityUtils will check access in service layer
+        return ResponseEntity.ok(bookingService.updateBookingWithDetails(request));
     }
 
     @PutMapping("/{id}/status")

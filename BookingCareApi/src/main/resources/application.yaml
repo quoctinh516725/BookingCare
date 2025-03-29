@@ -6,7 +6,7 @@ spring:
   datasource:
     url: jdbc:mysql://localhost:3306/skincarebeauti?allowPublicKeyRetrieval=true&useSSL=false&createDatabaseIfNotExist=true&zeroDateTimeBehavior=CONVERT_TO_NULL
     username: root
-    password: root
+    password: Tinh516725@
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:

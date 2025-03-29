@@ -1,7 +1,9 @@
 package com.dailycodework.beautifulcare.service.impl;
 
 import com.dailycodework.beautifulcare.dto.request.BookingRequest;
+import com.dailycodework.beautifulcare.dto.request.UpdateBookingRequest;
 import com.dailycodework.beautifulcare.dto.response.BookingResponse;
+import com.dailycodework.beautifulcare.dto.response.UpdateBookingResponse;
 import com.dailycodework.beautifulcare.entity.Booking;
 import com.dailycodework.beautifulcare.entity.BookingStatus;
 import com.dailycodework.beautifulcare.entity.Service;
@@ -154,6 +156,65 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
+    public UpdateBookingResponse updateBookingWithDetails(UpdateBookingRequest request) {
+        log.info("Updating booking with ID: {}", request.getBookingId());
+        
+        // Validate booking exists
+        Booking booking = bookingRepository.findById(request.getBookingId())
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        // Check if the user has permission to update this booking
+        if (!securityUtils.hasBookingAccess(booking)) {
+            throw new AccessDeniedException("You don't have permission to update this booking");
+        }
+
+        // Customers can only update their own bookings
+        User currentUser = securityUtils.getOrCreateUser();
+        if (!securityUtils.isAdminOrStaff() && !currentUser.getId().equals(request.getCustomerId())) {
+            throw new AccessDeniedException("You can only update your own bookings");
+        }
+
+        // Kiểm tra trạng thái hiện tại của booking
+        if (booking.getStatus() == BookingStatus.CANCELLED ||
+                booking.getStatus() == BookingStatus.COMPLETED ||
+                booking.getStatus() == BookingStatus.NO_SHOW) {
+            throw new InvalidOperationException("Cannot update booking with status: " + booking.getStatus());
+        }
+
+        // Kiểm tra thời gian đặt lịch
+        if (request.getBookingDate().isBefore(LocalDate.now())) {
+            throw new InvalidBookingException("Cannot update booking to a past date");
+        }
+
+        // Kiểm tra xung đột lịch (trừ booking hiện tại)
+        boolean hasConflict = checkBookingTimeConflictExcludingCurrent(
+                request.getBookingId(),
+                request.getBookingDate(),
+                request.getStartTime(),
+                request.getEndTime() != null ? request.getEndTime()
+                        : request.getStartTime().plusMinutes(calculateDuration(request.getServiceIds())));
+
+        if (hasConflict) {
+            throw new BookingConflictException("The requested time slot is not available");
+        }
+
+        // Update booking with new details
+        bookingMapper.updateBooking(booking, request);
+
+        // Cập nhật lại tổng giá
+        BigDecimal totalPrice = calculateTotalPrice(request.getServiceIds());
+        booking.setTotalPrice(totalPrice);
+
+        // Set update notes if provided
+        if (request.getNotes() != null && !request.getNotes().isEmpty()) {
+            booking.setNotes(request.getNotes());
+        }
+
+        return bookingMapper.toUpdateBookingResponse(bookingRepository.save(booking));
+    }
+
+    @Override
+    @Transactional
     public void deleteBooking(UUID id) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
@@ -235,94 +296,52 @@ public class BookingServiceImpl implements BookingService {
      * Validate that the status transition is allowed
      */
     private void validateStatusTransition(BookingStatus currentStatus, BookingStatus newStatus) {
-        // Define allowed transitions
-        boolean isAllowed = switch (currentStatus) {
-            case PENDING -> newStatus == BookingStatus.CONFIRMED ||
-                    newStatus == BookingStatus.CANCELLED;
-            case CONFIRMED -> newStatus == BookingStatus.COMPLETED ||
-                    newStatus == BookingStatus.CANCELLED ||
-                    newStatus == BookingStatus.NO_SHOW;
-            case COMPLETED, CANCELLED, NO_SHOW -> false; // Terminal states
-        };
-
-        if (!isAllowed) {
-            throw new InvalidOperationException(
-                    "Cannot change booking status from " + currentStatus + " to " + newStatus);
+        // Add your status transition validation logic here
+        // For example:
+        if (currentStatus == BookingStatus.CANCELLED && newStatus != BookingStatus.CANCELLED) {
+            throw new InvalidOperationException("Cannot change status of a cancelled booking");
+        }
+        if (currentStatus == BookingStatus.COMPLETED && newStatus != BookingStatus.COMPLETED) {
+            throw new InvalidOperationException("Cannot change status of a completed booking");
+        }
+        if (currentStatus == BookingStatus.NO_SHOW && newStatus != BookingStatus.NO_SHOW) {
+            throw new InvalidOperationException("Cannot change status of a no-show booking");
         }
     }
 
     /**
-     * Kiểm tra xung đột lịch với các booking khác
+     * Check if there is a booking conflict for the given time slot
      */
     private boolean checkBookingTimeConflict(LocalDate date, LocalTime startTime, LocalTime endTime) {
         LocalDateTime startDateTime = date.atTime(startTime);
         LocalDateTime endDateTime = date.atTime(endTime);
 
-        // Lấy tất cả các booking trong cùng ngày và chưa bị hủy/hoàn thành
-        List<Booking> existingBookings = bookingRepository.findByAppointmentTimeBetweenAndStatusIn(
-                date.atStartOfDay(),
-                date.atTime(LocalTime.MAX),
+        List<Booking> conflictingBookings = bookingRepository.findByAppointmentTimeBetweenAndStatusIn(
+                startDateTime,
+                endDateTime,
                 List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED));
 
-        // Kiểm tra xung đột với từng booking hiện có
-        for (Booking booking : existingBookings) {
-            LocalDateTime bookingStart = booking.getAppointmentTime();
-            // Giả sử thời gian kết thúc là thời gian bắt đầu + tổng thời gian của các dịch
-            // vụ
-            LocalDateTime bookingEnd = bookingStart.plusMinutes(calculateBookingDuration(booking));
-
-            // Kiểm tra xung đột thời gian
-            if ((startDateTime.isBefore(bookingEnd) && endDateTime.isAfter(bookingStart))) {
-                return true; // Có xung đột
-            }
-        }
-
-        return false; // Không có xung đột
+        return !conflictingBookings.isEmpty();
     }
 
     /**
-     * Kiểm tra xung đột lịch với các booking khác, loại trừ booking được chỉ định
+     * Check if there is a booking conflict for the given time slot, excluding the current booking
      */
-    private boolean checkBookingTimeConflictExcludingCurrent(UUID bookingId, LocalDate date,
-            LocalTime startTime, LocalTime endTime) {
+    private boolean checkBookingTimeConflictExcludingCurrent(UUID bookingId, LocalDate date, LocalTime startTime, LocalTime endTime) {
         LocalDateTime startDateTime = date.atTime(startTime);
         LocalDateTime endDateTime = date.atTime(endTime);
 
-        // Lấy tất cả các booking trong cùng ngày và chưa bị hủy/hoàn thành, trừ booking
-        // hiện tại
-        List<Booking> existingBookings = bookingRepository.findByAppointmentTimeBetweenAndStatusInAndIdNot(
-                date.atStartOfDay(),
-                date.atTime(LocalTime.MAX),
+        List<Booking> conflictingBookings = bookingRepository.findByAppointmentTimeBetweenAndStatusInAndIdNot(
+                startDateTime,
+                endDateTime,
                 List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED),
                 bookingId);
 
-        // Kiểm tra xung đột với từng booking hiện có
-        for (Booking booking : existingBookings) {
-            LocalDateTime bookingStart = booking.getAppointmentTime();
-            // Giả sử thời gian kết thúc là thời gian bắt đầu + tổng thời gian của các dịch
-            // vụ
-            LocalDateTime bookingEnd = bookingStart.plusMinutes(calculateBookingDuration(booking));
-
-            // Kiểm tra xung đột thời gian
-            if ((startDateTime.isBefore(bookingEnd) && endDateTime.isAfter(bookingStart))) {
-                return true; // Có xung đột
-            }
-        }
-
-        return false; // Không có xung đột
+        return !conflictingBookings.isEmpty();
     }
 
     /**
-     * Tính tổng thời gian của một booking dựa trên các dịch vụ
-     */
-    private int calculateBookingDuration(Booking booking) {
-        return booking.getServices().stream()
-                .mapToInt(Service::getDuration)
-                .sum();
-    }
-
-    /**
-     * Tính tổng thời gian các dịch vụ được chọn
+     * Calculate the total duration of all services in minutes
      */
     private int calculateDuration(Set<UUID> serviceIds) {
         return serviceIds.stream()
@@ -333,7 +352,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     /**
-     * Tính tổng giá trị các dịch vụ được chọn
+     * Calculate the total price of all services
      */
     private BigDecimal calculateTotalPrice(Set<UUID> serviceIds) {
         return serviceIds.stream()

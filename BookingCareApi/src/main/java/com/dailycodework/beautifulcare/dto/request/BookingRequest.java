@@ -1,10 +1,9 @@
 package com.dailycodework.beautifulcare.dto.request;
 
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.experimental.SuperBuilder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -13,8 +12,7 @@ import java.util.Set;
 import java.util.UUID;
 
 @Data
-@Builder
-@AllArgsConstructor
+@SuperBuilder
 @NoArgsConstructor
 public class BookingRequest {
     @NotNull(message = "Customer ID is required")
@@ -37,8 +35,7 @@ public class BookingRequest {
 }
 
 @Data
-@Builder
-@AllArgsConstructor
+@SuperBuilder
 @NoArgsConstructor
 class BookingDetailRequest {
     private UUID serviceId;

@@ -1,7 +1,9 @@
 package com.dailycodework.beautifulcare.mapper;
 
 import com.dailycodework.beautifulcare.dto.request.BookingRequest;
+import com.dailycodework.beautifulcare.dto.request.UpdateBookingRequest;
 import com.dailycodework.beautifulcare.dto.response.BookingResponse;
+import com.dailycodework.beautifulcare.dto.response.UpdateBookingResponse;
 import com.dailycodework.beautifulcare.entity.Booking;
 import com.dailycodework.beautifulcare.entity.BookingStatus;
 import com.dailycodework.beautifulcare.entity.Service;
@@ -57,6 +59,31 @@ public abstract class BookingMapper {
     @Mapping(target = "canCancel", source = "status", qualifiedByName = "canCancelBooking")
     public abstract BookingResponse toBookingResponse(Booking booking);
 
+    @Mapping(target = "id", source = "bookingId")
+    @Mapping(target = "customer", source = "customerId", qualifiedByName = "findUserById")
+    @Mapping(target = "services", source = "serviceIds", qualifiedByName = "findServicesByIds")
+    @Mapping(target = "appointmentTime", source = "bookingDate")
+    @Mapping(target = "status", ignore = true)
+    @Mapping(target = "createdAt", ignore = true)
+    @Mapping(target = "updatedAt", expression = "java(LocalDateTime.now())")
+    public abstract Booking toBooking(UpdateBookingRequest request);
+
+    @Mapping(target = "customerId", source = "customer.id")
+    @Mapping(target = "customerName", source = "customer", qualifiedByName = "getFullName")
+    @Mapping(target = "customerEmail", source = "customer.email")
+    @Mapping(target = "customerPhone", source = "customer.phone")
+    @Mapping(target = "statusDescription", source = "status", qualifiedByName = "getStatusDescription")
+    @Mapping(target = "services", source = "services", qualifiedByName = "toServiceDetails")
+    @Mapping(target = "bookingDate", source = "appointmentTime", qualifiedByName = "getBookingDate")
+    @Mapping(target = "startTime", source = "appointmentTime", qualifiedByName = "getStartTime")
+    @Mapping(target = "endTime", source = "appointmentTime", qualifiedByName = "getEndTime")
+    @Mapping(target = "formattedDateTime", source = "appointmentTime", qualifiedByName = "formatDateTime")
+    @Mapping(target = "canCancel", source = "status", qualifiedByName = "canCancelBooking")
+    @Mapping(target = "updatedBy", source = "customer.id")
+    @Mapping(target = "updatedAt", source = "updatedAt")
+    @Mapping(target = "updateNotes", source = "notes")
+    public abstract UpdateBookingResponse toUpdateBookingResponse(Booking booking);
+
     public List<BookingResponse> toBookingResponses(List<Booking> bookings) {
         return bookings.stream()
                 .map(this::toBookingResponse)
@@ -90,35 +117,26 @@ public abstract class BookingMapper {
 
     @Named("getStatusDescription")
     protected String getStatusDescription(BookingStatus status) {
-        switch (status) {
-            case PENDING:
-                return "Đang chờ xác nhận";
-            case CONFIRMED:
-                return "Đã xác nhận";
-            case CANCELLED:
-                return "Đã hủy";
-            case COMPLETED:
-                return "Đã hoàn thành";
-            case NO_SHOW:
-                return "Không đến";
-            default:
-                return "Không xác định";
-        }
+        return switch (status) {
+            case PENDING -> "Chờ xác nhận";
+            case CONFIRMED -> "Đã xác nhận";
+            case COMPLETED -> "Hoàn thành";
+            case CANCELLED -> "Đã hủy";
+            case NO_SHOW -> "Không đến";
+        };
     }
 
     @Named("toServiceDetails")
     protected Set<BookingResponse.ServiceDetail> toServiceDetails(Set<Service> services) {
         return services.stream()
-                .map(service -> {
-                    BookingResponse.ServiceDetail detail = new BookingResponse.ServiceDetail();
-                    detail.setId(service.getId());
-                    detail.setName(service.getName());
-                    detail.setDescription(service.getDescription());
-                    detail.setPrice(service.getPrice());
-                    detail.setDuration(service.getDuration());
-                    detail.setImage(service.getImageUrl());
-                    return detail;
-                })
+                .map(service -> BookingResponse.ServiceDetail.builder()
+                        .id(service.getId())
+                        .name(service.getName())
+                        .description(service.getDescription())
+                        .price(service.getPrice())
+                        .duration(service.getDuration())
+                        .image(service.getImageUrl())
+                        .build())
                 .collect(Collectors.toSet());
     }
 

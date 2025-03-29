@@ -1,7 +1,9 @@
 package com.dailycodework.beautifulcare.service;
 
 import com.dailycodework.beautifulcare.dto.request.BookingRequest;
+import com.dailycodework.beautifulcare.dto.request.UpdateBookingRequest;
 import com.dailycodework.beautifulcare.dto.response.BookingResponse;
+import com.dailycodework.beautifulcare.dto.response.UpdateBookingResponse;
 import com.dailycodework.beautifulcare.entity.BookingStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -46,6 +48,14 @@ public interface BookingService {
      * @return the updated booking
      */
     BookingResponse updateBooking(UUID id, BookingRequest request);
+
+    /**
+     * Updates a booking with new information using UpdateBookingRequest.
+     *
+     * @param request the update booking request
+     * @return the updated booking response
+     */
+    UpdateBookingResponse updateBookingWithDetails(UpdateBookingRequest request);
 
     /**
      * Deletes a booking.
