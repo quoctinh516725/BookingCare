@@ -50,7 +50,7 @@ public class SecurityConfig {
                                         .sessionManagement(session -> session
                                                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
                 } else {
-                        // Cấu hình bảo mật thực tế
+                        // Cấu hình bảo mật thực tế - cho phép truy cập không cần xác thực đến các API user
                         http
                                         .csrf(csrf -> csrf.disable())
                                         .cors(cors -> cors.configurationSource(corsConfigurationSource()))

@@ -7,7 +7,7 @@ import com.dailycodework.beautifulcare.dto.response.UserResponse;
 import com.dailycodework.beautifulcare.entity.User;
 import com.dailycodework.beautifulcare.exception.ResourceNotFoundException;
 import com.dailycodework.beautifulcare.exception.BadRequestException;
-import com.dailycodework.beautifulcare.security.SimpleSecurityUtils;
+import com.dailycodework.beautifulcare.security.SecurityUtils;
 import com.dailycodework.beautifulcare.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -34,7 +34,7 @@ import java.util.Map;
 @Slf4j
 public class UserController {
     private final UserService userService;
-    private final SimpleSecurityUtils securityUtils;
+    private final SecurityUtils securityUtils;
 
     @GetMapping
     @Operation(summary = "Get all users")
@@ -63,9 +63,6 @@ public class UserController {
         log.info("Received request to update user with ID: {}", id);
         
         try {
-            // Luôn truy cập được - sử dụng SimpleSecurityUtils
-            log.info("User access verified with SimpleSecurityUtils");
-            
             // Cập nhật người dùng theo ID
             UserResponse updatedUser = userService.updateUser(id, request);
             log.info("User updated successfully: {}", id);
@@ -106,9 +103,6 @@ public class UserController {
         log.info("Received request to change password for user with ID: {}", id);
         
         try {
-            // Luôn truy cập được - sử dụng SimpleSecurityUtils
-            log.info("User access verified with SimpleSecurityUtils");
-            
             // Thay đổi mật khẩu
             userService.changePassword(id, request);
             log.info("Password changed successfully for ID: {}", id);

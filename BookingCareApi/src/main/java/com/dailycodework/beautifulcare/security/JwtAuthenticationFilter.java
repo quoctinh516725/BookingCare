@@ -36,36 +36,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
         
-        // Kiểm tra xem đã kích hoạt mode SimpleMode chưa
-        // Nếu đã kích hoạt, bỏ qua xác thực hoàn toàn
-        String[] activeProfiles = environment.getActiveProfiles();
-        boolean isSimpleModeActive = false;
-        
-        for (String profile : activeProfiles) {
-            if ("test".equals(profile)) {
-                isSimpleModeActive = true;
-                break;
-            }
-        }
-        
-        // Kiểm tra annotation EnableSimpleMode
-        try {
-            Class<?> mainClass = Class.forName("com.dailycodework.beautifulcare.BeautifulCareApplication");
-            if (mainClass.isAnnotationPresent(com.dailycodework.beautifulcare.config.EnableSimpleMode.class)) {
-                isSimpleModeActive = true;
-                log.debug("Simple mode is active via annotation");
-            }
-        } catch (Exception e) {
-            log.debug("Error checking for SimpleMode annotation: {}", e.getMessage());
-        }
-        
-        // Nếu chế độ đơn giản được kích hoạt, bỏ qua toàn bộ xác thực
-        if (isSimpleModeActive) {
-            log.debug("Simple mode is active, bypassing authentication");
-            filterChain.doFilter(request, response);
-            return;
-        }
-        
         // Bỏ qua xác thực cho các API cập nhật thông tin người dùng và đổi mật khẩu
         String requestURI = request.getRequestURI();
         if (requestURI.matches(".*/api/v1/users/.*")) {
