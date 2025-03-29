@@ -75,7 +75,7 @@ public class FeedbackServiceImpl implements FeedbackService {
                         () -> new ResourceNotFoundException("Customer not found with id: " + request.getCustomerId()));
 
         // Make sure the current user is the customer (or admin)
-        User currentUser = securityUtils.getCurrentUser();
+        User currentUser = securityUtils.getOrCreateUser();
         if (!securityUtils.isAdmin() && !currentUser.getId().equals(request.getCustomerId())) {
             throw new AccessDeniedException("You can only create feedback for your own bookings");
         }
@@ -111,7 +111,7 @@ public class FeedbackServiceImpl implements FeedbackService {
                 .orElseThrow(() -> new ResourceNotFoundException("Feedback not found with id: " + id));
 
         // Check if user has permission to update this feedback
-        User currentUser = securityUtils.getCurrentUser();
+        User currentUser = securityUtils.getOrCreateUser();
         if (!securityUtils.isAdmin() && !feedback.getCustomer().getId().equals(currentUser.getId())) {
             throw new AccessDeniedException("You can only update your own feedback");
         }

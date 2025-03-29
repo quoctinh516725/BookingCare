@@ -73,10 +73,10 @@ public class AuthServiceImpl implements AuthService {
                             request.getUsername(),
                             request.getPassword()));
 
-            // Tìm thông tin người dùng
-            var user = userRepository.findByUsername(request.getUsername())
+            // Tìm thông tin người dùng bằng username hoặc email
+            var user = userRepository.findByUsernameOrEmail(request.getUsername(), request.getUsername())
                     .orElseThrow(
-                            () -> new UsernameNotFoundException("User not found with username: " + request.getUsername()));
+                            () -> new UsernameNotFoundException("User not found with username or email: " + request.getUsername()));
 
             // Tạo token và refresh token
             var jwtToken = jwtService.generateToken(user);

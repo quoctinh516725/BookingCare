@@ -6,6 +6,7 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import java.util.Map;
 import java.util.function.Function;
 
 @Service
+@Slf4j
 public class JwtServiceImpl implements JwtService {
 
     @Value("${application.security.jwt.secret-key}")
@@ -28,7 +30,32 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public String extractUsername(String token) {
-        return extractClaim(token, Claims::getSubject);
+        try {
+            // Lấy cả username và email từ JWT claims
+            Claims claims = extractAllClaims(token);
+            String subject = claims.getSubject(); // Giá trị subject
+            
+            // Log chi tiết thông tin token để debugging
+            log.debug("Extracted JWT claims - subject: {}, username: {}, email: {}", 
+                    subject, claims.get("username"), claims.get("email"));
+            
+            // Nếu subject null nhưng claims username có giá trị, sử dụng username
+            if (subject == null && claims.get("username") != null) {
+                log.warn("JWT token has null subject but contains username claim, using username claim");
+                return claims.get("username", String.class);
+            }
+            
+            // Nếu subject null nhưng claims email có giá trị, sử dụng email
+            if (subject == null && claims.get("email") != null) {
+                log.warn("JWT token has null subject but contains email claim, using email claim");
+                return claims.get("email", String.class);
+            }
+            
+            return subject;
+        } catch (Exception e) {
+            log.error("Error extracting username from JWT token: {}", e.getMessage());
+            return null;
+        }
     }
 
     @Override
@@ -48,14 +75,26 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public boolean isTokenValid(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+        final String usernameFromToken = extractUsername(token);
+        final User user = (User) userDetails;
+        
+        // Log để debug quá trình xác thực token
+        log.debug("Validating token - Username from token: {}, User details: username={}, email={}", 
+                usernameFromToken, user.getUsername(), user.getEmail());
+                
+        // Kiểm tra nếu username hoặc email từ token khớp với username hoặc email của user
+        return (usernameFromToken.equals(user.getUsername()) || usernameFromToken.equals(user.getEmail())) 
+               && !isTokenExpired(token);
     }
 
     @Override
     public boolean isRefreshTokenValid(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+        final String usernameFromToken = extractUsername(token);
+        final User user = (User) userDetails;
+        
+        // Kiểm tra nếu username hoặc email từ token khớp với username hoặc email của user
+        return (usernameFromToken.equals(user.getUsername()) || usernameFromToken.equals(user.getEmail())) 
+               && !isTokenExpired(token);
     }
 
     private String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
@@ -67,11 +106,16 @@ public class JwtServiceImpl implements JwtService {
         claims.put("userId", user.getId().toString());
         claims.put("firstName", user.getFirstName());
         claims.put("lastName", user.getLastName());
+        claims.put("email", user.getEmail());
+        claims.put("username", user.getUsername()); // Thêm username vào claims
+
+        // Log để debug quá trình tạo token
+        log.debug("Generating JWT token for user: {} ({})", user.getUsername(), user.getEmail());
 
         return Jwts
                 .builder()
                 .claims(claims)
-                .subject(user.getUsername())
+                .subject(user.getUsername()) // Sử dụng username làm subject
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
                 .signWith(getSignInKey())
@@ -79,10 +123,17 @@ public class JwtServiceImpl implements JwtService {
     }
 
     private String generateRefreshToken(Map<String, Object> extraClaims, UserDetails userDetails) {
+        User user = (User) userDetails;
+        
+        // Thêm cả username và email vào refresh token để dễ dàng xác thực sau này
+        Map<String, Object> claims = new HashMap<>(extraClaims);
+        claims.put("email", user.getEmail());
+        claims.put("username", user.getUsername());
+        
         return Jwts
                 .builder()
-                .claims(extraClaims)
-                .subject(userDetails.getUsername())
+                .claims(claims)
+                .subject(user.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + refreshExpiration))
                 .signWith(getSignInKey())
@@ -103,12 +154,17 @@ public class JwtServiceImpl implements JwtService {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts
-                .parser()
-                .setSigningKey(getSignInKey())
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+        try {
+            return Jwts
+                    .parser()
+                    .setSigningKey(getSignInKey())
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (Exception e) {
+            log.error("Error parsing JWT token: {}", e.getMessage());
+            throw e;
+        }
     }
 
     private Key getSignInKey() {

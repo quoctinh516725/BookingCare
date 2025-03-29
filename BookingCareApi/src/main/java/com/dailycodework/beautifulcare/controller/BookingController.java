@@ -39,7 +39,7 @@ public class BookingController {
     @GetMapping("/my-bookings")
     @Operation(summary = "Get current user's bookings")
     public ResponseEntity<List<BookingResponse>> getMyBookings() {
-        UUID currentUserId = securityUtils.getCurrentUser().getId();
+        UUID currentUserId = securityUtils.getOrCreateUser().getId();
         return ResponseEntity.ok(bookingService.getBookingsByCustomer(currentUserId));
     }
 

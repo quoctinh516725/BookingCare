@@ -75,7 +75,7 @@ public class FeedbackController {
     @GetMapping("/my-feedbacks")
     @Operation(summary = "Get current user's feedbacks", description = "Retrieve all feedback submitted by the current user")
     public ResponseEntity<List<FeedbackResponse>> getMyFeedbacks() {
-        UUID currentUserId = securityUtils.getCurrentUser().getId();
+        UUID currentUserId = securityUtils.getOrCreateUser().getId();
         return ResponseEntity.ok(feedbackService.getFeedbacksByCustomer(currentUserId));
     }
 

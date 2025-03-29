@@ -68,7 +68,7 @@ public class BookingServiceImpl implements BookingService {
         log.info("Creating new booking");
 
         // Make sure customer ID matches the current user (unless admin/staff)
-        User currentUser = securityUtils.getCurrentUser();
+        User currentUser = securityUtils.getOrCreateUser();
         if (!securityUtils.isAdminOrStaff() && !currentUser.getId().equals(request.getCustomerId())) {
             throw new AccessDeniedException("You can only create bookings for yourself");
         }
@@ -114,7 +114,7 @@ public class BookingServiceImpl implements BookingService {
         }
 
         // Customers can only update their own bookings
-        User currentUser = securityUtils.getCurrentUser();
+        User currentUser = securityUtils.getOrCreateUser();
         if (!securityUtils.isAdminOrStaff() && !currentUser.getId().equals(request.getCustomerId())) {
             throw new AccessDeniedException("You can only update your own bookings");
         }
@@ -176,7 +176,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public List<BookingResponse> getBookingsByCustomer(UUID customerId) {
         // If not admin/staff and not the customer, deny access
-        if (!securityUtils.isAdminOrStaff() && !securityUtils.getCurrentUser().getId().equals(customerId)) {
+        if (!securityUtils.isAdminOrStaff() && !securityUtils.getOrCreateUser().getId().equals(customerId)) {
             throw new AccessDeniedException("You don't have permission to view these bookings");
         }
 

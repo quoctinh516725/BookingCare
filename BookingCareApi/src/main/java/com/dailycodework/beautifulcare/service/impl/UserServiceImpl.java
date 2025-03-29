@@ -67,11 +67,13 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponse updateUser(UUID id, UserUpdateRequest request) {
-        log.info("Updating user with ID: {} using UserUpdateRequest", id);
+        log.info("Updating user with ID: {}", id);
+        
+        // Tìm user theo ID
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        // Cập nhật từng trường nếu có dữ liệu
+        
+        // Cập nhật thông tin
         if (request.getEmail() != null) {
             user.setEmail(request.getEmail());
         }
@@ -87,7 +89,8 @@ public class UserServiceImpl implements UserService {
         if (request.getPassword() != null) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }
-
+        
+        // Lưu và trả về kết quả
         User savedUser = userRepository.save(user);
         log.info("User updated successfully: {}", savedUser.getId());
         return userMapper.toUserResponse(savedUser);
@@ -106,17 +109,19 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void changePassword(UUID id, PasswordChangeRequest request) {
         log.info("Changing password for user ID: {}", id);
+        
+        // Tìm user theo ID
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         
-        // Verify current password
+        // Kiểm tra mật khẩu hiện tại (giữ lại kiểm tra này vì liên quan đến bảo mật cơ bản)
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
             throw new BadRequestException("Current password is incorrect");
         }
         
-        // Update with new password
+        // Cập nhật mật khẩu mới
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
-        log.info("Password successfully changed for user ID: {}", id);
+        log.info("Password changed successfully for user ID: {}", id);
     }
 }
