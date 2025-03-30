@@ -47,7 +47,7 @@ export const userSlice = createSlice({
         state.fullName = `${state.firstName || ""} ${state.lastName || ""}`.trim();
       }
     },
-    clearUser: (state) => {
+    logout: (state) => {
       state.id = "";
       state.username = "";
       state.email = "";
@@ -58,10 +58,11 @@ export const userSlice = createSlice({
       state.access_token = "";
       state.phone = "";
     },
+    
   },
 });
 
 // Action creators are generated for each case reducer function
-export const { setUser, clearUser, updateUserInfo } = userSlice.actions;
+export const { setUser, logout, updateUserInfo } = userSlice.actions;
 
 export default userSlice.reducer;

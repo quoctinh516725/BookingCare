@@ -21,4 +21,4 @@ public class UpdateBookingRequest extends BookingRequest {
     private UUID bookingId;
 
     private String notes;
-} 
+}
