@@ -1,36 +1,21 @@
+import UserService from "../../../services/UserService";
+import { useEffect, useState } from "react";
 function Booking() {
-  const services = [
-    {
-      name: "Chăm sóc da cơ bản",
-      desc: "Làm sạch, tẩy tế bào chết và dưỡng ẩm chuyên sâu",
-      time: 60,
-      price: "450.000₫",
-    },
-    {
-      name: "Trị mụn chuyên sâu",
-      desc: "Điều trị mụn, thâm nám và các vấn đề da khác",
-      time: 90,
-      price: "650.000₫",
-    },
-    {
-      name: "Trẻ hóa da",
-      desc: "Sử dụng công nghệ hiện đại giúp làn da trẻ trung hơn",
-      time: 120,
-      price: "850.000₫",
-    },
-    {
-      name: "Massage mặt",
-      desc: "Kỹ thuật massage thư giãn và làm săn chắc da mặt",
-      time: 45,
-      price: "350.000₫",
-    },
-    {
-      name: "Tẩy trang chuyên sâu",
-      desc: "Làm sạch sâu và loại bỏ mọi bụi bẩn, tạp chất trên da",
-      time: 30,
-      price: "250.000₫",
-    },
-  ];
+  const [services, setServices] = useState([]);
+  const [selectedService, setSelectedService] = useState("");
+  const [selectedTime, setSelectedTime] = useState("");
+  useEffect(() => {
+    const fetchServices = async () => {
+      try {
+        const response = await UserService.getServices();
+        setServices(response);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    fetchServices();
+  }, []);
+
   const specialists = [
     {
       name: "Nguyễn Thị Lan",
@@ -63,7 +48,7 @@ function Booking() {
           </h2>
           <p className="text-xl font-semibold my-4">Dịch vụ</p>
           <div className="p-4 border border-black/10  rounded-2xl  ">
-            {services.map((service, index) => {
+            {services?.map((service, index) => {
               return (
                 <div key={index} className="flex items-center mb-5">
                   <input
@@ -74,10 +59,10 @@ function Booking() {
                   />
                   <div className="mr-auto">
                     <h5 className="font-semibold">{service.name}</h5>
-                    <p className="text-black/50">{service.desc}</p>
+                    <p className="text-black/50">{service.description}</p>
                     <div className="space-x-1 text-black/50">
                       <i className="fa-regular fa-clock"></i>
-                      <span>{service.time} Phút</span>
+                      <span>{service.duration} Phút</span>
                     </div>
                   </div>
                   <span className="font-semibold">{service.price}</span>
@@ -118,10 +103,10 @@ function Booking() {
                 name="specialist"
                 id="specialist "
                 className="w-full p-2 border-2 border-black/10 rounded-md outline-none my-3 cursor-pointer"
+                onChange={(e) => setSelectedTime(e.target.value)}
+                value={selectedTime}
               >
-                <option value="" selected>
-                  Chọn giờ
-                </option>
+                <option value="">Chọn giờ</option>
                 <option value="07:00">07:00</option>
                 <option value="07:30">07:30</option>
                 <option value="08:00">08:00</option>
@@ -153,10 +138,10 @@ function Booking() {
             name="specialist"
             id="specialist "
             className="w-full p-2 border-2 border-black/10 rounded-md outline-none my-3"
+            onChange={(e) => setSelectedService(e.target.value)}
+            value={selectedService}
           >
-            <option value="" selected>
-              Chọn chuyên viên
-            </option>
+            <option value="">Chọn chuyên viên</option>
             {specialists.map((specialist, index) => {
               return (
                 <option value={specialist.name} key={index}>

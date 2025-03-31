@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Fragment, useEffect, useState } from "react";
-import Default from "./components/Default";
 import routes from "./routes";
 import { jwtDecode } from "jwt-decode";
 import { useDispatch } from "react-redux";
@@ -122,7 +121,7 @@ function App() {
       <Router>
         <Routes>
           {routes.map((item, index) => {
-            const Layout = item.isDefaultPage ? Default : Fragment;
+            const Layout = item?.isDefaultPage ? item.layout : Fragment;
             const Page = item.page;
             return (
               <Route

@@ -54,7 +54,7 @@ const updateUserInfo = async (id, data, token) => {
       },
       withCredentials: true,
     });
-    
+
     console.log("Update user response:", response.data);
     return response.data;
   } catch (e) {
@@ -65,14 +65,18 @@ const updateUserInfo = async (id, data, token) => {
 
 const changePassword = async (id, data, token) => {
   try {
-    const response = await axiosJWT.post(`/api/v1/users/${id}/change-password`, data, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      withCredentials: true,
-    });
-    
+    const response = await axiosJWT.post(
+      `/api/v1/users/${id}/change-password`,
+      data,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        withCredentials: true,
+      }
+    );
+
     return response.data;
   } catch (e) {
     console.log("Error in changePassword:", e);
@@ -111,7 +115,7 @@ const refreshToken = async () => {
         withCredentials: true,
       }
     );
-    
+
     if (response.data && response.data.token) {
       console.log("Token refreshed successfully");
       // Lưu token mới vào localStorage
@@ -119,7 +123,7 @@ const refreshToken = async () => {
     } else {
       console.warn("Token refresh response didn't contain expected token");
     }
-    
+
     return response.data;
   } catch (e) {
     console.error("Error refreshing token:", e);
@@ -157,7 +161,15 @@ const bookingUser = async (data) => {
   });
   return response.data;
 };
-
+const getServices = async () => {
+  const response = await axios.get(`/api/v1/services`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+    withCredentials: true,
+  });
+  return response.data;
+};
 export default {
   signUpUser,
   loginUser,
@@ -167,5 +179,6 @@ export default {
   logoutUser,
   updateUserInfo,
   changePassword,
+  getServices,
   axiosJWT,
 };
