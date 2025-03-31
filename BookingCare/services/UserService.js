@@ -149,9 +149,13 @@ const logoutUser = async () => {
 };
 
 const bookingUser = async (data) => {
-  const response = await axios.post(`/api/v1/users/booking`, data, {
+  const tokenString = localStorage.getItem("access_token");
+  const token = tokenString ? JSON.parse(tokenString) : null;
+  
+  const response = await axiosJWT.post(`/api/v1/bookings`, data, {
     headers: {
       "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` })
     },
     withCredentials: true,
   });

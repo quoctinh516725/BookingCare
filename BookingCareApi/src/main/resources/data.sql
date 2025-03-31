@@ -87,40 +87,40 @@ SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000010'), 'Eyebrow Shaping', '
 WHERE NOT EXISTS (SELECT 1 FROM services WHERE id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000010'));
 
 -- Chèn dữ liệu mẫu vào bảng bookings (đặt lịch) nếu chưa tồn tại
-INSERT INTO bookings (id, customer_id, appointment_time, status, notes, total_price, created_at, updated_at)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000001'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000004'), DATE_SUB(NOW(), INTERVAL 7 DAY) + INTERVAL 10 HOUR, 'COMPLETED', 'Please use gentle products for sensitive skin', 500000, DATE_SUB(NOW(), INTERVAL 14 DAY), DATE_SUB(NOW(), INTERVAL 7 DAY)
+INSERT INTO bookings (id, customer_id, staff_id, appointment_time, status, notes, total_price, created_at, updated_at)
+SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000001'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000004'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000002'), DATE_SUB(NOW(), INTERVAL 7 DAY) + INTERVAL 10 HOUR, 'COMPLETED', 'Please use gentle products for sensitive skin', 500000, DATE_SUB(NOW(), INTERVAL 14 DAY), DATE_SUB(NOW(), INTERVAL 7 DAY)
 WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000001'));
 
-INSERT INTO bookings (id, customer_id, appointment_time, status, notes, total_price, created_at, updated_at)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000002'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000005'), DATE_SUB(NOW(), INTERVAL 5 DAY) + INTERVAL 14 HOUR, 'COMPLETED', NULL, 650000, DATE_SUB(NOW(), INTERVAL 10 DAY), DATE_SUB(NOW(), INTERVAL 5 DAY)
+INSERT INTO bookings (id, customer_id, staff_id, appointment_time, status, notes, total_price, created_at, updated_at)
+SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000002'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000005'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000003'), DATE_SUB(NOW(), INTERVAL 5 DAY) + INTERVAL 14 HOUR, 'COMPLETED', NULL, 650000, DATE_SUB(NOW(), INTERVAL 10 DAY), DATE_SUB(NOW(), INTERVAL 5 DAY)
 WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000002'));
 
-INSERT INTO bookings (id, customer_id, appointment_time, status, notes, total_price, created_at, updated_at)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000003'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000006'), DATE_SUB(NOW(), INTERVAL 3 DAY) + INTERVAL 16 HOUR, 'CANCELLED', 'Had a family emergency', 450000, DATE_SUB(NOW(), INTERVAL 7 DAY), DATE_SUB(NOW(), INTERVAL 4 DAY)
+INSERT INTO bookings (id, customer_id, staff_id, appointment_time, status, notes, total_price, created_at, updated_at)
+SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000003'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000006'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000002'), DATE_SUB(NOW(), INTERVAL 3 DAY) + INTERVAL 16 HOUR, 'CANCELLED', 'Had a family emergency', 450000, DATE_SUB(NOW(), INTERVAL 7 DAY), DATE_SUB(NOW(), INTERVAL 4 DAY)
 WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000003'));
 
-INSERT INTO bookings (id, customer_id, appointment_time, status, notes, total_price, created_at, updated_at)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000004'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000007'), DATE_SUB(NOW(), INTERVAL 2 DAY) + INTERVAL 11 HOUR, 'NO_SHOW', NULL, 550000, DATE_SUB(NOW(), INTERVAL 5 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY)
+INSERT INTO bookings (id, customer_id, staff_id, appointment_time, status, notes, total_price, created_at, updated_at)
+SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000004'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000007'), NULL, DATE_SUB(NOW(), INTERVAL 2 DAY) + INTERVAL 11 HOUR, 'NO_SHOW', NULL, 550000, DATE_SUB(NOW(), INTERVAL 5 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY)
 WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000004'));
 
-INSERT INTO bookings (id, customer_id, appointment_time, status, notes, total_price, created_at, updated_at)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000005'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000004'), DATE_ADD(NOW(), INTERVAL 1 DAY) + INTERVAL 13 HOUR, 'CONFIRMED', 'Prefer female staff', 750000, DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY)
+INSERT INTO bookings (id, customer_id, staff_id, appointment_time, status, notes, total_price, created_at, updated_at)
+SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000005'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000004'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000003'), DATE_ADD(NOW(), INTERVAL 1 DAY) + INTERVAL 13 HOUR, 'CONFIRMED', 'Prefer female staff', 750000, DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY)
 WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000005'));
 
-INSERT INTO bookings (id, customer_id, appointment_time, status, notes, total_price, created_at, updated_at)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000006'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000005'), DATE_ADD(NOW(), INTERVAL 2 DAY) + INTERVAL 15 HOUR, 'CONFIRMED', NULL, 600000, DATE_SUB(NOW(), INTERVAL 3 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY)
+INSERT INTO bookings (id, customer_id, staff_id, appointment_time, status, notes, total_price, created_at, updated_at)
+SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000006'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000005'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000002'), DATE_ADD(NOW(), INTERVAL 2 DAY) + INTERVAL 15 HOUR, 'CONFIRMED', NULL, 600000, DATE_SUB(NOW(), INTERVAL 3 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY)
 WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000006'));
 
-INSERT INTO bookings (id, customer_id, appointment_time, status, notes, total_price, created_at, updated_at)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000007'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000006'), DATE_ADD(NOW(), INTERVAL 3 DAY) + INTERVAL 10 HOUR, 'PENDING', 'First time customer', 450000, NOW(), NOW()
+INSERT INTO bookings (id, customer_id, staff_id, appointment_time, status, notes, total_price, created_at, updated_at)
+SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000007'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000006'), NULL, DATE_ADD(NOW(), INTERVAL 3 DAY) + INTERVAL 10 HOUR, 'PENDING', 'First time customer', 450000, NOW(), NOW()
 WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000007'));
 
-INSERT INTO bookings (id, customer_id, appointment_time, status, notes, total_price, created_at, updated_at)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000008'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000007'), DATE_ADD(NOW(), INTERVAL 4 DAY) + INTERVAL 14 HOUR, 'PENDING', NULL, 850000, NOW(), NOW()
+INSERT INTO bookings (id, customer_id, staff_id, appointment_time, status, notes, total_price, created_at, updated_at)
+SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000008'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000007'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000003'), DATE_ADD(NOW(), INTERVAL 4 DAY) + INTERVAL 14 HOUR, 'PENDING', NULL, 850000, NOW(), NOW()
 WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000008'));
 
-INSERT INTO bookings (id, customer_id, appointment_time, status, notes, total_price, created_at, updated_at)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000009'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000008'), DATE_ADD(NOW(), INTERVAL 5 DAY) + INTERVAL 16 HOUR, 'PENDING', 'Allergic to nuts', 500000, NOW(), NOW()
+INSERT INTO bookings (id, customer_id, staff_id, appointment_time, status, notes, total_price, created_at, updated_at)
+SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000009'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000008'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000002'), DATE_ADD(NOW(), INTERVAL 5 DAY) + INTERVAL 16 HOUR, 'PENDING', 'Allergic to nuts', 500000, NOW(), NOW()
 WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000009'));
 
 -- Chèn dữ liệu mẫu vào bảng booking_services (quan hệ nhiều-nhiều giữa bookings và services) nếu chưa tồn tại
@@ -213,14 +213,6 @@ WHERE NOT EXISTS (
 );
 
 INSERT INTO booking_services (booking_id, service_id)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000008'), UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000007')
-WHERE NOT EXISTS (
-    SELECT 1 FROM booking_services 
-    WHERE booking_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000008') 
-    AND service_id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000007')
-);
-
-INSERT INTO booking_services (booking_id, service_id)
 SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000009'), UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000001')
 WHERE NOT EXISTS (
     SELECT 1 FROM booking_services 
@@ -228,13 +220,13 @@ WHERE NOT EXISTS (
     AND service_id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000001')
 );
 
--- Chèn dữ liệu mẫu vào bảng feedbacks nếu chưa tồn tại
+-- Thêm phản hồi mẫu (feedbacks)
 INSERT INTO feedbacks (id, booking_id, customer_id, rating, comment, created_at, updated_at)
-SELECT UUID_TO_BIN('d1b2c3d4-e5f6-11ec-8000-000000000001'), UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000001'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000004'), 5, 'Excellent service! The facial was really relaxing and my skin looks great.', DATE_SUB(NOW(), INTERVAL 6 DAY), DATE_SUB(NOW(), INTERVAL 6 DAY)
+SELECT UUID_TO_BIN('d1b2c3d4-e5f6-11ec-8000-000000000001'), UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000001'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000004'), 5, 'Excellent service! My skin feels amazing after the treatment.', DATE_SUB(NOW(), INTERVAL 4 DAY), DATE_SUB(NOW(), INTERVAL 4 DAY)
 WHERE NOT EXISTS (SELECT 1 FROM feedbacks WHERE id = UUID_TO_BIN('d1b2c3d4-e5f6-11ec-8000-000000000001'));
 
 INSERT INTO feedbacks (id, booking_id, customer_id, rating, comment, created_at, updated_at)
-SELECT UUID_TO_BIN('d1b2c3d4-e5f6-11ec-8000-000000000002'), UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000002'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000005'), 4, 'Good treatment but I wish it lasted a bit longer. Staff was very professional though.', DATE_SUB(NOW(), INTERVAL 4 DAY), DATE_SUB(NOW(), INTERVAL 4 DAY)
+SELECT UUID_TO_BIN('d1b2c3d4-e5f6-11ec-8000-000000000002'), UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000002'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000005'), 4, 'Great anti-aging treatment. Would recommend to others.', DATE_SUB(NOW(), INTERVAL 3 DAY), DATE_SUB(NOW(), INTERVAL 3 DAY)
 WHERE NOT EXISTS (SELECT 1 FROM feedbacks WHERE id = UUID_TO_BIN('d1b2c3d4-e5f6-11ec-8000-000000000002'));
 
 -- Chèn dữ liệu mẫu vào bảng refresh_tokens nếu chưa tồn tại

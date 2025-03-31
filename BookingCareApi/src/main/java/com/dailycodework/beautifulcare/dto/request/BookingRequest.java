@@ -18,6 +18,8 @@ public class BookingRequest {
     @NotNull(message = "Customer ID is required")
     private UUID customerId;
 
+    private UUID staffId;
+
     @NotNull(message = "Service IDs are required")
     private Set<UUID> serviceIds;
 

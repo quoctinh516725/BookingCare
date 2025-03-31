@@ -39,6 +39,7 @@ public abstract class BookingMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "customer", source = "customerId", qualifiedByName = "findUserById")
+    @Mapping(target = "staff", source = "staffId", qualifiedByName = "findUserById")
     @Mapping(target = "services", source = "serviceIds", qualifiedByName = "findServicesByIds")
     @Mapping(target = "appointmentTime", source = "bookingDate")
     @Mapping(target = "status", constant = "PENDING")
@@ -50,6 +51,8 @@ public abstract class BookingMapper {
     @Mapping(target = "customerName", source = "customer", qualifiedByName = "getFullName")
     @Mapping(target = "customerEmail", source = "customer.email")
     @Mapping(target = "customerPhone", source = "customer.phone")
+    @Mapping(target = "staffId", source = "staff.id")
+    @Mapping(target = "staffName", source = "staff", qualifiedByName = "getFullName")
     @Mapping(target = "statusDescription", source = "status", qualifiedByName = "getStatusDescription")
     @Mapping(target = "services", source = "services", qualifiedByName = "toServiceDetails")
     @Mapping(target = "bookingDate", source = "appointmentTime", qualifiedByName = "getBookingDate")
@@ -61,6 +64,7 @@ public abstract class BookingMapper {
 
     @Mapping(target = "id", source = "bookingId")
     @Mapping(target = "customer", source = "customerId", qualifiedByName = "findUserById")
+    @Mapping(target = "staff", source = "staffId", qualifiedByName = "findUserById")
     @Mapping(target = "services", source = "serviceIds", qualifiedByName = "findServicesByIds")
     @Mapping(target = "appointmentTime", source = "bookingDate")
     @Mapping(target = "status", ignore = true)
@@ -72,6 +76,8 @@ public abstract class BookingMapper {
     @Mapping(target = "customerName", source = "customer", qualifiedByName = "getFullName")
     @Mapping(target = "customerEmail", source = "customer.email")
     @Mapping(target = "customerPhone", source = "customer.phone")
+    @Mapping(target = "staffId", source = "staff.id")
+    @Mapping(target = "staffName", source = "staff", qualifiedByName = "getFullName")
     @Mapping(target = "statusDescription", source = "status", qualifiedByName = "getStatusDescription")
     @Mapping(target = "services", source = "services", qualifiedByName = "toServiceDetails")
     @Mapping(target = "bookingDate", source = "appointmentTime", qualifiedByName = "getBookingDate")
@@ -92,6 +98,9 @@ public abstract class BookingMapper {
 
     @Named("findUserById")
     protected User findUserById(UUID id) {
+        if (id == null) {
+            return null;
+        }
         return userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
     }
@@ -112,6 +121,9 @@ public abstract class BookingMapper {
 
     @Named("getFullName")
     protected String getFullName(User user) {
+        if (user == null) {
+            return null;
+        }
         return user.getFirstName() + " " + user.getLastName();
     }
 
@@ -170,6 +182,7 @@ public abstract class BookingMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "customer", ignore = true)
+    @Mapping(target = "staff", source = "staffId", qualifiedByName = "findUserById")
     @Mapping(target = "services", ignore = true)
     @Mapping(target = "appointmentTime", source = "bookingDate")
     @Mapping(target = "createdAt", ignore = true)

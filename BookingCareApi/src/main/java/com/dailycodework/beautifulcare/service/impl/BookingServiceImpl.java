@@ -83,12 +83,28 @@ public class BookingServiceImpl implements BookingService {
         // Chuyển đổi ngày và giờ thành LocalDateTime
         LocalDateTime appointmentTime = request.getBookingDate().atTime(request.getStartTime());
 
+        // Tính thời gian kết thúc dự kiến
+        LocalTime endTime = request.getEndTime() != null 
+            ? request.getEndTime() 
+            : request.getStartTime().plusMinutes(calculateDuration(request.getServiceIds()));
+
         // Kiểm tra xung đột lịch
-        boolean hasConflict = checkBookingTimeConflict(
-                request.getBookingDate(),
-                request.getStartTime(),
-                request.getEndTime() != null ? request.getEndTime()
-                        : request.getStartTime().plusMinutes(calculateDuration(request.getServiceIds())));
+        boolean hasConflict = false;
+        
+        if (request.getStaffId() != null) {
+            // Nếu chọn nhân viên cụ thể, kiểm tra xung đột dựa trên nhân viên đó
+            hasConflict = checkBookingTimeStaffConflict(
+                    request.getBookingDate(),
+                    request.getStartTime(),
+                    endTime,
+                    request.getStaffId());
+        } else {
+            // Nếu không chọn nhân viên cụ thể, kiểm tra xung đột thời gian chung
+            hasConflict = checkBookingTimeConflict(
+                    request.getBookingDate(),
+                    request.getStartTime(),
+                    endTime);
+        }
 
         if (hasConflict) {
             throw new BookingConflictException("The requested time slot is not available");
@@ -133,13 +149,30 @@ public class BookingServiceImpl implements BookingService {
             throw new InvalidBookingException("Cannot update booking to a past date");
         }
 
-        // Kiểm tra xung đột lịch (trừ booking hiện tại)
-        boolean hasConflict = checkBookingTimeConflictExcludingCurrent(
-                id,
-                request.getBookingDate(),
-                request.getStartTime(),
-                request.getEndTime() != null ? request.getEndTime()
-                        : request.getStartTime().plusMinutes(calculateDuration(request.getServiceIds())));
+        // Tính thời gian kết thúc dự kiến
+        LocalTime endTime = request.getEndTime() != null 
+            ? request.getEndTime() 
+            : request.getStartTime().plusMinutes(calculateDuration(request.getServiceIds()));
+        
+        // Kiểm tra xung đột lịch
+        boolean hasConflict = false;
+        
+        if (request.getStaffId() != null) {
+            // Nếu chọn nhân viên cụ thể, kiểm tra xung đột dựa trên nhân viên đó
+            hasConflict = checkBookingTimeStaffConflictExcludingCurrent(
+                    id,
+                    request.getBookingDate(),
+                    request.getStartTime(),
+                    endTime,
+                    request.getStaffId());
+        } else {
+            // Nếu không chọn nhân viên cụ thể, kiểm tra xung đột thời gian chung
+            hasConflict = checkBookingTimeConflictExcludingCurrent(
+                    id,
+                    request.getBookingDate(),
+                    request.getStartTime(),
+                    endTime);
+        }
 
         if (hasConflict) {
             throw new BookingConflictException("The requested time slot is not available");
@@ -186,13 +219,30 @@ public class BookingServiceImpl implements BookingService {
             throw new InvalidBookingException("Cannot update booking to a past date");
         }
 
-        // Kiểm tra xung đột lịch (trừ booking hiện tại)
-        boolean hasConflict = checkBookingTimeConflictExcludingCurrent(
-                request.getBookingId(),
-                request.getBookingDate(),
-                request.getStartTime(),
-                request.getEndTime() != null ? request.getEndTime()
-                        : request.getStartTime().plusMinutes(calculateDuration(request.getServiceIds())));
+        // Tính thời gian kết thúc dự kiến
+        LocalTime endTime = request.getEndTime() != null 
+            ? request.getEndTime() 
+            : request.getStartTime().plusMinutes(calculateDuration(request.getServiceIds()));
+        
+        // Kiểm tra xung đột lịch
+        boolean hasConflict = false;
+        
+        if (request.getStaffId() != null) {
+            // Nếu chọn nhân viên cụ thể, kiểm tra xung đột dựa trên nhân viên đó
+            hasConflict = checkBookingTimeStaffConflictExcludingCurrent(
+                    request.getBookingId(),
+                    request.getBookingDate(),
+                    request.getStartTime(),
+                    endTime,
+                    request.getStaffId());
+        } else {
+            // Nếu không chọn nhân viên cụ thể, kiểm tra xung đột thời gian chung
+            hasConflict = checkBookingTimeConflictExcludingCurrent(
+                    request.getBookingId(),
+                    request.getBookingDate(),
+                    request.getStartTime(),
+                    endTime);
+        }
 
         if (hasConflict) {
             throw new BookingConflictException("The requested time slot is not available");
@@ -334,6 +384,39 @@ public class BookingServiceImpl implements BookingService {
         List<Booking> conflictingBookings = bookingRepository.findByAppointmentTimeBetweenAndStatusInAndIdNot(
                 startDateTime,
                 endDateTime,
+                List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED),
+                bookingId);
+
+        return !conflictingBookings.isEmpty();
+    }
+
+    /**
+     * Check if there is a booking conflict for the given staff and time slot
+     */
+    private boolean checkBookingTimeStaffConflict(LocalDate date, LocalTime startTime, LocalTime endTime, UUID staffId) {
+        LocalDateTime startDateTime = date.atTime(startTime);
+        LocalDateTime endDateTime = date.atTime(endTime);
+
+        List<Booking> conflictingBookings = bookingRepository.findByAppointmentTimeBetweenAndStaffIdAndStatusIn(
+                startDateTime,
+                endDateTime,
+                staffId,
+                List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED));
+
+        return !conflictingBookings.isEmpty();
+    }
+
+    /**
+     * Check if there is a booking conflict for the given staff and time slot, excluding the current booking
+     */
+    private boolean checkBookingTimeStaffConflictExcludingCurrent(UUID bookingId, LocalDate date, LocalTime startTime, LocalTime endTime, UUID staffId) {
+        LocalDateTime startDateTime = date.atTime(startTime);
+        LocalDateTime endDateTime = date.atTime(endTime);
+
+        List<Booking> conflictingBookings = bookingRepository.findByAppointmentTimeBetweenAndStaffIdAndStatusInAndIdNot(
+                startDateTime,
+                endDateTime,
+                staffId,
                 List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED),
                 bookingId);
 

@@ -21,6 +21,8 @@ public class BookingResponse {
     private String customerName;
     private String customerEmail;
     private String customerPhone;
+    private UUID staffId;
+    private String staffName;
     private BookingStatus status;
     private String statusDescription;
     private LocalDate bookingDate;

@@ -31,4 +31,17 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             LocalDateTime endDateTime,
             List<BookingStatus> statuses,
             UUID bookingId);
+
+    List<Booking> findByAppointmentTimeBetweenAndStaffIdAndStatusIn(
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime,
+            UUID staffId,
+            List<BookingStatus> statuses);
+
+    List<Booking> findByAppointmentTimeBetweenAndStaffIdAndStatusInAndIdNot(
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime,
+            UUID staffId,
+            List<BookingStatus> statuses,
+            UUID bookingId);
 }
