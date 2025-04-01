@@ -74,7 +74,13 @@ public class SecurityConfig {
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration configuration = new CorsConfiguration();
-                configuration.setAllowedOrigins(List.of("http://localhost:5173")); // Chỉ cho phép một origin
+                configuration.setAllowedOrigins(Arrays.asList(
+                    "http://localhost:5173",  // Local frontend
+                    "https://booking-care-rho.vercel.app",  // Production frontend
+                    "http://booking-care-rho.vercel.app",
+                    "https://www.booking-care-rho.vercel.app",
+                    "http://www.booking-care-rho.vercel.app"
+                )); 
                 configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
                 configuration.setAllowedHeaders(Arrays.asList(
                     "Authorization",
