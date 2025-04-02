@@ -1,131 +1,36 @@
-import { useState } from "react";
-import { useSelector } from "react-redux";
-import UserService from "../../../services/UserService";
-import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
-
 function Booking() {
-  const navigate = useNavigate();
-  const { id: userId } = useSelector((state) => state.user);
-  
-  // Thêm state để lưu trữ dữ liệu form
-  const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
-    date: "",
-    time: "",
-    specialistId: "",
-    selectedServices: [],
-    notes: ""
-  });
-  
-  // Hàm xử lý thay đổi input
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-  };
-  
-  // Xử lý thay đổi checkbox dịch vụ
-  const handleServiceChange = (e, serviceId) => {
-    const { checked } = e.target;
-    if (checked) {
-      setFormData({
-        ...formData,
-        selectedServices: [...formData.selectedServices, serviceId]
-      });
-    } else {
-      setFormData({
-        ...formData,
-        selectedServices: formData.selectedServices.filter(id => id !== serviceId)
-      });
-    }
-  };
-  
-  // Xử lý đặt lịch
-  const handleBooking = async (e) => {
-    e.preventDefault();
-    
-    if (!userId) {
-      toast.error("Vui lòng đăng nhập để đặt lịch");
-      navigate("/login");
-      return;
-    }
-    
-    if (formData.selectedServices.length === 0) {
-      toast.error("Vui lòng chọn ít nhất một dịch vụ");
-      return;
-    }
-    
-    if (!formData.date || !formData.time) {
-      toast.error("Vui lòng chọn ngày và giờ hẹn");
-      return;
-    }
-    
-    // Chuyển đổi định dạng dữ liệu để gửi đến API
-    const bookingData = {
-      customerId: userId,
-      staffId: formData.specialistId || null, // Gửi null nếu không chọn nhân viên
-      serviceIds: formData.selectedServices,
-      bookingDate: formData.date,
-      startTime: formData.time,
-      notes: formData.notes
-    };
-    
-    try {
-      const response = await UserService.bookingUser(bookingData);
-      toast.success("Đặt lịch thành công!");
-      navigate("/profile"); // Chuyển hướng đến trang profile sau khi đặt lịch
-    } catch (error) {
-      console.error("Lỗi khi đặt lịch:", error);
-      if (error.response && error.response.data && error.response.data.message) {
-        toast.error(error.response.data.message);
-      } else {
-        toast.error("Đã xảy ra lỗi khi đặt lịch, vui lòng thử lại sau");
-      }
-    }
-  };
-
   const services = [
     {
-      id: "s1",
       name: "Chăm sóc da cơ bản",
       desc: "Làm sạch, tẩy tế bào chết và dưỡng ẩm chuyên sâu",
       time: 60,
       price: "450.000₫",
     },
     {
-      id: "s2",
       name: "Trị mụn chuyên sâu",
       desc: "Điều trị mụn, thâm nám và các vấn đề da khác",
       time: 90,
       price: "650.000₫",
     },
     {
-      id: "s3",
       name: "Trẻ hóa da",
       desc: "Sử dụng công nghệ hiện đại giúp làn da trẻ trung hơn",
       time: 120,
       price: "850.000₫",
     },
     {
-      id: "s4",
       name: "Massage mặt",
       desc: "Kỹ thuật massage thư giãn và làm săn chắc da mặt",
       time: 45,
       price: "350.000₫",
     },
     {
-      id: "s5",
       name: "Tẩy trang chuyên sâu",
       desc: "Làm sạch sâu và loại bỏ mọi bụi bẩn, tạp chất trên da",
       time: 30,
       price: "250.000₫",
     },
   ];
-  
   const specialists = [
     {
       id: "a1b2c3d4-e5f6-11ec-8000-000000000002",
@@ -162,7 +67,7 @@ function Booking() {
             Đặt Lịch Dịch Vụ
           </h2>
           <p className="text-xl font-semibold my-4">Dịch vụ</p>
-          <div className="p-4 border border-black/10 rounded-2xl">
+          <div className="p-4 border border-black/10  rounded-2xl  ">
             {services.map((service, index) => {
               return (
                 <div key={index} className="flex items-center mb-5">
@@ -175,10 +80,10 @@ function Booking() {
                   />
                   <div className="mr-auto">
                     <h5 className="font-semibold">{service.name}</h5>
-                    <p className="text-black/50">{service.desc}</p>
+                    <p className="text-black/50">{service.description}</p>
                     <div className="space-x-1 text-black/50">
                       <i className="fa-regular fa-clock"></i>
-                      <span>{service.time} Phút</span>
+                      <span>{service.duration} Phút</span>
                     </div>
                   </div>
                   <span className="font-semibold">{service.price}</span>
@@ -225,10 +130,8 @@ function Booking() {
                 name="time"
                 id="time"
                 className="w-full p-2 border-2 border-black/10 rounded-md outline-none my-3 cursor-pointer"
-                value={formData.time}
-                onChange={handleInputChange}
               >
-                <option value="" disabled>
+                <option value="" selected>
                   Chọn giờ
                 </option>
                 <option value="07:00">07:00</option>
@@ -262,10 +165,8 @@ function Booking() {
             name="specialistId"
             id="specialistId"
             className="w-full p-2 border-2 border-black/10 rounded-md outline-none my-3"
-            value={formData.specialistId}
-            onChange={handleInputChange}
           >
-            <option value="">
+            <option value="" selected>
               Chọn chuyên viên
             </option>
             {specialists.map((specialist, index) => {
