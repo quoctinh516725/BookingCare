@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import UserService from "../../../services/UserService";
-import { toast } from "react-toastify";
+import AdminService from "../../../services/AdminService";
 
 const AdminDashboard = () => {
   // State để lưu trữ dữ liệu từ API
@@ -9,76 +8,26 @@ const AdminDashboard = () => {
   const [popularServices, setPopularServices] = useState([]);
   const [serviceDistribution, setServiceDistribution] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
+    // Hàm fetchData được tách ra để dễ quản lý
     const fetchData = async () => {
       setIsLoading(true);
+      setError(null);
+      
       try {
-        // Fetch thống kê admin
-        const statsData = await UserService.getAdminStats();
-        const formattedStats = [
-          {
-            title: "Người dùng",
-            value: statsData.userCount || "0",
-            change: `${statsData.userGrowth > 0 ? "+" : ""}${statsData.userGrowth || 0}% so với tháng trước`,
-            icon: <i className="fas fa-users h-5 w-5 text-blue-500"></i>,
-          },
-          {
-            title: "Dịch vụ",
-            value: statsData.serviceCount || "0",
-            change: `${statsData.serviceGrowth > 0 ? "+" : ""}${statsData.serviceGrowth || 0}% so với tháng trước`,
-            icon: <i className="fas fa-concierge-bell h-5 w-5 text-purple-500"></i>,
-          },
-          {
-            title: "Chuyên viên",
-            value: statsData.staffCount || "0",
-            change: `${statsData.staffGrowth > 0 ? "+" : ""}${statsData.staffGrowth || 0} người mới`,
-            icon: <i className="fas fa-user-check h-5 w-5 text-blue-500"></i>,
-          },
-          {
-            title: "Lịch đặt",
-            value: statsData.bookingCount || "0",
-            change: `${statsData.bookingGrowth > 0 ? "+" : ""}${statsData.bookingGrowth || 0}% so với tháng trước`,
-            icon: <i className="fas fa-calendar-alt h-5 w-5 text-blue-500"></i>,
-          },
-          {
-            title: "Doanh thu",
-            value: `${new Intl.NumberFormat('vi-VN').format(statsData.revenue || 0)} đ`,
-            change: `${statsData.revenueGrowth > 0 ? "+" : ""}${statsData.revenueGrowth || 0}% so với tháng trước`,
-            icon: <i className="fas fa-dollar-sign h-5 w-5 text-green-500"></i>,
-          },
-        ];
-        setStatistics(formattedStats);
-
-        // Fetch lịch hẹn gần đây
-        const bookingsData = await UserService.getRecentBookings(5);
-        const formattedAppointments = bookingsData.map(booking => ({
-          customer: booking.customerName || "Khách hàng",
-          service: booking.services?.map(s => s.name).join(", ") || "Dịch vụ",
-          time: booking.formattedDateTime || new Date(booking.appointmentTime).toLocaleString('vi-VN'),
-          status: booking.status
-        }));
-        setAppointments(formattedAppointments);
-
-        // Fetch dịch vụ phổ biến
-        const servicesData = await UserService.getPopularServices();
-        const formattedServices = servicesData.map(service => ({
-          name: service.name || "Dịch vụ",
-          count: service.bookingCount || 0,
-          revenue: `${new Intl.NumberFormat('vi-VN').format(service.revenue || 0)} đ`
-        }));
-        setPopularServices(formattedServices);
-
-        // Tạo dữ liệu cho biểu đồ phân phối dịch vụ
-        const totalBookings = servicesData.reduce((sum, service) => sum + (service.bookingCount || 0), 0);
-        const distributionData = servicesData.map(service => ({
-          name: service.name || "Dịch vụ",
-          percentage: totalBookings > 0 ? Math.round(((service.bookingCount || 0) / totalBookings) * 100) : 0
-        }));
-        setServiceDistribution(distributionData);
+        // 1. Lấy thống kê tổng quan
+        await fetchAdminStats();
+        
+        // 2. Lấy lịch hẹn gần đây
+        await fetchRecentBookings();
+        
+        // 3. Lấy dịch vụ phổ biến
+        await fetchPopularServices();
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
-        toast.error("Không thể tải dữ liệu dashboard. Vui lòng thử lại sau!");
+        setError("Không thể tải dữ liệu dashboard. Vui lòng thử lại sau!");
       } finally {
         setIsLoading(false);
       }
@@ -86,6 +35,90 @@ const AdminDashboard = () => {
 
     fetchData();
   }, []);
+
+  // Tách thành các hàm nhỏ hơn để dễ đọc và bảo trì
+  const fetchAdminStats = async () => {
+    try {
+      const statsData = await AdminService.getAdminStats();
+      const formattedStats = [
+        {
+          title: "Người dùng",
+          value: statsData.userCount || "0",
+          change: `${statsData.userGrowth > 0 ? "+" : ""}${statsData.userGrowth || 0}% so với tháng trước`,
+          icon: <i className="fas fa-users h-5 w-5 text-blue-500"></i>,
+        },
+        {
+          title: "Dịch vụ",
+          value: statsData.serviceCount || "0",
+          change: `${statsData.serviceGrowth > 0 ? "+" : ""}${statsData.serviceGrowth || 0}% so với tháng trước`,
+          icon: <i className="fas fa-concierge-bell h-5 w-5 text-purple-500"></i>,
+        },
+        {
+          title: "Chuyên viên",
+          value: statsData.staffCount || "0",
+          change: `${statsData.staffGrowth > 0 ? "+" : ""}${statsData.staffGrowth || 0} người mới`,
+          icon: <i className="fas fa-user-check h-5 w-5 text-blue-500"></i>,
+        },
+        {
+          title: "Lịch đặt",
+          value: statsData.bookingCount || "0",
+          change: `${statsData.bookingGrowth > 0 ? "+" : ""}${statsData.bookingGrowth || 0}% so với tháng trước`,
+          icon: <i className="fas fa-calendar-alt h-5 w-5 text-blue-500"></i>,
+        },
+        {
+          title: "Doanh thu",
+          value: `${new Intl.NumberFormat('vi-VN').format(statsData.revenue || 0)} đ`,
+          change: `${statsData.revenueGrowth > 0 ? "+" : ""}${statsData.revenueGrowth || 0}% so với tháng trước`,
+          icon: <i className="fas fa-dollar-sign h-5 w-5 text-green-500"></i>,
+        },
+      ];
+      setStatistics(formattedStats);
+    } catch (error) {
+      console.error("Error in fetchAdminStats:", error);
+      throw error;
+    }
+  };
+
+  const fetchRecentBookings = async () => {
+    try {
+      const bookingsData = await AdminService.getRecentBookings(5);
+      const formattedAppointments = bookingsData.map(booking => ({
+        customer: booking.customerName || "Khách hàng",
+        service: booking.services?.map(s => s.name).join(", ") || "Dịch vụ",
+        time: booking.formattedDateTime || new Date(booking.appointmentTime).toLocaleString('vi-VN'),
+        status: booking.status
+      }));
+      setAppointments(formattedAppointments);
+    } catch (error) {
+      console.error("Error in fetchRecentBookings:", error);
+      throw error;
+    }
+  };
+
+  const fetchPopularServices = async () => {
+    try {
+      const servicesData = await AdminService.getPopularServices();
+      
+      // Format dữ liệu dịch vụ phổ biến
+      const formattedServices = servicesData.map(service => ({
+        name: service.name || "Dịch vụ",
+        count: service.bookingCount || 0,
+        revenue: `${new Intl.NumberFormat('vi-VN').format(service.revenue || 0)} đ`
+      }));
+      setPopularServices(formattedServices);
+
+      // Tạo dữ liệu cho biểu đồ phân phối dịch vụ
+      const totalBookings = servicesData.reduce((sum, service) => sum + (service.bookingCount || 0), 0);
+      const distributionData = servicesData.map(service => ({
+        name: service.name || "Dịch vụ",
+        percentage: totalBookings > 0 ? Math.round(((service.bookingCount || 0) / totalBookings) * 100) : 0
+      }));
+      setServiceDistribution(distributionData);
+    } catch (error) {
+      console.error("Error in fetchPopularServices:", error);
+      throw error;
+    }
+  };
 
   // Function để render trạng thái lịch hẹn
   const renderAppointmentStatus = (status) => {
@@ -125,13 +158,57 @@ const AdminDashboard = () => {
     );
   };
 
+  // Hàm retry để thử lại việc fetch data
+  const handleRetry = () => {
+    setError(null);
+    setIsLoading(true);
+    
+    // Gọi lại useEffect bằng cách thay đổi một dependency
+    // Đây là cách đơn giản để trigger useEffect
+    const fetchData = async () => {
+      try {
+        // 1. Lấy thống kê tổng quan
+        await fetchAdminStats();
+        
+        // 2. Lấy lịch hẹn gần đây
+        await fetchRecentBookings();
+        
+        // 3. Lấy dịch vụ phổ biến
+        await fetchPopularServices();
+        
+        setError(null);
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error);
+        setError("Không thể tải dữ liệu dashboard. Vui lòng thử lại sau!");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchData();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <h1 className="text-xl font-bold mb-6">Quản lý hệ thống</h1>
 
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 relative">
+          <strong className="font-bold">Lỗi! </strong>
+          <span className="block sm:inline">{error}</span>
+          <button 
+            onClick={handleRetry}
+            className="ml-3 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs"
+          >
+            Thử lại
+          </button>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <span className="ml-4 text-blue-500">Đang tải dữ liệu...</span>
         </div>
       ) : (
         <>
