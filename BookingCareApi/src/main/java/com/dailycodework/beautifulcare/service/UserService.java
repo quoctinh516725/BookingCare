@@ -4,12 +4,15 @@ import com.dailycodework.beautifulcare.dto.request.PasswordChangeRequest;
 import com.dailycodework.beautifulcare.dto.request.UserRequest;
 import com.dailycodework.beautifulcare.dto.request.UserUpdateRequest;
 import com.dailycodework.beautifulcare.dto.response.UserResponse;
+import com.dailycodework.beautifulcare.entity.UserRole;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface UserService {
     List<UserResponse> getAllUsers();
+    
+    List<UserResponse> getUsersByRole(UserRole role);
 
     UserResponse getUserById(UUID id);
 

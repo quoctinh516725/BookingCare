@@ -4,7 +4,7 @@ import routes from "./routes";
 import { jwtDecode } from "jwt-decode";
 import { useDispatch } from "react-redux";
 import { setUser } from "./redux/slices/userSlice";
-import UserService from "../services/UserService";
+import UserService from "services/UserService";
 import Modal from "react-modal";
 
 Modal.setAppElement("#root");

@@ -4,6 +4,7 @@ import com.dailycodework.beautifulcare.dto.request.UserRequest;
 import com.dailycodework.beautifulcare.dto.request.UserUpdateRequest;
 import com.dailycodework.beautifulcare.dto.response.UserResponse;
 import com.dailycodework.beautifulcare.entity.User;
+import com.dailycodework.beautifulcare.entity.UserRole;
 import com.dailycodework.beautifulcare.exception.ResourceNotFoundException;
 import com.dailycodework.beautifulcare.mapper.UserMapper;
 import com.dailycodework.beautifulcare.repository.UserRepository;
@@ -32,6 +33,14 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UserResponse> getAllUsers() {
         return userRepository.findAll().stream()
+                .map(userMapper::toUserResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<UserResponse> getUsersByRole(UserRole role) {
+        log.info("Getting users by role: {}", role);
+        return userRepository.findByRole(role).stream()
                 .map(userMapper::toUserResponse)
                 .collect(Collectors.toList());
     }
@@ -88,6 +97,9 @@ public class UserServiceImpl implements UserService {
         }
         if (request.getPassword() != null) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+        if (request.getDescription() != null) {
+            user.setDescription(request.getDescription());
         }
         
         // Lưu và trả về kết quả

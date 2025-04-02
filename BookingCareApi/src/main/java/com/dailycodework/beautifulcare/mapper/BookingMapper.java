@@ -26,7 +26,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", imports = {LocalDateTime.class, LocalDate.class, LocalTime.class})
 public abstract class BookingMapper {
 
     @Autowired
@@ -41,11 +41,18 @@ public abstract class BookingMapper {
     @Mapping(target = "customer", source = "customerId", qualifiedByName = "findUserById")
     @Mapping(target = "staff", source = "staffId", qualifiedByName = "findUserById")
     @Mapping(target = "services", source = "serviceIds", qualifiedByName = "findServicesByIds")
-    @Mapping(target = "appointmentTime", source = "bookingDate")
+    @Mapping(target = "appointmentTime", expression = "java(createAppointmentTimeMethod(request))")
     @Mapping(target = "status", constant = "PENDING")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     public abstract Booking toBooking(BookingRequest request);
+
+    protected LocalDateTime createAppointmentTimeMethod(BookingRequest request) {
+        if (request.getBookingDate() == null || request.getStartTime() == null) {
+            return null;
+        }
+        return LocalDateTime.of(request.getBookingDate(), request.getStartTime());
+    }
 
     @Mapping(target = "customerId", source = "customer.id")
     @Mapping(target = "customerName", source = "customer", qualifiedByName = "getFullName")
@@ -66,11 +73,18 @@ public abstract class BookingMapper {
     @Mapping(target = "customer", source = "customerId", qualifiedByName = "findUserById")
     @Mapping(target = "staff", source = "staffId", qualifiedByName = "findUserById")
     @Mapping(target = "services", source = "serviceIds", qualifiedByName = "findServicesByIds")
-    @Mapping(target = "appointmentTime", source = "bookingDate")
+    @Mapping(target = "appointmentTime", expression = "java(createAppointmentTimeFromUpdateMethod(request))")
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", expression = "java(LocalDateTime.now())")
     public abstract Booking toBooking(UpdateBookingRequest request);
+
+    protected LocalDateTime createAppointmentTimeFromUpdateMethod(UpdateBookingRequest request) {
+        if (request.getBookingDate() == null || request.getStartTime() == null) {
+            return null;
+        }
+        return LocalDateTime.of(request.getBookingDate(), request.getStartTime());
+    }
 
     @Mapping(target = "customerId", source = "customer.id")
     @Mapping(target = "customerName", source = "customer", qualifiedByName = "getFullName")
@@ -184,8 +198,15 @@ public abstract class BookingMapper {
     @Mapping(target = "customer", ignore = true)
     @Mapping(target = "staff", source = "staffId", qualifiedByName = "findUserById")
     @Mapping(target = "services", ignore = true)
-    @Mapping(target = "appointmentTime", source = "bookingDate")
+    @Mapping(target = "appointmentTime", expression = "java(createAppointmentTimeForUpdateMethod(request))")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     public abstract void updateBooking(@MappingTarget Booking booking, BookingRequest request);
+
+    protected LocalDateTime createAppointmentTimeForUpdateMethod(BookingRequest request) {
+        if (request.getBookingDate() == null || request.getStartTime() == null) {
+            return null;
+        }
+        return LocalDateTime.of(request.getBookingDate(), request.getStartTime());
+    }
 }

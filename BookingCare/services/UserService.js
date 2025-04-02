@@ -171,6 +171,21 @@ const bookingUser = async (data) => {
   });
   return response.data;
 };
+
+const getUserBookings = async () => {
+  const tokenString = localStorage.getItem("access_token");
+  const token = tokenString ? JSON.parse(tokenString) : null;
+  
+  const response = await axiosJWT.get(`/api/v1/bookings/my-bookings`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` })
+    },
+    withCredentials: true,
+  });
+  return response.data;
+};
+
 const getServices = async () => {
   const response = await axios.get(`/api/v1/services`, {
     headers: {
@@ -180,15 +195,74 @@ const getServices = async () => {
   });
   return response.data;
 };
+
+const getStaff = async () => {
+  const response = await axios.get(`/api/v1/users/staff`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+    withCredentials: true,
+  });
+  return response.data;
+};
+
+// Thêm các API services cho admin dashboard
+const getAdminStats = async () => {
+  const tokenString = localStorage.getItem("access_token");
+  const token = tokenString ? JSON.parse(tokenString) : null;
+  
+  const response = await axiosJWT.get(`/api/v1/admin/stats`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` })
+    },
+    withCredentials: true,
+  });
+  return response.data;
+};
+
+const getRecentBookings = async (limit = 5) => {
+  const tokenString = localStorage.getItem("access_token");
+  const token = tokenString ? JSON.parse(tokenString) : null;
+  
+  const response = await axiosJWT.get(`/api/v1/bookings?limit=${limit}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` })
+    },
+    withCredentials: true,
+  });
+  return response.data;
+};
+
+const getPopularServices = async () => {
+  const tokenString = localStorage.getItem("access_token");
+  const token = tokenString ? JSON.parse(tokenString) : null;
+  
+  const response = await axiosJWT.get(`/api/v1/services/popular`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` })
+    },
+    withCredentials: true,
+  });
+  return response.data;
+};
+
 export default {
   signUpUser,
   loginUser,
   getDetailUser,
   bookingUser,
+  getUserBookings,
   refreshToken,
   logoutUser,
   updateUserInfo,
   changePassword,
   getServices,
+  getStaff,
+  getAdminStats,
+  getRecentBookings,
+  getPopularServices,
   axiosJWT,
 };

@@ -1,7 +1,8 @@
 import { useState, useContext } from "react";
 import { useSelector } from "react-redux";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useDispatch } from "react-redux";
+import { Link } from "react-router-dom";
 import { MessageContext } from "../../contexts/MessageProvider.jsx";
 import UserService from "../../../services/UserService";
 import { setUser } from "../../redux/slices/userSlice";
@@ -37,6 +38,14 @@ function Profile() {
     confirmPassword: "",
   });
   const [passwordError, setPasswordError] = useState("");
+
+  // Fetch bookings data
+  const { data: bookings, isLoading: bookingsLoading } = 
+    useQuery({
+      queryKey: ["userBookings"],
+      queryFn: UserService.getUserBookings,
+      enabled: !!access_token,
+    });
 
   // Handle profile update
   const updateProfileMutation = useMutation({
@@ -336,15 +345,77 @@ function Profile() {
                 <h2 className="text-lg font-medium text-gray-800 mb-3">
                   Lịch hẹn của tôi
                 </h2>
-                <div className="bg-yellow-50 border-l-2 border-yellow-300 px-3 py-2 mb-3">
-                  <p className="text-yellow-700 text-sm">
-                    Hiện tại bạn chưa có lịch hẹn nào. Hãy đặt lịch để trải
-                    nghiệm dịch vụ của chúng tôi.
-                  </p>
-                </div>
-                <span className="inline-flex items-center px-3 py-2 text-sm text-[var(--primary-color)]   cursor-pointer h-9">
+                
+                {bookingsLoading ? (
+                  <div className="flex justify-center items-center py-10">
+                    <div className="w-8 h-8 border-4 border-[var(--primary-color)] border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                ) : bookings && bookings.length > 0 ? (
+                  <div className="space-y-4">
+                    {bookings.map((booking) => (
+                      <div key={booking.id} className="border rounded-lg overflow-hidden">
+                        <div className="bg-gray-50 px-4 py-2 flex justify-between items-center">
+                          <div>
+                            <span className="text-sm font-medium">Ngày đặt: {booking.formattedDateTime}</span>
+                          </div>
+                          <div>
+                            <span className={`text-xs px-2 py-1 rounded ${
+                              booking.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                              booking.status === 'CONFIRMED' ? 'bg-blue-100 text-blue-800' :
+                              booking.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
+                              booking.status === 'CANCELLED' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                            }`}>
+                              {booking.statusDescription}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="p-4">
+                          <div className="mb-3">
+                            <h3 className="font-medium text-base">Dịch vụ</h3>
+                            <ul className="mt-1 space-y-1">
+                              {booking.services.map((service) => (
+                                <li key={service.id} className="flex justify-between text-sm">
+                                  <span>{service.name}</span>
+                                  <span>{service.price}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3 text-sm">
+                            <div>
+                              <p className="text-gray-500">Chuyên viên:</p>
+                              <p>{booking.staffName}</p>
+                            </div>
+                            <div>
+                              <p className="text-gray-500">Tổng tiền:</p>
+                              <p className="font-medium">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(booking.totalPrice)}</p>
+                            </div>
+                          </div>
+                          
+                          {booking.canCancel && (
+                            <div className="mt-3 flex justify-end">
+                              <button className="text-red-500 text-sm hover:underline">
+                                Hủy lịch hẹn
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-yellow-50 border-l-2 border-yellow-300 px-3 py-2 mb-3">
+                    <p className="text-yellow-700 text-sm">
+                      Hiện tại bạn chưa có lịch hẹn nào. Hãy đặt lịch để trải
+                      nghiệm dịch vụ của chúng tôi.
+                    </p>
+                  </div>
+                )}
+                
+                <Link to="/booking" className="inline-flex items-center px-3 py-2 text-sm text-[var(--primary-color)] cursor-pointer h-9 mt-3">
                   Đặt lịch ngay
-                </span>
+                </Link>
               </div>
             )}
 

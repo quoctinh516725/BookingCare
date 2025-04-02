@@ -5,6 +5,7 @@ import com.dailycodework.beautifulcare.dto.request.UserUpdateRequest;
 import com.dailycodework.beautifulcare.dto.request.PasswordChangeRequest;
 import com.dailycodework.beautifulcare.dto.response.UserResponse;
 import com.dailycodework.beautifulcare.entity.User;
+import com.dailycodework.beautifulcare.entity.UserRole;
 import com.dailycodework.beautifulcare.exception.ResourceNotFoundException;
 import com.dailycodework.beautifulcare.exception.BadRequestException;
 import com.dailycodework.beautifulcare.security.SecurityUtils;
@@ -40,6 +41,12 @@ public class UserController {
     @Operation(summary = "Get all users")
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
+    }
+
+    @GetMapping("/staff")
+    @Operation(summary = "Get all staff members")
+    public ResponseEntity<List<UserResponse>> getAllStaff() {
+        return ResponseEntity.ok(userService.getUsersByRole(UserRole.STAFF));
     }
 
     @GetMapping("/{id}")

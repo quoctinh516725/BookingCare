@@ -111,6 +111,9 @@ public class BookingServiceImpl implements BookingService {
         }
 
         Booking booking = bookingMapper.toBooking(request);
+        
+        // Đảm bảo appointmentTime được đặt đúng
+        booking.setAppointmentTime(appointmentTime);
 
         // Tính toán tổng giá trị booking dựa trên dịch vụ
         BigDecimal totalPrice = calculateTotalPrice(request.getServiceIds());
@@ -149,6 +152,9 @@ public class BookingServiceImpl implements BookingService {
             throw new InvalidBookingException("Cannot update booking to a past date");
         }
 
+        // Chuyển đổi ngày và giờ thành LocalDateTime
+        LocalDateTime appointmentTime = request.getBookingDate().atTime(request.getStartTime());
+
         // Tính thời gian kết thúc dự kiến
         LocalTime endTime = request.getEndTime() != null 
             ? request.getEndTime() 
@@ -179,6 +185,9 @@ public class BookingServiceImpl implements BookingService {
         }
 
         bookingMapper.updateBooking(booking, request);
+
+        // Đảm bảo appointmentTime được đặt đúng
+        booking.setAppointmentTime(appointmentTime);
 
         // Cập nhật lại tổng giá
         BigDecimal totalPrice = calculateTotalPrice(request.getServiceIds());
@@ -219,6 +228,9 @@ public class BookingServiceImpl implements BookingService {
             throw new InvalidBookingException("Cannot update booking to a past date");
         }
 
+        // Chuyển đổi ngày và giờ thành LocalDateTime
+        LocalDateTime appointmentTime = request.getBookingDate().atTime(request.getStartTime());
+
         // Tính thời gian kết thúc dự kiến
         LocalTime endTime = request.getEndTime() != null 
             ? request.getEndTime() 
@@ -249,18 +261,27 @@ public class BookingServiceImpl implements BookingService {
         }
 
         // Update booking with new details
-        bookingMapper.updateBooking(booking, request);
-
+        Booking updatedBooking = bookingMapper.toBooking(request);
+        
+        // Đảm bảo giữ lại customer từ booking ban đầu
+        updatedBooking.setCustomer(booking.getCustomer());
+        
+        // Đảm bảo appointmentTime được đặt đúng
+        updatedBooking.setAppointmentTime(appointmentTime);
+        
         // Cập nhật lại tổng giá
         BigDecimal totalPrice = calculateTotalPrice(request.getServiceIds());
-        booking.setTotalPrice(totalPrice);
+        updatedBooking.setTotalPrice(totalPrice);
 
+        // Giữ lại trạng thái
+        updatedBooking.setStatus(booking.getStatus());
+        
         // Set update notes if provided
         if (request.getNotes() != null && !request.getNotes().isEmpty()) {
-            booking.setNotes(request.getNotes());
+            updatedBooking.setNotes(request.getNotes());
         }
 
-        return bookingMapper.toUpdateBookingResponse(bookingRepository.save(booking));
+        return bookingMapper.toUpdateBookingResponse(bookingRepository.save(updatedBooking));
     }
 
     @Override

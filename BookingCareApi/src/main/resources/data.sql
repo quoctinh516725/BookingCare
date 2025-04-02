@@ -1,245 +1,80 @@
--- Xóa dữ liệu hiện có (nếu có)
-SET FOREIGN_KEY_CHECKS = 0;
+-- File chèn dữ liệu mẫu chỉ khi các bảng trống
+-- Được sửa để không xóa dữ liệu hiện có nếu đã có trong cơ sở dữ liệu
 
--- TRUNCATE TABLE refresh_tokens;
--- TRUNCATE TABLE feedbacks;
--- TRUNCATE TABLE booking_services;
--- TRUNCATE TABLE bookings;
--- TRUNCATE TABLE services;
--- TRUNCATE TABLE users;
+-- Chèn dữ liệu cần thiết vào bảng users nếu trống
+INSERT INTO users (id, first_name, last_name, email, username, password, phone, role, created_at, updated_at)
+SELECT UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000001'), 'Admin', 'User', 'admin@example.com', 'admin', '$2a$10$6lw1ojmNxlT/guWQP27fyuD/T4XgEpkTAmiVmWbzKKKBBr8y.c7Ie', '+84987654321', 'ADMIN', NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM users LIMIT 1);
 
-SET FOREIGN_KEY_CHECKS = 1;
+-- Staff nhân viên làm đẹp - chỉ chèn nếu bảng trống
+INSERT INTO users (id, first_name, last_name, email, username, password, phone, role, description, created_at, updated_at)
+SELECT UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000002'), 'Nguyễn Thị', 'Lan', 'staff1@example.com', 'staff1', '$2a$10$6lw1ojmNxlT/guWQP27fyuD/T4XgEpkTAmiVmWbzKKKBBr8y.c7Ie', '+84912345678', 'STAFF', 'Bác sĩ da liễu với hơn 10 năm kinh nghiệm điều trị các vấn đề về da. Chuyên gia trong điều trị mụn, thâm nám và các liệu pháp trẻ hóa da không xâm lấn.', NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM users LIMIT 1);
 
--- Chèn dữ liệu mẫu vào bảng users nếu chưa tồn tại
-INSERT INTO users (id, first_name, last_name, email, password, phone, role, created_at, updated_at)
-SELECT UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000001'), 'Admin', 'User', 'admin@example.com', '$2a$10$6lw1ojmNxlT/guWQP27fyuD/T4XgEpkTAmiVmWbzKKKBBr8y.c7Ie', '+84987654321', 'ADMIN', NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE id = UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000001'));
+INSERT INTO users (id, first_name, last_name, email, username, password, phone, role, description, created_at, updated_at)
+SELECT UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000003'), 'Trần Minh', 'Khoa', 'staff2@example.com', 'staff2', '$2a$10$6lw1ojmNxlT/guWQP27fyuD/T4XgEpkTAmiVmWbzKKKBBr8y.c7Ie', '+84912345679', 'STAFF', 'Chuyên gia thẩm mỹ được đào tạo tại Pháp, với chuyên môn sâu về liệu pháp cung cấp collagen và tái tạo cấu trúc da. Sở hữu nhiều chứng chỉ từ các tổ chức thẩm mỹ quốc tế.', NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM users LIMIT 1);
 
-INSERT INTO users (id, first_name, last_name, email, password, phone, role, created_at, updated_at)
-SELECT UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000002'), 'Staff', 'One', 'staff1@example.com', '$2a$10$6lw1ojmNxlT/guWQP27fyuD/T4XgEpkTAmiVmWbzKKKBBr8y.c7Ie', '+84912345678', 'STAFF', NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE id = UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000002'));
+-- Thêm thêm các nhân viên còn lại với UUID tiêu chuẩn - chỉ chèn nếu bảng trống
+INSERT INTO users (id, first_name, last_name, email, username, password, phone, role, description, created_at, updated_at)
+SELECT UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000004'), 'Lê Thu', 'Hằng', 'staff3@example.com', 'staff3', '$2a$10$6lw1ojmNxlT/guWQP27fyuD/T4XgEpkTAmiVmWbzKKKBBr8y.c7Ie', '+84912345676', 'STAFF', 'Chuyên viên massage trị liệu với kỹ thuật độc quyền kết hợp giữa phương pháp truyền thống phương Đông và hiện đại. Giúp thư giãn, cải thiện tuần hoàn máu và phục hồi năng lượng.', NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM users LIMIT 1);
 
-INSERT INTO users (id, first_name, last_name, email, password, phone, role, created_at, updated_at)
-SELECT UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000003'), 'Staff', 'Two', 'staff2@example.com', '$2a$10$6lw1ojmNxlT/guWQP27fyuD/T4XgEpkTAmiVmWbzKKKBBr8y.c7Ie', '+84912345679', 'STAFF', NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE id = UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000003'));
+INSERT INTO users (id, first_name, last_name, email, username, password, phone, role, description, created_at, updated_at)
+SELECT UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000005'), 'Phạm Văn', 'Dũng', 'staff4@example.com', 'staff4', '$2a$10$6lw1ojmNxlT/guWQP27fyuD/T4XgEpkTAmiVmWbzKKKBBr8y.c7Ie', '+84912345675', 'STAFF', 'Chuyên gia tư vấn với kinh nghiệm hơn 8 năm trong ngành thẩm mỹ. Sở trường phân tích và đưa ra các giải pháp cá nhân hóa cho từng loại da và vấn đề về da.', NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM users LIMIT 1);
 
-INSERT INTO users (id, first_name, last_name, email, password, phone, role, created_at, updated_at)
-SELECT UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000004'), 'John', 'Doe', 'john@example.com', '$2a$10$6lw1ojmNxlT/guWQP27fyuD/T4XgEpkTAmiVmWbzKKKBBr8y.c7Ie', '+84912345680', 'CUSTOMER', NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE id = UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000004'));
+INSERT INTO users (id, first_name, last_name, email, username, password, phone, role, description, created_at, updated_at)
+SELECT UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000006'), 'Đỗ Mỹ', 'Linh', 'staff5@example.com', 'staff5', '$2a$10$6lw1ojmNxlT/guWQP27fyuD/T4XgEpkTAmiVmWbzKKKBBr8y.c7Ie', '+84912345674', 'STAFF', 'Chuyên gia về liệu pháp thiên nhiên, sử dụng các sản phẩm hữu cơ trong chăm sóc da. Tốt nghiệp xuất sắc từ Học viện Thẩm mỹ Paris, với chứng chỉ chuyên sâu về spa tự nhiên và liệu pháp hương thơm.', NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM users LIMIT 1);
 
-INSERT INTO users (id, first_name, last_name, email, password, phone, role, created_at, updated_at)
-SELECT UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000005'), 'Jane', 'Smith', 'jane@example.com', '$2a$10$6lw1ojmNxlT/guWQP27fyuD/T4XgEpkTAmiVmWbzKKKBBr8y.c7Ie', '+84912345681', 'CUSTOMER', NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE id = UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000005'));
+-- Thêm người dùng để test - chỉ chèn nếu bảng trống
+INSERT INTO users (id, first_name, last_name, email, username, password, phone, role, created_at, updated_at)
+SELECT UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000007'), 'Khách', 'Hàng', 'customer@example.com', 'customer', '$2a$10$6lw1ojmNxlT/guWQP27fyuD/T4XgEpkTAmiVmWbzKKKBBr8y.c7Ie', '+84912345673', 'CUSTOMER', NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM users LIMIT 1);
 
-INSERT INTO users (id, first_name, last_name, email, password, phone, role, created_at, updated_at)
-SELECT UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000006'), 'Alice', 'Johnson', 'alice@example.com', '$2a$10$6lw1ojmNxlT/guWQP27fyuD/T4XgEpkTAmiVmWbzKKKBBr8y.c7Ie', '+84912345682', 'CUSTOMER', NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE id = UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000006'));
+INSERT INTO users (id, first_name, last_name, email, username, password, phone, role, created_at, updated_at)
+SELECT UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000008'), 'Nguyễn Văn', 'An', 'customer2@example.com', 'customer2', '$2a$10$6lw1ojmNxlT/guWQP27fyuD/T4XgEpkTAmiVmWbzKKKBBr8y.c7Ie', '+84912345672', 'CUSTOMER', NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM users LIMIT 1);
 
-INSERT INTO users (id, first_name, last_name, email, password, phone, role, created_at, updated_at)
-SELECT UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000007'), 'Bob', 'Brown', 'bob@example.com', '$2a$10$6lw1ojmNxlT/guWQP27fyuD/T4XgEpkTAmiVmWbzKKKBBr8y.c7Ie', '+84912345683', 'CUSTOMER', NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE id = UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000007'));
-
-INSERT INTO users (id, first_name, last_name, email, password, phone, role, created_at, updated_at)
-SELECT UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000008'), 'Emma', 'Davis', 'emma@example.com', '$2a$10$6lw1ojmNxlT/guWQP27fyuD/T4XgEpkTAmiVmWbzKKKBBr8y.c7Ie', '+84912345684', 'CUSTOMER', NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM users WHERE id = UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000008'));
-
--- Lưu ý: Mật khẩu được mã hóa là 'password'
-
--- Chèn dữ liệu mẫu vào bảng services nếu chưa tồn tại
+-- Chèn dữ liệu cần thiết vào bảng services khớp với frontend - chỉ chèn nếu bảng trống
 INSERT INTO services (id, name, description, price, duration, image_url, is_active, created_at, updated_at)
-SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000001'), 'Facial Treatment', 'Comprehensive facial treatment for all skin types', 500000, 60, 'https://example.com/images/facial.jpg', 1, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM services WHERE id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000001'));
+SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000001'), 'Chăm sóc da cơ bản', 'Quy trình chăm sóc toàn diện bao gồm làm sạch sâu, tẩy tế bào chết nhẹ nhàng với hạt mơ tự nhiên, massage thư giãn và đắp mặt nạ dưỡng ẩm chuyên sâu với chiết xuất lô hội và vitamin E. Phù hợp với mọi loại da, đặc biệt là da khô và nhạy cảm.', 450000, 60, 'https://i.imgur.com/0qAzuLL.jpg', 1, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM services LIMIT 1);
 
 INSERT INTO services (id, name, description, price, duration, image_url, is_active, created_at, updated_at)
-SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000002'), 'Deep Cleansing', 'Deep cleansing to remove impurities and unclog pores', 350000, 45, 'https://example.com/images/cleansing.jpg', 1, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM services WHERE id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000002'));
+SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000002'), 'Trị mụn chuyên sâu', 'Liệu trình điều trị tận gốc các vấn đề về mụn, sử dụng công nghệ chiết xuất mủ mụn không đau, kết hợp với ánh sáng xanh diệt khuẩn và mặt nạ chống viêm. Sản phẩm sử dụng không chứa corticoid, an toàn cho da nhạy cảm và giúp giảm thâm sau mụn hiệu quả.', 650000, 90, 'https://i.imgur.com/GcajYdP.jpg', 1, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM services LIMIT 1);
 
 INSERT INTO services (id, name, description, price, duration, image_url, is_active, created_at, updated_at)
-SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000003'), 'Anti-Aging Treatment', 'Advanced anti-aging treatment to reduce fine lines and wrinkles', 650000, 75, 'https://example.com/images/antiaging.jpg', 1, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM services WHERE id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000003'));
+SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000003'), 'Trẻ hóa da', 'Sử dụng công nghệ RF (sóng cao tần) kết hợp với tinh chất nhau thai cừu và collagen thủy phân, giúp kích thích sản sinh collagen tự nhiên, làm săn chắc và căng mịn da. Hiệu quả rõ rệt sau 1-3 liệu trình, giúp xóa mờ nếp nhăn, cải thiện độ đàn hồi và làm sáng da.', 850000, 120, 'https://i.imgur.com/7nninua.jpg', 1, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM services LIMIT 1);
 
 INSERT INTO services (id, name, description, price, duration, image_url, is_active, created_at, updated_at)
-SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000004'), 'Acne Treatment', 'Specialized treatment for acne-prone skin', 450000, 50, 'https://example.com/images/acne.jpg', 1, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM services WHERE id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000004'));
+SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000004'), 'Massage mặt', 'Kỹ thuật massage độc quyền theo phương pháp Nhật Bản, tác động lên 36 huyệt đạo chính trên khuôn mặt. Giúp giảm căng thẳng, thúc đẩy tuần hoàn máu, ngăn ngừa lão hóa và nâng cơ tự nhiên, mang lại làn da tươi sáng và trẻ trung hơn.', 350000, 45, 'https://i.imgur.com/bIXxqQZ.jpg', 1, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM services LIMIT 1);
 
 INSERT INTO services (id, name, description, price, duration, image_url, is_active, created_at, updated_at)
-SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000005'), 'Brightening Facial', 'Brightening and evening out skin tone', 550000, 60, 'https://example.com/images/brightening.jpg', 1, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM services WHERE id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000005'));
+SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000005'), 'Tẩy trang chuyên sâu', 'Quy trình làm sạch da hoàn hảo sử dụng dầu tẩy trang gốc thực vật, sau đó là sữa rửa mặt dịu nhẹ và nước cân bằng không cồn. Loại bỏ hoàn toàn mọi lớp trang điểm, bụi bẩn và dầu thừa mà không gây khô da. Kết thúc với xịt khoáng dưỡng ẩm.', 250000, 30, 'https://i.imgur.com/Wj7B3FF.jpg', 1, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM services LIMIT 1);
+
+-- Thêm các dịch vụ khác với thông tin chi tiết - chỉ chèn nếu bảng trống
+INSERT INTO services (id, name, description, price, duration, image_url, is_active, created_at, updated_at)
+SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000006'), 'Massage toàn thân', 'Liệu pháp massage toàn thân kết hợp các kỹ thuật Thái, Bali và Thụy Điển, sử dụng tinh dầu thiên nhiên. Giúp giải tỏa căng thẳng, thúc đẩy tuần hoàn máu và phục hồi năng lượng. Đặc biệt tốt cho người thường xuyên ngồi máy tính hoặc bị đau mỏi vai gáy.', 400000, 60, 'https://i.imgur.com/9k9TgQA.jpg', 1, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM services LIMIT 1);
 
 INSERT INTO services (id, name, description, price, duration, image_url, is_active, created_at, updated_at)
-SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000006'), 'Relaxing Massage', 'Full body relaxing massage', 400000, 60, 'https://example.com/images/massage.jpg', 1, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM services WHERE id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000006'));
+SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000007'), 'Chăm sóc móng tay', 'Chăm sóc móng tay chuyên nghiệp, bao gồm ngâm, tẩy da chết, cắt và tạo hình móng, đẩy lui lớp biểu bì và massage nhẹ nhàng. Sử dụng các sản phẩm hữu cơ và dầu dưỡng thiên nhiên giúp móng khỏe mạnh và tự nhiên.', 200000, 30, 'https://i.imgur.com/9P0mcTb.jpg', 1, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM services LIMIT 1);
 
 INSERT INTO services (id, name, description, price, duration, image_url, is_active, created_at, updated_at)
-SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000007'), 'Manicure', 'Professional nail care for hands', 200000, 30, 'https://example.com/images/manicure.jpg', 1, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM services WHERE id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000007'));
+SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000008'), 'Chăm sóc móng chân', 'Liệu trình chăm sóc toàn diện cho bàn chân mệt mỏi, bao gồm ngâm chân với tinh dầu bạc hà, tẩy da chết vùng gót, cắt và tạo hình móng, kết hợp với massage phản xạ. Giúp lưu thông khí huyết và thư giãn toàn thân.', 250000, 40, 'https://i.imgur.com/AXITRiZ.jpg', 1, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM services LIMIT 1);
 
 INSERT INTO services (id, name, description, price, duration, image_url, is_active, created_at, updated_at)
-SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000008'), 'Pedicure', 'Professional nail care for feet', 250000, 40, 'https://example.com/images/pedicure.jpg', 1, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM services WHERE id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000008'));
+SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000009'), 'Tạo kiểu tóc', 'Dịch vụ tạo kiểu tóc từ các chuyên gia hàng đầu, tư vấn phong cách phù hợp với gương mặt và phong cách cá nhân. Sử dụng các sản phẩm tạo kiểu cao cấp, không gây hại cho tóc và giữ nếp lâu.', 300000, 45, 'https://i.imgur.com/KQa1ajC.jpg', 1, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM services LIMIT 1);
 
 INSERT INTO services (id, name, description, price, duration, image_url, is_active, created_at, updated_at)
-SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000009'), 'Hair Styling', 'Professional hair styling service', 300000, 45, 'https://example.com/images/hairstyling.jpg', 1, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM services WHERE id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000009'));
-
-INSERT INTO services (id, name, description, price, duration, image_url, is_active, created_at, updated_at)
-SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000010'), 'Eyebrow Shaping', 'Professional eyebrow shaping and tinting', 150000, 20, 'https://example.com/images/eyebrow.jpg', 1, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM services WHERE id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000010'));
-
--- Chèn dữ liệu mẫu vào bảng bookings (đặt lịch) nếu chưa tồn tại
-INSERT INTO bookings (id, customer_id, staff_id, appointment_time, status, notes, total_price, created_at, updated_at)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000001'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000004'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000002'), DATE_SUB(NOW(), INTERVAL 7 DAY) + INTERVAL 10 HOUR, 'COMPLETED', 'Please use gentle products for sensitive skin', 500000, DATE_SUB(NOW(), INTERVAL 14 DAY), DATE_SUB(NOW(), INTERVAL 7 DAY)
-WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000001'));
-
-INSERT INTO bookings (id, customer_id, staff_id, appointment_time, status, notes, total_price, created_at, updated_at)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000002'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000005'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000003'), DATE_SUB(NOW(), INTERVAL 5 DAY) + INTERVAL 14 HOUR, 'COMPLETED', NULL, 650000, DATE_SUB(NOW(), INTERVAL 10 DAY), DATE_SUB(NOW(), INTERVAL 5 DAY)
-WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000002'));
-
-INSERT INTO bookings (id, customer_id, staff_id, appointment_time, status, notes, total_price, created_at, updated_at)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000003'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000006'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000002'), DATE_SUB(NOW(), INTERVAL 3 DAY) + INTERVAL 16 HOUR, 'CANCELLED', 'Had a family emergency', 450000, DATE_SUB(NOW(), INTERVAL 7 DAY), DATE_SUB(NOW(), INTERVAL 4 DAY)
-WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000003'));
-
-INSERT INTO bookings (id, customer_id, staff_id, appointment_time, status, notes, total_price, created_at, updated_at)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000004'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000007'), NULL, DATE_SUB(NOW(), INTERVAL 2 DAY) + INTERVAL 11 HOUR, 'NO_SHOW', NULL, 550000, DATE_SUB(NOW(), INTERVAL 5 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY)
-WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000004'));
-
-INSERT INTO bookings (id, customer_id, staff_id, appointment_time, status, notes, total_price, created_at, updated_at)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000005'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000004'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000003'), DATE_ADD(NOW(), INTERVAL 1 DAY) + INTERVAL 13 HOUR, 'CONFIRMED', 'Prefer female staff', 750000, DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY)
-WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000005'));
-
-INSERT INTO bookings (id, customer_id, staff_id, appointment_time, status, notes, total_price, created_at, updated_at)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000006'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000005'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000002'), DATE_ADD(NOW(), INTERVAL 2 DAY) + INTERVAL 15 HOUR, 'CONFIRMED', NULL, 600000, DATE_SUB(NOW(), INTERVAL 3 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY)
-WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000006'));
-
-INSERT INTO bookings (id, customer_id, staff_id, appointment_time, status, notes, total_price, created_at, updated_at)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000007'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000006'), NULL, DATE_ADD(NOW(), INTERVAL 3 DAY) + INTERVAL 10 HOUR, 'PENDING', 'First time customer', 450000, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000007'));
-
-INSERT INTO bookings (id, customer_id, staff_id, appointment_time, status, notes, total_price, created_at, updated_at)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000008'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000007'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000003'), DATE_ADD(NOW(), INTERVAL 4 DAY) + INTERVAL 14 HOUR, 'PENDING', NULL, 850000, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000008'));
-
-INSERT INTO bookings (id, customer_id, staff_id, appointment_time, status, notes, total_price, created_at, updated_at)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000009'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000008'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000002'), DATE_ADD(NOW(), INTERVAL 5 DAY) + INTERVAL 16 HOUR, 'PENDING', 'Allergic to nuts', 500000, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM bookings WHERE id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000009'));
-
--- Chèn dữ liệu mẫu vào bảng booking_services (quan hệ nhiều-nhiều giữa bookings và services) nếu chưa tồn tại
-INSERT INTO booking_services (booking_id, service_id)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000001'), UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000001')
-WHERE NOT EXISTS (
-    SELECT 1 FROM booking_services 
-    WHERE booking_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000001') 
-    AND service_id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000001')
-);
-
-INSERT INTO booking_services (booking_id, service_id)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000002'), UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000003')
-WHERE NOT EXISTS (
-    SELECT 1 FROM booking_services 
-    WHERE booking_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000002') 
-    AND service_id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000003')
-);
-
-INSERT INTO booking_services (booking_id, service_id)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000003'), UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000004')
-WHERE NOT EXISTS (
-    SELECT 1 FROM booking_services 
-    WHERE booking_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000003') 
-    AND service_id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000004')
-);
-
-INSERT INTO booking_services (booking_id, service_id)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000004'), UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000005')
-WHERE NOT EXISTS (
-    SELECT 1 FROM booking_services 
-    WHERE booking_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000004') 
-    AND service_id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000005')
-);
-
-INSERT INTO booking_services (booking_id, service_id)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000005'), UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000001')
-WHERE NOT EXISTS (
-    SELECT 1 FROM booking_services 
-    WHERE booking_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000005') 
-    AND service_id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000001')
-);
-
-INSERT INTO booking_services (booking_id, service_id)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000005'), UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000006')
-WHERE NOT EXISTS (
-    SELECT 1 FROM booking_services 
-    WHERE booking_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000005') 
-    AND service_id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000006')
-);
-
-INSERT INTO booking_services (booking_id, service_id)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000006'), UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000002')
-WHERE NOT EXISTS (
-    SELECT 1 FROM booking_services 
-    WHERE booking_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000006') 
-    AND service_id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000002')
-);
-
-INSERT INTO booking_services (booking_id, service_id)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000006'), UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000005')
-WHERE NOT EXISTS (
-    SELECT 1 FROM booking_services 
-    WHERE booking_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000006') 
-    AND service_id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000005')
-);
-
-INSERT INTO booking_services (booking_id, service_id)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000007'), UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000004')
-WHERE NOT EXISTS (
-    SELECT 1 FROM booking_services 
-    WHERE booking_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000007') 
-    AND service_id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000004')
-);
-
-INSERT INTO booking_services (booking_id, service_id)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000008'), UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000001')
-WHERE NOT EXISTS (
-    SELECT 1 FROM booking_services 
-    WHERE booking_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000008') 
-    AND service_id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000001')
-);
-
-INSERT INTO booking_services (booking_id, service_id)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000008'), UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000003')
-WHERE NOT EXISTS (
-    SELECT 1 FROM booking_services 
-    WHERE booking_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000008') 
-    AND service_id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000003')
-);
-
-INSERT INTO booking_services (booking_id, service_id)
-SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000009'), UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000001')
-WHERE NOT EXISTS (
-    SELECT 1 FROM booking_services 
-    WHERE booking_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000009') 
-    AND service_id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000001')
-);
-
--- Thêm phản hồi mẫu (feedbacks)
-INSERT INTO feedbacks (id, booking_id, customer_id, rating, comment, created_at, updated_at)
-SELECT UUID_TO_BIN('d1b2c3d4-e5f6-11ec-8000-000000000001'), UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000001'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000004'), 5, 'Excellent service! My skin feels amazing after the treatment.', DATE_SUB(NOW(), INTERVAL 4 DAY), DATE_SUB(NOW(), INTERVAL 4 DAY)
-WHERE NOT EXISTS (SELECT 1 FROM feedbacks WHERE id = UUID_TO_BIN('d1b2c3d4-e5f6-11ec-8000-000000000001'));
-
-INSERT INTO feedbacks (id, booking_id, customer_id, rating, comment, created_at, updated_at)
-SELECT UUID_TO_BIN('d1b2c3d4-e5f6-11ec-8000-000000000002'), UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000002'), UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000005'), 4, 'Great anti-aging treatment. Would recommend to others.', DATE_SUB(NOW(), INTERVAL 3 DAY), DATE_SUB(NOW(), INTERVAL 3 DAY)
-WHERE NOT EXISTS (SELECT 1 FROM feedbacks WHERE id = UUID_TO_BIN('d1b2c3d4-e5f6-11ec-8000-000000000002'));
-
--- Chèn dữ liệu mẫu vào bảng refresh_tokens nếu chưa tồn tại
-INSERT INTO refresh_tokens (id, token, user_id, expires_at, is_valid, created_at, updated_at)
-SELECT UUID_TO_BIN('e1b2c3d4-e5f6-11ec-8000-000000000001'), 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJhZG1pbkBleGFtcGxlLmNvbSIsImlhdCI6MTY4NjgyNDcxNywiZXhwIjoxNjg3NDI5NTE3fQ.nYwIiGGM_y1ynjAH0_xt9vSxfH', UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000001'), DATE_ADD(NOW(), INTERVAL 7 DAY), 1, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM refresh_tokens WHERE id = UUID_TO_BIN('e1b2c3d4-e5f6-11ec-8000-000000000001'));
-
-INSERT INTO refresh_tokens (id, token, user_id, expires_at, is_valid, created_at, updated_at)
-SELECT UUID_TO_BIN('e1b2c3d4-e5f6-11ec-8000-000000000002'), 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqb2huQGV4YW1wbGUuY29tIiwiaWF0IjoxNjg2ODI0NzE3LCJleHAiOjE2ODc0Mjk1MTd9.dv-pu14qzFxR-t-OYX', UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000004'), DATE_ADD(NOW(), INTERVAL 7 DAY), 1, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM refresh_tokens WHERE id = UUID_TO_BIN('e1b2c3d4-e5f6-11ec-8000-000000000002'));
-
-INSERT INTO refresh_tokens (id, token, user_id, expires_at, is_valid, created_at, updated_at)
-SELECT UUID_TO_BIN('e1b2c3d4-e5f6-11ec-8000-000000000003'), 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqYW5lQGV4YW1wbGUuY29tIiwiaWF0IjoxNjg2ODI0NzE3LCJleHAiOjE2ODc0Mjk1MTd9.g8TmrAgTgU-s6NbV5q', UUID_TO_BIN('a1b2c3d4-e5f6-11ec-8000-000000000005'), DATE_ADD(NOW(), INTERVAL 7 DAY), 1, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM refresh_tokens WHERE id = UUID_TO_BIN('e1b2c3d4-e5f6-11ec-8000-000000000003'));
-
--- Cập nhật sequence các bảng (nếu cần thiết) 
+SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000010'), 'Tạo hình lông mày', 'Tạo hình lông mày theo phương pháp cân đối khuôn mặt, sử dụng chì kẻ tự nhiên và nhuộm lông mày an toàn. Giúp định hình khuôn mặt và tạo vẻ đẹp hài hòa, phù hợp với từng khách hàng.', 150000, 20, 'https://i.imgur.com/RrFtOFW.jpg', 1, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM services LIMIT 1); 

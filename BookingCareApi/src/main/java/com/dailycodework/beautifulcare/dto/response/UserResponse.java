@@ -22,6 +22,7 @@ public class UserResponse {
      private String email;
      private String phoneNumber;
      private UserRole role;
+     private String description;
      private LocalDateTime createdAt;
      private LocalDateTime updatedAt;
 }

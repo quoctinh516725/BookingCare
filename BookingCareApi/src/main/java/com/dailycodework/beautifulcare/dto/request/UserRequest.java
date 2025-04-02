@@ -35,4 +35,7 @@ public class UserRequest {
 
     @NotBlank(message = "Role is required")
     private String role;
+    
+    @Size(max = 1000, message = "Description must be at most 1000 characters")
+    private String description;
 }

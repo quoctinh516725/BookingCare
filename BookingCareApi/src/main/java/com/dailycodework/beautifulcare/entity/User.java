@@ -53,6 +53,9 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     private UserRole role;
 
+    @Column(length = 1000)
+    private String description;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
