@@ -1,9 +1,15 @@
 import axios from "axios";
 import Cookies from "js-cookie";
 
+// Get the API URL from environment variables
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
+
 // Cấu hình mặc định cho axios
 axios.defaults.withCredentials = true;
+axios.defaults.baseURL = API_URL;
+
 const axiosJWT = axios.create({
+  baseURL: API_URL,
   withCredentials: true,
 });
 

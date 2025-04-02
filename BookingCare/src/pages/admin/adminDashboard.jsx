@@ -1,5 +1,5 @@
 import React from "react";
-
+import { Link } from "react-router-dom";
 const AdminDashboard = () => {
   // Mock data for statistics cards
   const statistics = [
@@ -113,8 +113,8 @@ const AdminDashboard = () => {
         <div className="lg:col-span-3 bg-white rounded-md shadow p-4">
           <div className="flex justify-between items-center mb-1">
             <h2 className="font-semibold text-lg">Lịch đặt gần đây</h2>
-            <button className="text-blue-600 hover:underline text-sm">
-              Xem tất cả
+            <button className="text-blue-600 text-sm">
+              <Link to="/admin/appointments">Xem tất cả</Link>
             </button>
           </div>
           <p className="text-gray-500 text-sm mb-4">
@@ -164,8 +164,8 @@ const AdminDashboard = () => {
                       {appointment.time}
                     </td>
                     <td className="px-4 py-3 whitespace-nowrap text-sm">
-                      <span
-                        className={`inline-flex px-3 py-1 text-xs rounded-full font-medium ${
+                      <div
+                        className={`min-w-[100px] flex justify-center inline-flex px-3 py-1 text-xs rounded-full font-medium ${
                           appointment.status === "Đã hoàn thành"
                             ? "bg-green-100 text-green-800"
                             : appointment.status === "Đang chờ"
@@ -174,7 +174,7 @@ const AdminDashboard = () => {
                         }`}
                       >
                         {appointment.status}
-                      </span>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -187,8 +187,8 @@ const AdminDashboard = () => {
         <div className="lg:col-span-2 bg-white rounded-md shadow p-4">
           <div className="flex justify-between items-center mb-1">
             <h2 className="font-semibold text-lg">Dịch vụ phổ biến</h2>
-            <button className="text-blue-600 hover:underline text-sm">
-              Quản lý dịch vụ
+            <button className="text-blue-600 text-sm">
+              <Link to="/admin/services">Quản lý dịch vụ</Link>
             </button>
           </div>
           <p className="text-gray-500 text-sm mb-4">

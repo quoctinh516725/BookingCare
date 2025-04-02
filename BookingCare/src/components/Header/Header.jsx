@@ -118,7 +118,9 @@ function Header() {
                 <li className="font-semibold text-xl border-b  border-black/10 cursor-auto">
                   Tài khoản
                 </li>
-                <li className="hover:bg-gray-100 p-2 rounded-md">Tổng quan</li>
+                <li className="hover:bg-gray-100 p-2 rounded-md">
+                  <Link to="/admin">Tổng quan</Link>
+                </li>
                 <li className="hover:bg-gray-100 p-2 rounded-md">
                   <Link to="/profile">Quản lý thông tin</Link>
                 </li>

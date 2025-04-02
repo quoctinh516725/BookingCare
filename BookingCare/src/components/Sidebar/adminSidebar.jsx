@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import logo from "../../assets/logo.png";
 function AdminSidebar() {
   const [openMenus, setOpenMenus] = useState({});
@@ -7,6 +7,8 @@ function AdminSidebar() {
   const handleNavigate = (url) => {
     navigate(url);
   };
+  const location = useLocation();
+
   const toggleMenu = (index) => {
     setOpenMenus((prev) => {
       return {
@@ -70,7 +72,7 @@ function AdminSidebar() {
           url: "/admin/blog/posts",
         },
         {
-          title: "Danh mục bài viết",
+          title: "Danh mục",
           icon: "fas fa-folder-open",
           url: "/admin/blog/categories",
         },
@@ -106,7 +108,7 @@ function AdminSidebar() {
                 onClick={() => toggleMenu(index)}
               >
                 <i
-                  className={`fa-solid fa-${option.icon} text-2xl min-w-[30px]`}
+                  className={`fa-solid fa-${option.icon} text-2xl min-w-[30px] text-gray-500`}
                 ></i>
                 <div className="flex flex-col mr-auto">
                   <span>{option.title}</span>
@@ -121,11 +123,19 @@ function AdminSidebar() {
                 <div className="flex flex-col">
                   {option.children.map((child, index) => (
                     <div
-                      key={index}
-                      className="flex items-center space-x-2 p-2"
-                      onClick={() => handleNavigate(child.url)}
+                      className={`transition-colors duration-300 ${
+                        child.url === location.pathname
+                          ? "bg-gray-200 rounded-md"
+                          : ""
+                      } hover:text-[var(--primary-color)]`}
                     >
-                      <span>{child.title}</span>
+                      <div
+                        key={index}
+                        className="flex items-center space-x-2 p-2  ml-8"
+                        onClick={() => handleNavigate(child.url)}
+                      >
+                        <span>{child.title}</span>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -138,7 +148,7 @@ function AdminSidebar() {
               onClick={() => handleNavigate(option.url)}
             >
               <i
-                className={`fa-solid fa-${option.icon} text-2xl min-w-[30px]`}
+                className={`fa-solid fa-${option.icon} text-2xl min-w-[30px] text-gray-500`}
               ></i>
               <span>{option.title}</span>
             </div>
