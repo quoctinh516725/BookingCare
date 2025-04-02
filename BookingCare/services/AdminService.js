@@ -5,13 +5,22 @@ const axiosInstance = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:8080",
   headers: {
     "Content-Type": "application/json"
-  }
+  },
+  withCredentials: true
 });
 
 // Hàm lấy JWT token từ localStorage
 const getAuthHeader = () => {
-  const token = localStorage.getItem("token");
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const tokenString = localStorage.getItem("access_token");
+  if (!tokenString) return {};
+  
+  try {
+    const token = JSON.parse(tokenString);
+    return { Authorization: `Bearer ${token}` };
+  } catch (error) {
+    console.error("Error parsing token:", error);
+    return {};
+  }
 };
 
 // API service cho admin dashboard

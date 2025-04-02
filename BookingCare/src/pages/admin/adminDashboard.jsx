@@ -39,7 +39,10 @@ const AdminDashboard = () => {
   // Tách thành các hàm nhỏ hơn để dễ đọc và bảo trì
   const fetchAdminStats = async () => {
     try {
+      console.log("Fetching admin stats...");
       const statsData = await AdminService.getAdminStats();
+      console.log("Admin stats data:", statsData);
+      
       const formattedStats = [
         {
           title: "Người dùng",
@@ -81,13 +84,31 @@ const AdminDashboard = () => {
 
   const fetchRecentBookings = async () => {
     try {
+      console.log("Fetching recent bookings...");
       const bookingsData = await AdminService.getRecentBookings(5);
-      const formattedAppointments = bookingsData.map(booking => ({
-        customer: booking.customerName || "Khách hàng",
-        service: booking.services?.map(s => s.name).join(", ") || "Dịch vụ",
-        time: booking.formattedDateTime || new Date(booking.appointmentTime).toLocaleString('vi-VN'),
-        status: booking.status
-      }));
+      console.log("Recent bookings data:", bookingsData);
+      
+      const formattedAppointments = bookingsData.map(booking => {
+        // Tạo chuỗi tên các dịch vụ
+        let serviceNames = "Chưa có dịch vụ";
+        if (booking.services && booking.services.length > 0) {
+          serviceNames = booking.services.map(s => s.name).join(", ");
+        }
+        
+        // Định dạng thời gian
+        let formattedTime = booking.formattedDateTime || "Chưa có thời gian";
+        if (!booking.formattedDateTime && booking.appointmentTime) {
+          formattedTime = new Date(booking.appointmentTime).toLocaleString('vi-VN');
+        }
+        
+        return {
+          customer: booking.customerName || "Khách hàng",
+          service: serviceNames,
+          time: formattedTime,
+          status: booking.status || "PENDING"
+        };
+      });
+      
       setAppointments(formattedAppointments);
     } catch (error) {
       console.error("Error in fetchRecentBookings:", error);
@@ -97,7 +118,17 @@ const AdminDashboard = () => {
 
   const fetchPopularServices = async () => {
     try {
+      console.log("Fetching popular services...");
       const servicesData = await AdminService.getPopularServices();
+      console.log("Popular services data:", servicesData);
+      
+      // Kiểm tra dữ liệu trước khi xử lý
+      if (!Array.isArray(servicesData) || servicesData.length === 0) {
+        console.warn("Không có dữ liệu dịch vụ phổ biến hoặc dữ liệu không đúng định dạng");
+        setPopularServices([]);
+        setServiceDistribution([]);
+        return;
+      }
       
       // Format dữ liệu dịch vụ phổ biến
       const formattedServices = servicesData.map(service => ({

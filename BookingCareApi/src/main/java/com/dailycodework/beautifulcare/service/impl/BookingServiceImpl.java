@@ -2,8 +2,10 @@ package com.dailycodework.beautifulcare.service.impl;
 
 import com.dailycodework.beautifulcare.dto.request.BookingRequest;
 import com.dailycodework.beautifulcare.dto.request.UpdateBookingRequest;
+import com.dailycodework.beautifulcare.dto.request.TimeSlotCheckRequest;
 import com.dailycodework.beautifulcare.dto.response.BookingResponse;
 import com.dailycodework.beautifulcare.dto.response.UpdateBookingResponse;
+import com.dailycodework.beautifulcare.dto.response.TimeSlotAvailabilityResponse;
 import com.dailycodework.beautifulcare.entity.Booking;
 import com.dailycodework.beautifulcare.entity.BookingStatus;
 import com.dailycodework.beautifulcare.entity.Service;
@@ -29,6 +31,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -90,6 +93,7 @@ public class BookingServiceImpl implements BookingService {
 
         // Kiểm tra xung đột lịch
         boolean hasConflict = false;
+        String conflictReason = null;
         
         if (request.getStaffId() != null) {
             // Nếu chọn nhân viên cụ thể, kiểm tra xung đột dựa trên nhân viên đó
@@ -98,16 +102,27 @@ public class BookingServiceImpl implements BookingService {
                     request.getStartTime(),
                     endTime,
                     request.getStaffId());
+            
+            if (hasConflict) {
+                conflictReason = "STAFF_CONFLICT";
+            }
         } else {
             // Nếu không chọn nhân viên cụ thể, kiểm tra xung đột thời gian chung
             hasConflict = checkBookingTimeConflict(
                     request.getBookingDate(),
                     request.getStartTime(),
                     endTime);
+            
+            if (hasConflict) {
+                conflictReason = "TIME_CONFLICT";
+            }
         }
 
         if (hasConflict) {
-            throw new BookingConflictException("The requested time slot is not available");
+            throw new BookingConflictException(
+                "Nhân viên đã có lịch hẹn trong khung giờ này. Vui lòng chọn thời gian khác hoặc nhân viên khác.", 
+                conflictReason
+            );
         }
 
         Booking booking = bookingMapper.toBooking(request);
@@ -162,6 +177,7 @@ public class BookingServiceImpl implements BookingService {
         
         // Kiểm tra xung đột lịch
         boolean hasConflict = false;
+        String conflictReason = null;
         
         if (request.getStaffId() != null) {
             // Nếu chọn nhân viên cụ thể, kiểm tra xung đột dựa trên nhân viên đó
@@ -171,6 +187,10 @@ public class BookingServiceImpl implements BookingService {
                     request.getStartTime(),
                     endTime,
                     request.getStaffId());
+            
+            if (hasConflict) {
+                conflictReason = "STAFF_CONFLICT";
+            }
         } else {
             // Nếu không chọn nhân viên cụ thể, kiểm tra xung đột thời gian chung
             hasConflict = checkBookingTimeConflictExcludingCurrent(
@@ -178,10 +198,17 @@ public class BookingServiceImpl implements BookingService {
                     request.getBookingDate(),
                     request.getStartTime(),
                     endTime);
+            
+            if (hasConflict) {
+                conflictReason = "TIME_CONFLICT";
+            }
         }
 
         if (hasConflict) {
-            throw new BookingConflictException("The requested time slot is not available");
+            throw new BookingConflictException(
+                "Nhân viên đã có lịch hẹn trong khung giờ này. Vui lòng chọn thời gian khác hoặc nhân viên khác.", 
+                conflictReason
+            );
         }
 
         bookingMapper.updateBooking(booking, request);
@@ -238,6 +265,7 @@ public class BookingServiceImpl implements BookingService {
         
         // Kiểm tra xung đột lịch
         boolean hasConflict = false;
+        String conflictReason = null;
         
         if (request.getStaffId() != null) {
             // Nếu chọn nhân viên cụ thể, kiểm tra xung đột dựa trên nhân viên đó
@@ -247,6 +275,10 @@ public class BookingServiceImpl implements BookingService {
                     request.getStartTime(),
                     endTime,
                     request.getStaffId());
+            
+            if (hasConflict) {
+                conflictReason = "STAFF_CONFLICT";
+            }
         } else {
             // Nếu không chọn nhân viên cụ thể, kiểm tra xung đột thời gian chung
             hasConflict = checkBookingTimeConflictExcludingCurrent(
@@ -254,10 +286,17 @@ public class BookingServiceImpl implements BookingService {
                     request.getBookingDate(),
                     request.getStartTime(),
                     endTime);
+            
+            if (hasConflict) {
+                conflictReason = "TIME_CONFLICT";
+            }
         }
 
         if (hasConflict) {
-            throw new BookingConflictException("The requested time slot is not available");
+            throw new BookingConflictException(
+                "Nhân viên đã có lịch hẹn trong khung giờ này. Vui lòng chọn thời gian khác hoặc nhân viên khác.", 
+                conflictReason
+            );
         }
 
         // Update booking with new details
@@ -464,5 +503,89 @@ public class BookingServiceImpl implements BookingService {
                         .orElseThrow(() -> new ResourceNotFoundException("Service not found with id: " + id)))
                 .map(Service::getPrice)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    @Override
+    public TimeSlotAvailabilityResponse checkTimeSlotAvailability(TimeSlotCheckRequest request) {
+        log.info("Checking availability for time slot: staff={}, date={}, time={}", 
+                request.getStaffId(), request.getBookingDate(), request.getStartTime());
+        
+        try {
+            // Tính toán thời gian kết thúc (giả sử là 1 giờ sau thời gian bắt đầu)
+            LocalTime endTime = request.getStartTime().plusHours(1);
+            
+            // Kiểm tra xung đột lịch với nhân viên đã chọn
+            boolean hasConflict = checkBookingTimeStaffConflict(
+                    request.getBookingDate(),
+                    request.getStartTime(),
+                    endTime,
+                    request.getStaffId());
+            
+            if (hasConflict) {
+                return TimeSlotAvailabilityResponse.builder()
+                        .available(false)
+                        .reason("STAFF_CONFLICT")
+                        .message("The staff member is not available at this time slot")
+                        .build();
+            }
+            
+            // Kiểm tra giờ làm việc (ví dụ: 9:00 - 17:00)
+            if (request.getStartTime().isBefore(LocalTime.of(9, 0)) || 
+                request.getStartTime().isAfter(LocalTime.of(17, 0))) {
+                return TimeSlotAvailabilityResponse.builder()
+                        .available(false)
+                        .reason("OUTSIDE_WORKING_HOURS")
+                        .message("The selected time is outside our working hours (9:00 - 17:00)")
+                        .build();
+            }
+            
+            // Nếu không có xung đột, trả về available = true
+            return TimeSlotAvailabilityResponse.builder()
+                    .available(true)
+                    .reason("AVAILABLE")
+                    .message("The time slot is available")
+                    .build();
+            
+        } catch (Exception e) {
+            log.error("Error checking time slot availability", e);
+            return TimeSlotAvailabilityResponse.builder()
+                    .available(false)
+                    .reason("ERROR")
+                    .message("An error occurred while checking availability")
+                    .build();
+        }
+    }
+
+    @Override
+    public List<String> getBookedTimeSlots(UUID staffId, LocalDate date) {
+        log.info("Getting booked slots for staff={}, date={}", staffId, date);
+        
+        try {
+            // Simple approach: get bookings between start and end of day
+            LocalDateTime startOfDay = date.atStartOfDay();
+            LocalDateTime endOfDay = date.atTime(23, 59, 59);
+            
+            log.debug("Searching for bookings between {} and {}", startOfDay, endOfDay);
+            
+            // Only get PENDING and CONFIRMED bookings
+            List<Booking> bookings = bookingRepository.findByAppointmentTimeBetweenAndStaffIdAndStatusIn(
+                    startOfDay,
+                    endOfDay,
+                    staffId,
+                    List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED));
+            
+            log.info("Found {} bookings for staff {} on date {}", bookings.size(), staffId, date);
+            
+            // Convert to a list of time strings (HH:mm format)
+            List<String> timeSlots = bookings.stream()
+                    .map(booking -> booking.getAppointmentTime().toLocalTime().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")))
+                    .collect(Collectors.toList());
+            
+            log.debug("Returned time slots: {}", timeSlots);
+            return timeSlots;
+        } catch (Exception e) {
+            log.error("Error getting booked time slots: {}", e.getMessage(), e);
+            return Collections.emptyList();
+        }
     }
 }

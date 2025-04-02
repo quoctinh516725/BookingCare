@@ -3,6 +3,7 @@ package com.dailycodework.beautifulcare.service.impl;
 import com.dailycodework.beautifulcare.dto.response.AdminStatsResponse;
 import com.dailycodework.beautifulcare.dto.response.BookingResponse;
 import com.dailycodework.beautifulcare.dto.response.PopularServiceResponse;
+import com.dailycodework.beautifulcare.dto.response.ServiceResponse;
 import com.dailycodework.beautifulcare.entity.Booking;
 import com.dailycodework.beautifulcare.entity.BookingStatus;
 import com.dailycodework.beautifulcare.entity.Service;
@@ -17,8 +18,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @org.springframework.stereotype.Service
@@ -28,6 +32,8 @@ public class AdminServiceImpl implements AdminService {
     private final UserRepository userRepository;
     private final ServiceRepository serviceRepository;
     private final BookingRepository bookingRepository;
+    
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
 
     @Override
     public AdminStatsResponse getAdminStats() {
@@ -74,7 +80,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public List<BookingResponse> getRecentBookings(int limit) {
         try {
-            PageRequest pageRequest = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "createdDate"));
+            PageRequest pageRequest = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "createdAt"));
             List<Booking> bookings = bookingRepository.findAll(pageRequest).getContent();
             
             return bookings.stream()
@@ -123,20 +129,49 @@ public class AdminServiceImpl implements AdminService {
     
     // Helper method to map Booking entity to BookingResponse DTO
     private BookingResponse mapToBookingResponse(Booking booking) {
+        String customerName = "Unknown";
+        if (booking.getCustomer() != null) {
+            customerName = booking.getCustomer().getFirstName() + " " + booking.getCustomer().getLastName();
+        }
+        
+        String formattedDateTime = "";
+        if (booking.getAppointmentTime() != null) {
+            formattedDateTime = booking.getAppointmentTime().format(DATE_TIME_FORMATTER);
+        }
+        
+        // Chuyển đổi các dịch vụ
+        Set<BookingResponse.ServiceDetail> serviceDetails = new HashSet<>();
+        if (booking.getServices() != null) {
+            serviceDetails = booking.getServices().stream()
+                .map(service -> BookingResponse.ServiceDetail.builder()
+                    .id(service.getId())
+                    .name(service.getName())
+                    .description(service.getDescription())
+                    .price(service.getPrice())
+                    .duration(service.getDuration())
+                    .image(service.getImageUrl())
+                    .build())
+                .collect(Collectors.toSet());
+        }
+        
         return BookingResponse.builder()
-                .id(booking.getId().toString())
-                .customerName(booking.getCustomer() != null ? booking.getCustomer().getFirstName() + " " + booking.getCustomer().getLastName() : "Unknown")
-                .appointmentTime(booking.getAppointmentTime())
-                .formattedDateTime(booking.getAppointmentTime().toString())
-                .services(booking.getServices().stream()
-                        .map(service -> com.dailycodework.beautifulcare.dto.response.ServiceResponse.builder()
-                                .id(service.getId().toString())
-                                .name(service.getName())
-                                .price(service.getPrice().doubleValue())
-                                .build())
-                        .collect(Collectors.toList()))
-                .status(booking.getStatus())
-                .build();
+            .id(booking.getId())
+            .customerId(booking.getCustomer() != null ? booking.getCustomer().getId() : null)
+            .customerName(customerName)
+            .customerEmail(booking.getCustomer() != null ? booking.getCustomer().getEmail() : null)
+            .customerPhone(booking.getCustomer() != null ? booking.getCustomer().getPhone() : null)
+            .staffId(booking.getStaff() != null ? booking.getStaff().getId() : null)
+            .staffName(booking.getStaff() != null ? booking.getStaff().getFirstName() + " " + booking.getStaff().getLastName() : null)
+            .status(booking.getStatus())
+            .bookingDate(booking.getAppointmentTime() != null ? booking.getAppointmentTime().toLocalDate() : null)
+            .startTime(booking.getAppointmentTime() != null ? booking.getAppointmentTime().toLocalTime() : null)
+            .formattedDateTime(formattedDateTime)
+            .notes(booking.getNotes())
+            .totalPrice(booking.getTotalPrice())
+            .services(serviceDetails)
+            .createdAt(booking.getCreatedAt())
+            .updatedAt(booking.getUpdatedAt())
+            .build();
     }
     
     // Default stats in case of errors

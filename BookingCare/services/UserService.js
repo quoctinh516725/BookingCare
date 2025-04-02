@@ -162,14 +162,35 @@ const bookingUser = async (data) => {
   const tokenString = localStorage.getItem("access_token");
   const token = tokenString ? JSON.parse(tokenString) : null;
   
-  const response = await axiosJWT.post(`/api/v1/bookings`, data, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` })
-    },
-    withCredentials: true,
-  });
-  return response.data;
+  try {
+    console.log("Sending booking data:", data);
+    const response = await axiosJWT.post(`/api/v1/bookings`, data, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` })
+      },
+      withCredentials: true,
+    });
+    console.log("Booking successful:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Booking error:", error);
+    
+    // Xử lý lỗi xung đột lịch
+    if (error.response && error.response.status === 409) {
+      const errorMessage = error.response.data?.message || "Nhân viên đã có lịch trong khung giờ này";
+      const errorReason = error.response.data?.reason || "STAFF_CONFLICT";
+      
+      throw {
+        status: 409,
+        message: errorMessage,
+        reason: errorReason
+      };
+    }
+    
+    // Các lỗi khác
+    throw error;
+  }
 };
 
 const getUserBookings = async () => {
@@ -249,6 +270,77 @@ const getPopularServices = async () => {
   return response.data;
 };
 
+/**
+ * Kiểm tra tính khả dụng của khung giờ - đơn giản hóa để tránh lỗi
+ * @param {Object} data Dữ liệu khung giờ cần kiểm tra (staffId, bookingDate, startTime)
+ * @returns {Promise<Object>} Kết quả kiểm tra khung giờ
+ */
+const checkTimeSlotAvailability = async (data) => {
+  try {
+    console.log("Checking time slot availability:", data);
+    
+    // Get token from localStorage
+    const token = localStorage.getItem("access_token");
+    const headers = {
+      "Content-Type": "application/json"
+    };
+    
+    // Add authorization header if token exists
+    if (token) {
+      headers.Authorization = `Bearer ${JSON.parse(token)}`;
+    }
+    
+    const response = await axios.post('/api/v1/bookings/check-availability', data, { headers });
+    console.log("Availability check response:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Time slot availability check failed:", error.message);
+    
+    // Log more details about the error
+    if (error.response) {
+      console.error("Response status:", error.response.status);
+      console.error("Response data:", error.response.data);
+    }
+    
+    return {
+      available: false,
+      reason: "ERROR",
+      message: error.response?.data?.message || "Không thể kiểm tra trạng thái khung giờ"
+    };
+  }
+};
+
+/**
+ * Lấy danh sách khung giờ đã đặt cho nhân viên trong ngày
+ * @param {string} staffId ID của nhân viên
+ * @param {string} date Ngày cần kiểm tra (YYYY-MM-DD)
+ * @returns {Promise<Array>} Danh sách các khung giờ đã đặt
+ */
+const getBookedTimeSlots = async (staffId, date) => {
+  try {
+    console.log(`Checking booked slots for staff ${staffId} on ${date}`);
+    
+    // Sử dụng endpoint mới để tránh xung đột
+    const url = `/api/v1/bookings/staff-booked-times?staffId=${staffId}&date=${date}`;
+    console.log(`API call: GET ${url}`);
+    
+    // Sử dụng axios trực tiếp để đơn giản hóa
+    const token = localStorage.getItem("access_token");
+    const headers = token ? { Authorization: `Bearer ${JSON.parse(token)}` } : {};
+    
+    const response = await axios.get(url, { headers });
+    console.log("API response success:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("API call failed:", error.message);
+    if (error.response) {
+      console.error("Response status:", error.response.status);
+      console.error("Response data:", error.response.data);
+    }
+    return [];
+  }
+};
+
 export default {
   signUpUser,
   loginUser,
@@ -265,4 +357,6 @@ export default {
   getRecentBookings,
   getPopularServices,
   axiosJWT,
+  checkTimeSlotAvailability,
+  getBookedTimeSlots
 };

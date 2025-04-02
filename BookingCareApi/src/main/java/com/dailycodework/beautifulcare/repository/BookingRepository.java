@@ -5,8 +5,11 @@ import com.dailycodework.beautifulcare.entity.BookingStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -44,4 +47,18 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             UUID staffId,
             List<BookingStatus> statuses,
             UUID bookingId);
+
+    /**
+     * Find all bookings for a staff member on a specific date, excluding those with the given status.
+     *
+     * @param staffId the staff member ID
+     * @param date the date to check
+     * @param status the status to exclude
+     * @return a list of bookings
+     */
+    @Query("SELECT b FROM Booking b WHERE b.staff.id = :staffId AND CAST(b.appointmentTime AS LocalDate) = :date AND b.status != :status")
+    List<Booking> findByStaffIdAndBookingDateAndStatusNot(
+            @Param("staffId") UUID staffId,
+            @Param("date") LocalDate date,
+            @Param("status") BookingStatus status);
 }

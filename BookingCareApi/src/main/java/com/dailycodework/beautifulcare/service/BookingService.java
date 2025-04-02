@@ -1,8 +1,10 @@
 package com.dailycodework.beautifulcare.service;
 
 import com.dailycodework.beautifulcare.dto.request.BookingRequest;
+import com.dailycodework.beautifulcare.dto.request.TimeSlotCheckRequest;
 import com.dailycodework.beautifulcare.dto.request.UpdateBookingRequest;
 import com.dailycodework.beautifulcare.dto.response.BookingResponse;
+import com.dailycodework.beautifulcare.dto.response.TimeSlotAvailabilityResponse;
 import com.dailycodework.beautifulcare.dto.response.UpdateBookingResponse;
 import com.dailycodework.beautifulcare.entity.BookingStatus;
 import org.springframework.data.domain.Page;
@@ -97,4 +99,21 @@ public interface BookingService {
      * @return a page of bookings
      */
     Page<BookingResponse> getAllBookings(BookingStatus status, Pageable pageable);
+
+    /**
+     * Checks if a time slot is available for booking.
+     *
+     * @param request the time slot check request
+     * @return the time slot availability response
+     */
+    TimeSlotAvailabilityResponse checkTimeSlotAvailability(TimeSlotCheckRequest request);
+
+    /**
+     * Gets all booked time slots for a staff member on a specific date.
+     *
+     * @param staffId the staff member ID
+     * @param date    the date
+     * @return a list of booked time slots (formatted as "HH:mm")
+     */
+    List<String> getBookedTimeSlots(UUID staffId, LocalDate date);
 }
