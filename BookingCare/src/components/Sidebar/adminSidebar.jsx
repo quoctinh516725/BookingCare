@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import logo from "../../assets/logo.png";
 function AdminSidebar() {
@@ -29,9 +29,25 @@ function AdminSidebar() {
           url: "/admin/list",
         },
         {
-          title: "Phân quyền",
-          icon: "fas fa-user-shield",
+          title: "Vai trò người dùng",
+          icon: "fas fa-user-tag",
           url: "/admin/users/roles",
+        },
+      ],
+    },
+    {
+      title: "Phân quyền hệ thống",
+      icon: "fas fa-key",
+      children: [
+        {
+          title: "Nhóm quyền",
+          icon: "fas fa-layer-group",
+          url: "/admin/permissions/groups",
+        },
+        {
+          title: "Phân quyền người dùng",
+          icon: "fas fa-user-shield",
+          url: "/admin/permissions/users",
         },
       ],
     },

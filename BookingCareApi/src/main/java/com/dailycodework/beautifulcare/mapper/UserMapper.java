@@ -22,7 +22,6 @@ public interface UserMapper {
     User toUser(RegisterRequest request);
 
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "password", ignore = true)
     @Mapping(target = "role", source = "role", defaultValue = "CUSTOMER")
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)

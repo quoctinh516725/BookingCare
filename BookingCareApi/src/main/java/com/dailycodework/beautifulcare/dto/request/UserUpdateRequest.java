@@ -29,4 +29,7 @@ public class UserUpdateRequest {
      
      @Size(max = 1000, message = "Description must be at most 1000 characters")
      private String description;
+     
+     // Trường để cập nhật vai trò người dùng (ADMIN, STAFF, CUSTOMER)
+     private String role;
 }

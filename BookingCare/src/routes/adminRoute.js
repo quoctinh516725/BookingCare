@@ -1,6 +1,8 @@
 import AdminDashboard from "../pages/admin/adminDashboard";
 import UserList from "../pages/admin/user/UserList";
 import UserRoles from "../pages/admin/user/UserRoles";
+import PermissionGroups from "../pages/admin/permission/PermissionGroups";
+import UserPermissions from "../pages/admin/permission/UserPermissions";
 import ServiceList from "../pages/admin/service/ServiceList";
 import ServiceCategories from "../pages/admin/service/ServiceCategories";
 import SpecialistList from "../pages/admin/SpecialistList";
@@ -27,6 +29,18 @@ const routes = [
   {
     path: "/admin/users/roles",
     page: UserRoles,
+    layout: AdminLayout,
+    isDefaultPage: true,
+  },
+  {
+    path: "/admin/permissions/groups",
+    page: PermissionGroups,
+    layout: AdminLayout,
+    isDefaultPage: true,
+  },
+  {
+    path: "/admin/permissions/users",
+    page: UserPermissions,
     layout: AdminLayout,
     isDefaultPage: true,
   },

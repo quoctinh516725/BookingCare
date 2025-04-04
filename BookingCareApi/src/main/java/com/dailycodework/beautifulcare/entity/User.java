@@ -13,11 +13,9 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Entity
 @Table(name = "users")
@@ -53,6 +51,16 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     private UserRole role;
 
+    // New many-to-many relationship with PermissionGroup
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(
+        name = "user_permission_groups",
+        joinColumns = @JoinColumn(name = "user_id"),
+        inverseJoinColumns = @JoinColumn(name = "group_id")
+    )
+    @Builder.Default
+    private Set<PermissionGroup> permissionGroups = new HashSet<>();
+
     @Column(length = 1000)
     private String description;
 
@@ -66,7 +74,59 @@ public class User implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        Set<GrantedAuthority> authorities = new HashSet<>();
+        
+        // Add role-based authority
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        
+        // Add permission-based authorities from all permission groups
+        if (permissionGroups != null) {
+            for (PermissionGroup group : permissionGroups) {
+                for (Permission permission : group.getPermissions()) {
+                    authorities.add(new SimpleGrantedAuthority(permission.getCode()));
+                }
+            }
+        }
+        
+        return authorities;
+    }
+    
+    /**
+     * Kiểm tra xem người dùng có quyền cụ thể không
+     * @param permissionCode Mã quyền cần kiểm tra
+     * @return true nếu người dùng có quyền, false nếu không
+     */
+    public boolean hasPermission(String permissionCode) {
+        // Admin luôn có tất cả các quyền
+        if (role == UserRole.ADMIN) {
+            return true;
+        }
+        
+        // Kiểm tra trong tất cả các nhóm quyền của người dùng
+        for (PermissionGroup group : permissionGroups) {
+            for (Permission permission : group.getPermissions()) {
+                if (permission.getCode().equals(permissionCode)) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Kiểm tra xem người dùng có thuộc một nhóm quyền cụ thể không
+     * @param groupName Tên nhóm quyền cần kiểm tra
+     * @return true nếu người dùng thuộc nhóm quyền, false nếu không
+     */
+    public boolean hasPermissionGroup(String groupName) {
+        // Admin luôn có tất cả các nhóm quyền
+        if (role == UserRole.ADMIN) {
+            return true;
+        }
+        
+        return permissionGroups.stream()
+            .anyMatch(group -> group.getName().equals(groupName));
     }
 
     @Override
@@ -96,5 +156,21 @@ public class User implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
+    }
+    
+    /**
+     * Helper method to add a permission group to this user
+     */
+    public void addPermissionGroup(PermissionGroup group) {
+        permissionGroups.add(group);
+        group.getUsers().add(this);
+    }
+    
+    /**
+     * Helper method to remove a permission group from this user
+     */
+    public void removePermissionGroup(PermissionGroup group) {
+        permissionGroups.remove(group);
+        group.getUsers().remove(this);
     }
 }

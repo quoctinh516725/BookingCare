@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import Modal from "react-modal";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import AdminService from "../../../../services/AdminService";
+import { toast } from "sonner";
 
 const customStyles = {
   content: {
@@ -20,13 +23,74 @@ const customStyles = {
 };
 
 const UserList = () => {
+  const queryClient = useQueryClient();
   const [isOpen, setIsOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
-    fullName: "",
+    firstName: "",
+    lastName: "",
     email: "",
+    username: "",
     phone: "",
     password: "",
-    role: "Người dùng",
+    role: "CUSTOMER",
+  });
+
+  // Fetch users data
+  const { data: users = [], isLoading, isError, error, refetch } = useQuery({
+    queryKey: ["users"],
+    queryFn: AdminService.getAllUsers,
+  });
+
+  // Làm mới dữ liệu
+  const refreshData = () => {
+    refetch();
+    toast.info("Đang làm mới dữ liệu người dùng...");
+  };
+
+  // Create user mutation
+  const createUserMutation = useMutation({
+    mutationFn: AdminService.createUser,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast.success("Người dùng đã được tạo thành công!");
+      closeModal();
+    },
+    onError: (error) => {
+      console.error("Error creating user:", error);
+      // Hiển thị thông báo lỗi chi tiết nếu có
+      const errorDetail = error.response?.data?.error || error.message || "Không thể tạo người dùng. Vui lòng thử lại.";
+      toast.error(`Lỗi: ${errorDetail}`);
+    },
+  });
+
+  // Update user mutation
+  const updateUserMutation = useMutation({
+    mutationFn: ({ id, data }) => AdminService.updateUser(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast.success("Cập nhật người dùng thành công!");
+      closeModal();
+    },
+    onError: (error) => {
+      console.error("Error updating user:", error);
+      toast.error(error.response?.data?.message || "Không thể cập nhật người dùng. Vui lòng thử lại.");
+    },
+  });
+
+  // Delete user mutation
+  const deleteUserMutation = useMutation({
+    mutationFn: (id) => AdminService.deleteUser(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast.success("Người dùng đã được xóa thành công!");
+    },
+    onError: (error) => {
+      console.error("Error deleting user:", error);
+      toast.error(error.response?.data?.message || "Không thể xóa người dùng. Vui lòng thử lại.");
+    },
   });
 
   const handleInputChange = (e) => {
@@ -39,54 +103,128 @@ const UserList = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Xử lý logic thêm người dùng ở đây
-    console.log("Form data:", formData);
-    setIsOpen(false);
-    // Reset form
-    setFormData({
-      fullName: "",
-      email: "",
-      phone: "",
-      password: "",
-      role: "Người dùng",
-    });
+    
+    // Chuẩn bị dữ liệu gửi đi
+    const userData = { ...formData };
+    
+    // Đảm bảo số điện thoại đúng định dạng 10 số
+    if (userData.phone) {
+      userData.phone = userData.phone.trim();
+      // Nếu không phải là số 10 chữ số, hiển thị lỗi
+      if (!/^\d{10}$/.test(userData.phone)) {
+        toast.error("Số điện thoại phải có đúng 10 chữ số");
+        return;
+      }
+    }
+    
+    // Kiểm tra email hợp lệ
+    if (!/\S+@\S+\.\S+/.test(userData.email)) {
+      toast.error("Email không hợp lệ");
+      return;
+    }
+    
+    // Kiểm tra mật khẩu (chỉ khi tạo mới hoặc có nhập mật khẩu khi cập nhật)
+    if (!isEditMode || userData.password) {
+      if (userData.password && userData.password.length < 6) {
+        toast.error("Mật khẩu phải có ít nhất 6 ký tự");
+        return;
+      }
+    }
+    
+    console.log("Submitting user data:", userData);
+    
+    if (isEditMode && selectedUser) {
+      // For editing, we don't need to send the password if it's empty
+      if (!userData.password) {
+        delete userData.password;
+      }
+      
+      // Đảm bảo trường role được gửi đi khi cập nhật
+      if (!userData.role) {
+        userData.role = selectedUser.role;
+      }
+      
+      updateUserMutation.mutate({
+        id: selectedUser.id,
+        data: userData
+      });
+    } else {
+      // Creating a new user
+      createUserMutation.mutate(userData);
+    }
   };
 
-  const users = [
-    {
-      id: 1,
-      name: "Nguyễn Văn A",
-      email: "nguyenvana@example.com",
-      role: "Admin",
-      status: "Đang hoạt động",
-    },
-    {
-      id: 2,
-      name: "Trần Thị B",
-      email: "tranthib@example.com",
-      role: "Quản lý",
-      status: "Đang hoạt động",
-    },
-    {
-      id: 3,
-      name: "Lê Văn C",
-      email: "levanc@example.com",
-      role: "Nhân viên",
-      status: "Không hoạt động",
-    },
-  ];
+  const handleEditUser = (user) => {
+    setSelectedUser(user);
+    setFormData({
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      email: user.email || "",
+      username: user.username || "",
+      phone: user.phoneNumber || "",
+      password: "", // Password field is empty during edit
+      role: user.role || "CUSTOMER",
+    });
+    setIsEditMode(true);
+    setIsOpen(true);
+  };
+
+  const handleDeleteUser = (userId) => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa người dùng này không?")) {
+      deleteUserMutation.mutate(userId);
+    }
+  };
+
+  const openAddModal = () => {
+    setIsEditMode(false);
+    setSelectedUser(null);
+    setFormData({
+      firstName: "",
+      lastName: "",
+      email: "",
+      username: "",
+      phone: "",
+      password: "",
+      role: "CUSTOMER",
+    });
+    setIsOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsOpen(false);
+    setIsEditMode(false);
+    setSelectedUser(null);
+  };
+
+  // Filter users based on search term
+  const filteredUsers = users.filter(user => 
+    (user.firstName && user.firstName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (user.lastName && user.lastName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (user.username && user.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (user.fullName && user.fullName.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-xl font-bold">Quản lý người dùng</h1>
-        < span
-          onClick={() => setIsOpen(true)}
-          className="flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-md cursor-pointer"
-        >
-          <i className="fas fa-plus-circle"></i>
-          <span>Thêm người dùng</span>
-        </ span>
+        <div className="flex gap-2">
+          <button
+            onClick={refreshData}
+            className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md cursor-pointer"
+          >
+            <i className="fas fa-sync-alt"></i>
+            <span>Làm mới</span>
+          </button>
+          <span
+            onClick={openAddModal}
+            className="flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-md cursor-pointer"
+          >
+            <i className="fas fa-plus-circle"></i>
+            <span>Thêm người dùng</span>
+          </span>
+        </div>
       </div>
 
       <div className="flex flex-col md:flex-row gap-3 mb-6">
@@ -95,94 +233,146 @@ const UserList = () => {
           <input
             type="text"
             placeholder="Tìm kiếm người dùng..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
           />
         </div>
       </div>
 
-      <div className="bg-white rounded-md shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead>
-            <tr className="bg-gray-50">
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Tên người dùng
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Email
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Vai trò
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Trạng thái
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Thao tác
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((user) => (
-              <tr key={user.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {user.name}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {user.email}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {user.role}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {user.status}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-                  <span className="text-blue-500 hover:text-blue-700 bg-blue-100 hover:bg-blue-200 p-1 rounded mr-2 cursor-pointer">
-                    <i className="fas fa-edit"></i>
-                  </span>
-                  <span className="text-red-500 hover:text-red-700 bg-red-100 hover:bg-red-200 p-1 rounded cursor-pointer">
-                    <i className="fas fa-trash-alt"></i>
-                  </span>
-                </td>
+      {isLoading ? (
+        <div className="flex justify-center items-center py-10">
+          <div className="w-10 h-10 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      ) : isError ? (
+        <div className="bg-red-50 text-red-500 p-4 rounded-md mb-6">
+          <p className="font-medium">Lỗi khi tải dữ liệu: {error?.message || "Không thể tải danh sách người dùng"}</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-md shadow overflow-hidden">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead>
+              <tr className="bg-gray-50">
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Tên người dùng
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Email
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Vai trò
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Số điện thoại
+                </th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Thao tác
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredUsers.length > 0 ? (
+                filteredUsers.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {user.fullName || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.email}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        user.role === 'ADMIN' ? 'bg-red-100 text-red-800' :
+                        user.role === 'STAFF' ? 'bg-blue-100 text-blue-800' :
+                        'bg-green-100 text-green-800'
+                      }`}>
+                        {user.role}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.phoneNumber || "Chưa cập nhật"}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
+                      <span 
+                        className="text-blue-500 hover:text-blue-700 bg-blue-100 hover:bg-blue-200 p-1 rounded mr-2 cursor-pointer"
+                        onClick={() => handleEditUser(user)}
+                      >
+                        <i className="fas fa-edit"></i>
+                      </span>
+                      <span 
+                        className="text-red-500 hover:text-red-700 bg-red-100 hover:bg-red-200 p-1 rounded cursor-pointer"
+                        onClick={() => handleDeleteUser(user.id)}
+                      >
+                        <i className="fas fa-trash-alt"></i>
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500">
+                    {searchTerm ? "Không tìm thấy người dùng phù hợp" : "Không có người dùng nào"}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <Modal
         isOpen={isOpen}
-        onRequestClose={() => setIsOpen(false)}
+        onRequestClose={closeModal}
         style={customStyles}
-        contentLabel="Thêm người dùng"
+        contentLabel={isEditMode ? "Chỉnh sửa người dùng" : "Thêm người dùng"}
       >
         <div className="bg-white rounded-lg">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Thêm người dùng mới</h2>
+            <h2 className="text-lg font-semibold">
+              {isEditMode ? "Chỉnh sửa người dùng" : "Thêm người dùng mới"}
+            </h2>
             <span
-              onClick={() => setIsOpen(false)}
+              onClick={closeModal}
               className="text-gray-400 hover:text-gray-500 cursor-pointer"
             >
               <i className="fas fa-times"></i>
             </span>
           </div>
           <p className="text-sm text-gray-500 mb-4">
-            Nhập thông tin để tạo tài khoản người dùng mới
+            {isEditMode 
+              ? "Cập nhật thông tin người dùng" 
+              : "Nhập thông tin để tạo tài khoản người dùng mới"}
           </p>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tên đầy đủ
-              </label>
-              <input
-                type="text"
-                name="fullName"
-                value={formData.fullName}
-                onChange={handleInputChange}
-                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                placeholder="Nguyễn Văn A"
-                required
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Họ
+                </label>
+                <input
+                  type="text"
+                  name="firstName"
+                  value={formData.firstName}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                  placeholder="Nguyễn"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tên
+                </label>
+                <input
+                  type="text"
+                  name="lastName"
+                  value={formData.lastName}
+                  onChange={handleInputChange}
+                  className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                  placeholder="Văn A"
+                  required
+                />
+              </div>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -195,6 +385,20 @@ const UserList = () => {
                 onChange={handleInputChange}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                 placeholder="example@email.com"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tên đăng nhập
+              </label>
+              <input
+                type="text"
+                name="username"
+                value={formData.username}
+                onChange={handleInputChange}
+                className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+                placeholder="username"
                 required
               />
             </div>
@@ -214,7 +418,7 @@ const UserList = () => {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Mật khẩu
+                Mật khẩu {isEditMode && "(Để trống nếu không đổi)"}
               </label>
               <input
                 type="password"
@@ -222,7 +426,7 @@ const UserList = () => {
                 value={formData.password}
                 onChange={handleInputChange}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-                required
+                required={!isEditMode}
               />
             </div>
             <div>
@@ -235,25 +439,33 @@ const UserList = () => {
                 onChange={handleInputChange}
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
               >
-                <option value="Người dùng">Người dùng</option>
-                <option value="Quản trị viên">Quản trị viên</option>
-                <option value="Quản lý">Quản lý</option>
-                <option value="Nhân viên">Nhân viên</option>
+                <option value="CUSTOMER">Khách hàng</option>
+                <option value="STAFF">Nhân viên</option>
+                <option value="ADMIN">Quản trị viên</option>
               </select>
             </div>
             <div className="flex justify-end gap-3 mt-6">
               <span
-                onClick={() => setIsOpen(false)}
+                onClick={closeModal}
                 className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 cursor-pointer"
               >
                 Hủy
               </span>
-              <span
+              <button
                 type="submit"
-                className="px-4 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 cursor-pointer"
+                disabled={createUserMutation.isPending || updateUserMutation.isPending}
+                className="px-4 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Tạo người dùng
-              </span>
+                {createUserMutation.isPending || updateUserMutation.isPending ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Đang xử lý...
+                  </span>
+                ) : isEditMode ? "Cập nhật" : "Tạo mới"}
+              </button>
             </div>
           </form>
         </div>

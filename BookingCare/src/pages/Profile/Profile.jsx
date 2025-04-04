@@ -1,6 +1,6 @@
-import { useState, useContext } from "react";
+import { useState, useContext, useCallback } from "react";
 import { useSelector } from "react-redux";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDispatch } from "react-redux";
 import { Link } from "react-router-dom";
 import { MessageContext } from "../../contexts/MessageProvider.jsx";
@@ -9,6 +9,7 @@ import { setUser } from "../../redux/slices/userSlice";
 
 function Profile() {
   const dispatch = useDispatch();
+  const queryClient = useQueryClient();
   const message = useContext(MessageContext);
   const {
     id,
@@ -75,6 +76,25 @@ function Profile() {
       message.error(error?.response?.data?.message || "Đổi mật khẩu thất bại");
     },
   });
+
+  // Handle booking cancellation
+  const cancelBookingMutation = useMutation({
+    mutationFn: (bookingId) => UserService.cancelBooking(bookingId),
+    onSuccess: () => {
+      message.success("Lịch hẹn đã được hủy thành công");
+      // Refetch bookings data
+      queryClient.invalidateQueries(["userBookings"]);
+    },
+    onError: (error) => {
+      message.error(error?.response?.data?.message || "Không thể hủy lịch hẹn. Vui lòng thử lại sau.");
+    },
+  });
+
+  const handleCancelBooking = useCallback((bookingId) => {
+    if (window.confirm("Bạn có chắc chắn muốn hủy lịch hẹn này không?")) {
+      cancelBookingMutation.mutate(bookingId);
+    }
+  }, [cancelBookingMutation]);
 
   // Handle user info change
   const handleUserInfoChange = (e) => {
@@ -346,6 +366,13 @@ function Profile() {
                   Lịch hẹn của tôi
                 </h2>
                 
+                <div className="mb-4 p-3 bg-blue-50 border-l-2 border-blue-300 rounded-sm">
+                  <p className="text-blue-800 text-sm">
+                    <i className="fas fa-info-circle mr-2"></i>
+                    <span className="font-medium">Chính sách hủy lịch:</span> Bạn có thể hủy lịch hẹn miễn phí trước 24 giờ. Việc hủy lịch muộn hơn có thể phát sinh phí.
+                  </p>
+                </div>
+                
                 {bookingsLoading ? (
                   <div className="flex justify-center items-center py-10">
                     <div className="w-8 h-8 border-4 border-[var(--primary-color)] border-t-transparent rounded-full animate-spin"></div>
@@ -395,8 +422,22 @@ function Profile() {
                           
                           {booking.canCancel && (
                             <div className="mt-3 flex justify-end">
-                              <button className="text-red-500 text-sm hover:underline">
-                                Hủy lịch hẹn
+                              <button 
+                                className="px-3 py-1 text-sm text-red-600 border border-red-200 rounded-md hover:bg-red-50 transition-colors flex items-center"
+                                onClick={() => handleCancelBooking(booking.id)}
+                                disabled={cancelBookingMutation.isPending}
+                              >
+                                {cancelBookingMutation.isPending && cancelBookingMutation.variables === booking.id ? (
+                                  <>
+                                    <div className="w-3 h-3 border-2 border-red-400 border-t-transparent rounded-full animate-spin mr-2"></div>
+                                    <span>Đang hủy...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <i className="fas fa-times-circle mr-1"></i>
+                                    <span>Hủy lịch hẹn</span>
+                                  </>
+                                )}
                               </button>
                             </div>
                           )}

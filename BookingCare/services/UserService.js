@@ -341,6 +341,45 @@ const getBookedTimeSlots = async (staffId, date) => {
   }
 };
 
+/**
+ * Hủy lịch hẹn
+ * @param {string} bookingId ID của lịch hẹn cần hủy
+ * @returns {Promise<Object>} Kết quả hủy lịch hẹn
+ */
+const cancelBooking = async (bookingId) => {
+  try {
+    console.log(`Cancelling booking with ID: ${bookingId}`);
+    
+    // Get token from localStorage
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+      throw new Error("Không tìm thấy token xác thực");
+    }
+    
+    const response = await axiosJWT.put(
+      `/api/v1/bookings/${bookingId}/status?status=CANCELLED`, 
+      {}, // empty body
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${JSON.parse(token)}`
+        },
+        withCredentials: true
+      }
+    );
+    
+    console.log("Booking cancelled successfully:", response.data);
+    return response.data;
+  } catch (error) {
+    console.error("Error cancelling booking:", error);
+    if (error.response) {
+      console.error("Response status:", error.response.status);
+      console.error("Response data:", error.response.data);
+    }
+    throw error;
+  }
+};
+
 export default {
   signUpUser,
   loginUser,
@@ -358,5 +397,6 @@ export default {
   getPopularServices,
   axiosJWT,
   checkTimeSlotAvailability,
-  getBookedTimeSlots
+  getBookedTimeSlots,
+  cancelBooking
 };

@@ -29,43 +29,19 @@ public class SecurityUtils {
 
     /**
      * Get the currently authenticated user
-     * KHÔNG DÙNG phương thức này vì nó có thể gây ra UsernameNotFoundException
-     * Hãy sử dụng getOptionalCurrentUser() hoặc getOrCreateUser() thay thế
      * 
-     * @return The authenticated user
+     * @return User object for the currently authenticated user
      * @throws UsernameNotFoundException if no authenticated user found
      */
-    @Deprecated
     public User getCurrentUser() {
-        // QUAN TRỌNG: Không ném ngoại lệ, trả về user đầu tiên hoặc user giả
-        try {
-            // Cố gắng tìm người dùng trong context
-            Optional<User> userOpt = getOptionalCurrentUser();
-            if (userOpt.isPresent()) {
-                return userOpt.get();
-            }
-            
-            // Nếu không tìm thấy, trả về người dùng đầu tiên trong DB
-            User firstUser = userRepository.findAll().stream().findFirst().orElse(null);
-            if (firstUser != null) {
-                log.warn("Returning first user from database instead of throwing exception");
-                return firstUser;
-            }
-            
-            // Tạo một user giả nếu không có user nào trong DB
-            log.warn("No users found in database, creating dummy user");
-            return createDummyUser();
-        } catch (Exception ex) {
-            log.error("Error in getCurrentUser: {}", ex.getMessage());
-            return createDummyUser();
-        }
+        return getOptionalCurrentUser()
+                .orElseThrow(() -> new UsernameNotFoundException("No authenticated user found"));
     }
 
     /**
-     * Get the currently authenticated user as an Optional
-     * Không ném exception nếu không tìm thấy người dùng, thay vào đó trả về Optional trống
+     * Get the currently authenticated user as Optional
      * 
-     * @return Optional chứa thông tin người dùng hoặc trống nếu không tìm thấy
+     * @return Optional containing User object if found, empty otherwise
      */
     public Optional<User> getOptionalCurrentUser() {
         try {
@@ -151,8 +127,24 @@ public class SecurityUtils {
      * @return True if the user has access, false otherwise
      */
     public boolean hasBookingAccess(Booking booking) {
-        // Luôn cho phép truy cập trong chế độ đơn giản
-        return true;
+        if (booking == null) {
+            return false;
+        }
+        
+        Optional<User> userOpt = getOptionalCurrentUser();
+        if (!userOpt.isPresent()) {
+            return false;
+        }
+        
+        User user = userOpt.get();
+        
+        // Admin và Staff có thể truy cập tất cả lịch hẹn
+        if (isAdminOrStaff()) {
+            return true;
+        }
+        
+        // Người dùng chỉ có thể truy cập lịch hẹn của chính họ
+        return Objects.equals(booking.getCustomer().getId(), user.getId());
     }
 
     /**
@@ -163,8 +155,30 @@ public class SecurityUtils {
      * @return True if the user has access, false otherwise
      */
     public boolean hasFeedbackAccess(Feedback feedback) {
-        // Luôn cho phép truy cập trong chế độ đơn giản
-        return true;
+        if (feedback == null) {
+            return false;
+        }
+        
+        Optional<User> userOpt = getOptionalCurrentUser();
+        if (!userOpt.isPresent()) {
+            return false;
+        }
+        
+        User user = userOpt.get();
+        
+        // Admin có thể truy cập tất cả feedback
+        if (isAdmin()) {
+            return true;
+        }
+        
+        // Staff có thể xem feedback của lịch hẹn mà họ phụ trách
+        if (user.getRole() == UserRole.STAFF && 
+                Objects.equals(feedback.getBooking().getStaff().getId(), user.getId())) {
+            return true;
+        }
+        
+        // Người dùng chỉ có thể truy cập feedback của chính họ
+        return Objects.equals(feedback.getCustomer().getId(), user.getId());
     }
 
     /**
@@ -173,8 +187,13 @@ public class SecurityUtils {
      * @return True if the user is admin or staff, false otherwise
      */
     public boolean isAdminOrStaff() {
-        // Luôn trả về true trong chế độ đơn giản
-        return true;
+        Optional<User> userOpt = getOptionalCurrentUser();
+        if (!userOpt.isPresent()) {
+            return false;
+        }
+        
+        User user = userOpt.get();
+        return user.getRole() == UserRole.ADMIN || user.getRole() == UserRole.STAFF;
     }
 
     /**
@@ -183,20 +202,41 @@ public class SecurityUtils {
      * @return True if the user is admin, false otherwise
      */
     public boolean isAdmin() {
-        // Luôn trả về true trong chế độ đơn giản
-        return true;
+        Optional<User> userOpt = getOptionalCurrentUser();
+        if (!userOpt.isPresent()) {
+            return false;
+        }
+        
+        User user = userOpt.get();
+        return user.getRole() == UserRole.ADMIN;
     }
 
     /**
      * Check if the currently authenticated user is the owner of the specified user
-     * ID
+     * ID or is an admin
      * 
      * @param userId The user ID to check
      * @return True if the current user is the owner or an admin, false otherwise
      */
-    public boolean isOwnerOrAdmin(java.util.UUID userId) {
-        // Luôn trả về true trong chế độ đơn giản
-        return true;
+    public boolean isOwnerOrAdmin(UUID userId) {
+        if (userId == null) {
+            return false;
+        }
+        
+        Optional<User> userOpt = getOptionalCurrentUser();
+        if (!userOpt.isPresent()) {
+            return false;
+        }
+        
+        User user = userOpt.get();
+        
+        // Admin có thể truy cập tất cả
+        if (user.getRole() == UserRole.ADMIN) {
+            return true;
+        }
+        
+        // Kiểm tra xem người dùng hiện tại có phải là chủ sở hữu
+        return Objects.equals(user.getId(), userId);
     }
 
     /**
@@ -214,6 +254,38 @@ public class SecurityUtils {
             log.error("Error retrieving user by ID: {}", ex.getMessage());
             return Optional.empty();
         }
+    }
+    
+    /**
+     * Kiểm tra xem người dùng hiện tại có quyền cụ thể hay không
+     * 
+     * @param permissionCode Mã quyền cần kiểm tra
+     * @return true nếu người dùng có quyền, false nếu không
+     */
+    public boolean hasPermission(String permissionCode) {
+        Optional<User> userOpt = getOptionalCurrentUser();
+        if (!userOpt.isPresent()) {
+            return false;
+        }
+        
+        User user = userOpt.get();
+        return user.hasPermission(permissionCode);
+    }
+    
+    /**
+     * Kiểm tra xem người dùng hiện tại có thuộc nhóm quyền cụ thể hay không
+     * 
+     * @param groupName Tên nhóm quyền cần kiểm tra
+     * @return true nếu người dùng thuộc nhóm quyền, false nếu không
+     */
+    public boolean hasPermissionGroup(String groupName) {
+        Optional<User> userOpt = getOptionalCurrentUser();
+        if (!userOpt.isPresent()) {
+            return false;
+        }
+        
+        User user = userOpt.get();
+        return user.hasPermissionGroup(groupName);
     }
     
     /**

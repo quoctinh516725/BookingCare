@@ -59,8 +59,28 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserResponse createUser(UserRequest request) {
+        // Ghi log và kiểm tra dữ liệu đầu vào
+        log.info("Creating user with email: {}", request.getEmail());
+        
+        // Kiểm tra mật khẩu
+        if (request.getPassword() == null || request.getPassword().isEmpty()) {
+            log.error("Password is null or empty in the request");
+            throw new IllegalArgumentException("Password cannot be null or empty");
+        }
+        
         User user = userMapper.toUser(request);
-        return userMapper.toUserResponse(userRepository.save(user));
+        
+        // Mã hóa mật khẩu
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        
+        // Tạo username từ email nếu không có
+        if (user.getUsername() == null || user.getUsername().isEmpty()) {
+            user.setUsername(request.getEmail().split("@")[0]);
+        }
+        
+        User savedUser = userRepository.save(user);
+        log.info("User created successfully with ID: {}", savedUser.getId());
+        return userMapper.toUserResponse(savedUser);
     }
 
     @Override
@@ -100,6 +120,15 @@ public class UserServiceImpl implements UserService {
         }
         if (request.getDescription() != null) {
             user.setDescription(request.getDescription());
+        }
+        if (request.getRole() != null) {
+            try {
+                UserRole role = UserRole.valueOf(request.getRole());
+                user.setRole(role);
+            } catch (IllegalArgumentException e) {
+                log.error("Invalid role: {}", request.getRole());
+                throw new BadRequestException("Invalid role: " + request.getRole());
+            }
         }
         
         // Lưu và trả về kết quả
