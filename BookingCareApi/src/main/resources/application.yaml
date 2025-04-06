@@ -4,9 +4,9 @@ spring:
   main:
     allow-bean-definition-overriding: true
   datasource:
-    url: jdbc:mysql://localhost:3306/skincarebeauti?allowPublicKeyRetrieval=true&useSSL=false&createDatabaseIfNotExist=true&zeroDateTimeBehavior=CONVERT_TO_NULL
+    url: jdbc:mysql://turntable.proxy.rlwy.net:43838/railway
     username: root
-    password: root
+    password: uFTsQCoEcvOYPLfRRanvGDzVRzqDPvsb
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
