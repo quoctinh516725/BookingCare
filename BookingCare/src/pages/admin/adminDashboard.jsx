@@ -15,14 +15,14 @@ const AdminDashboard = () => {
     const fetchData = async () => {
       setIsLoading(true);
       setError(null);
-      
+
       try {
         // 1. Lấy thống kê tổng quan
         await fetchAdminStats();
-        
+
         // 2. Lấy lịch hẹn gần đây
         await fetchRecentBookings();
-        
+
         // 3. Lấy dịch vụ phổ biến
         await fetchPopularServices();
       } catch (error) {
@@ -42,36 +42,50 @@ const AdminDashboard = () => {
       console.log("Fetching admin stats...");
       const statsData = await AdminService.getAdminStats();
       console.log("Admin stats data:", statsData);
-      
+
       const formattedStats = [
         {
           title: "Người dùng",
           value: statsData.userCount || "0",
-          change: `${statsData.userGrowth > 0 ? "+" : ""}${statsData.userGrowth || 0}% so với tháng trước`,
+          change: `${statsData.userGrowth > 0 ? "+" : ""}${
+            statsData.userGrowth || 0
+          }% so với tháng trước`,
           icon: <i className="fas fa-users h-5 w-5 text-blue-500"></i>,
         },
         {
           title: "Dịch vụ",
           value: statsData.serviceCount || "0",
-          change: `${statsData.serviceGrowth > 0 ? "+" : ""}${statsData.serviceGrowth || 0}% so với tháng trước`,
-          icon: <i className="fas fa-concierge-bell h-5 w-5 text-purple-500"></i>,
+          change: `${statsData.serviceGrowth > 0 ? "+" : ""}${
+            statsData.serviceGrowth || 0
+          }% so với tháng trước`,
+          icon: (
+            <i className="fas fa-concierge-bell h-5 w-5 text-purple-500"></i>
+          ),
         },
         {
           title: "Chuyên viên",
           value: statsData.staffCount || "0",
-          change: `${statsData.staffGrowth > 0 ? "+" : ""}${statsData.staffGrowth || 0} người mới`,
+          change: `${statsData.staffGrowth > 0 ? "+" : ""}${
+            statsData.staffGrowth || 0
+          } người mới`,
           icon: <i className="fas fa-user-check h-5 w-5 text-blue-500"></i>,
         },
         {
           title: "Lịch đặt",
           value: statsData.bookingCount || "0",
-          change: `${statsData.bookingGrowth > 0 ? "+" : ""}${statsData.bookingGrowth || 0}% so với tháng trước`,
+          change: `${statsData.bookingGrowth > 0 ? "+" : ""}${
+            statsData.bookingGrowth || 0
+          }% so với tháng trước`,
           icon: <i className="fas fa-calendar-alt h-5 w-5 text-blue-500"></i>,
         },
         {
           title: "Doanh thu",
-          value: `${new Intl.NumberFormat('vi-VN').format(statsData.revenue || 0)} đ`,
-          change: `${statsData.revenueGrowth > 0 ? "+" : ""}${statsData.revenueGrowth || 0}% so với tháng trước`,
+          value: `${new Intl.NumberFormat("vi-VN").format(
+            statsData.revenue || 0
+          )} đ`,
+          change: `${statsData.revenueGrowth > 0 ? "+" : ""}${
+            statsData.revenueGrowth || 0
+          }% so với tháng trước`,
           icon: <i className="fas fa-dollar-sign h-5 w-5 text-green-500"></i>,
         },
       ];
@@ -87,28 +101,30 @@ const AdminDashboard = () => {
       console.log("Fetching recent bookings...");
       const bookingsData = await AdminService.getRecentBookings(5);
       console.log("Recent bookings data:", bookingsData);
-      
-      const formattedAppointments = bookingsData.map(booking => {
+
+      const formattedAppointments = bookingsData.map((booking) => {
         // Tạo chuỗi tên các dịch vụ
         let serviceNames = "Chưa có dịch vụ";
         if (booking.services && booking.services.length > 0) {
-          serviceNames = booking.services.map(s => s.name).join(", ");
+          serviceNames = booking.services.map((s) => s.name).join(", ");
         }
-        
+
         // Định dạng thời gian
         let formattedTime = booking.formattedDateTime || "Chưa có thời gian";
         if (!booking.formattedDateTime && booking.appointmentTime) {
-          formattedTime = new Date(booking.appointmentTime).toLocaleString('vi-VN');
+          formattedTime = new Date(booking.appointmentTime).toLocaleString(
+            "vi-VN"
+          );
         }
-        
+
         return {
           customer: booking.customerName || "Khách hàng",
           service: serviceNames,
           time: formattedTime,
-          status: booking.status || "PENDING"
+          status: booking.status || "PENDING",
         };
       });
-      
+
       setAppointments(formattedAppointments);
     } catch (error) {
       console.error("Error in fetchRecentBookings:", error);
@@ -121,28 +137,38 @@ const AdminDashboard = () => {
       console.log("Fetching popular services...");
       const servicesData = await AdminService.getPopularServices();
       console.log("Popular services data:", servicesData);
-      
+
       // Kiểm tra dữ liệu trước khi xử lý
       if (!Array.isArray(servicesData) || servicesData.length === 0) {
-        console.warn("Không có dữ liệu dịch vụ phổ biến hoặc dữ liệu không đúng định dạng");
+        console.warn(
+          "Không có dữ liệu dịch vụ phổ biến hoặc dữ liệu không đúng định dạng"
+        );
         setPopularServices([]);
         setServiceDistribution([]);
         return;
       }
-      
+
       // Format dữ liệu dịch vụ phổ biến
-      const formattedServices = servicesData.map(service => ({
+      const formattedServices = servicesData.map((service) => ({
         name: service.name || "Dịch vụ",
         count: service.bookingCount || 0,
-        revenue: `${new Intl.NumberFormat('vi-VN').format(service.revenue || 0)} đ`
+        revenue: `${new Intl.NumberFormat("vi-VN").format(
+          service.revenue || 0
+        )} đ`,
       }));
       setPopularServices(formattedServices);
 
       // Tạo dữ liệu cho biểu đồ phân phối dịch vụ
-      const totalBookings = servicesData.reduce((sum, service) => sum + (service.bookingCount || 0), 0);
-      const distributionData = servicesData.map(service => ({
+      const totalBookings = servicesData.reduce(
+        (sum, service) => sum + (service.bookingCount || 0),
+        0
+      );
+      const distributionData = servicesData.map((service) => ({
         name: service.name || "Dịch vụ",
-        percentage: totalBookings > 0 ? Math.round(((service.bookingCount || 0) / totalBookings) * 100) : 0
+        percentage:
+          totalBookings > 0
+            ? Math.round(((service.bookingCount || 0) / totalBookings) * 100)
+            : 0,
       }));
       setServiceDistribution(distributionData);
     } catch (error) {
@@ -155,8 +181,8 @@ const AdminDashboard = () => {
   const renderAppointmentStatus = (status) => {
     let displayStatus = status;
     let statusClass = "";
-    
-    switch(status) {
+
+    switch (status) {
       case "COMPLETED":
         displayStatus = "Đã hoàn thành";
         statusClass = "bg-green-100 text-green-800";
@@ -181,9 +207,11 @@ const AdminDashboard = () => {
       default:
         statusClass = "bg-gray-100 text-gray-800";
     }
-    
+
     return (
-      <span className={`inline-flex px-3 py-1 text-xs rounded-full font-medium ${statusClass}`}>
+      <span
+        className={`inline-flex px-3 py-1 text-xs rounded-full font-medium ${statusClass}`}
+      >
         {displayStatus}
       </span>
     );
@@ -193,20 +221,20 @@ const AdminDashboard = () => {
   const handleRetry = () => {
     setError(null);
     setIsLoading(true);
-    
+
     // Gọi lại useEffect bằng cách thay đổi một dependency
     // Đây là cách đơn giản để trigger useEffect
     const fetchData = async () => {
       try {
         // 1. Lấy thống kê tổng quan
         await fetchAdminStats();
-        
+
         // 2. Lấy lịch hẹn gần đây
         await fetchRecentBookings();
-        
+
         // 3. Lấy dịch vụ phổ biến
         await fetchPopularServices();
-        
+
         setError(null);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -215,7 +243,7 @@ const AdminDashboard = () => {
         setIsLoading(false);
       }
     };
-    
+
     fetchData();
   };
 
@@ -227,7 +255,7 @@ const AdminDashboard = () => {
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 relative">
           <strong className="font-bold">Lỗi! </strong>
           <span className="block sm:inline">{error}</span>
-          <button 
+          <button
             onClick={handleRetry}
             className="ml-3 px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 text-xs"
           >
@@ -237,9 +265,11 @@ const AdminDashboard = () => {
       )}
 
       {isLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-          <span className="ml-4 text-blue-500">Đang tải dữ liệu...</span>
+        <div className="my-30">
+          <div className="flex flex-col items-center justify-center p-10">
+            <div className="w-12 h-12 border-4 border-[var(--primary-color)] border-t-transparent rounded-full animate-spin mx-auto"></div>
+            <p className="mt-4 text-lg">Đang tải dữ liệu...</p>
+          </div>
         </div>
       ) : (
         <>
@@ -254,7 +284,9 @@ const AdminDashboard = () => {
                 <div className="font-bold text-2xl mb-1">{stat.value}</div>
                 <div
                   className={`text-xs ${
-                    stat.change.includes("+") ? "text-green-500" : "text-red-500"
+                    stat.change.includes("+")
+                      ? "text-green-500"
+                      : "text-red-500"
                   }`}
                 >
                   {stat.change}
@@ -366,7 +398,9 @@ const AdminDashboard = () => {
                     >
                       <div className="font-medium">{service.name}</div>
                       <div className="text-center">{service.count}</div>
-                      <div className="text-right font-medium">{service.revenue}</div>
+                      <div className="text-right font-medium">
+                        {service.revenue}
+                      </div>
                     </div>
                   ))}
 

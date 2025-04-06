@@ -6,6 +6,7 @@ import { useDispatch } from "react-redux";
 import { setUser } from "./redux/slices/userSlice";
 import UserService from "services/UserService";
 import Modal from "react-modal";
+import logo from "./assets/logo.png";
 
 Modal.setAppElement("#root");
 
@@ -112,8 +113,14 @@ function App() {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[var(--background-color)]">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-[var(--primary-color)] border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-3 text-gray-600">Loading...</p>
+          {/* <div className="w-12 h-12 border-4 border-[var(--primary-color)] border-t-transparent rounded-full animate-spin mx-auto"></div> */}
+          <p className="mt-3 text-gray-600">
+            <img
+              src={logo}
+              alt="logo"
+              className="w-20 h-20 rounded-2xl transform animate-spin"
+            />
+          </p>
         </div>
       </div>
     );

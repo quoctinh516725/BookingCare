@@ -26,15 +26,15 @@ export const userSlice = createSlice({
           access_token,
           phoneNumber,
         } = action.payload;
-        state.id = id || "";
-        state.username = username || "";
-        state.email = email || "";
-        state.firstName = firstName || "";
-        state.lastName = lastName || "";
-        state.role = role || "";
-        state.access_token = access_token || "";
-        state.fullName = `${firstName || ""} ${lastName || ""}`.trim();
-        state.phone = phoneNumber || "";
+        state.id = id || null;
+        state.username = username || null;
+        state.email = email || null;
+        state.firstName = firstName || null;
+        state.lastName = lastName || null;
+        state.role = role || null;
+        state.access_token = access_token || null;
+        state.fullName = `${firstName || null} ${lastName || null}`.trim();
+        state.phone = phoneNumber || null;
       }
     },
     updateUserInfo: (state, action) => {

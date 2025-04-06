@@ -422,8 +422,8 @@ function Profile() {
                           
                           {booking.canCancel && (
                             <div className="mt-3 flex justify-end">
-                              <button 
-                                className="px-3 py-1 text-sm text-red-600 border border-red-200 rounded-md hover:bg-red-50 transition-colors flex items-center"
+                              <span 
+                                className="px-3 py-1 text-sm text-red-600 border border-red-200 rounded-md hover:bg-red-50 transition-colors flex items-center cursor-pointer"
                                 onClick={() => handleCancelBooking(booking.id)}
                                 disabled={cancelBookingMutation.isPending}
                               >
@@ -438,7 +438,7 @@ function Profile() {
                                     <span>Hủy lịch hẹn</span>
                                   </>
                                 )}
-                              </button>
+                              </span>
                             </div>
                           )}
                         </div>
