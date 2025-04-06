@@ -119,8 +119,7 @@ public class BookingController {
     }
 
     @PutMapping("/{id}/status")
-    @Operation(summary = "Update booking status (Admin/Staff only)")
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @Operation(summary = "Update booking status")
     public ResponseEntity<BookingResponse> updateBookingStatus(
             @PathVariable UUID id,
             @RequestParam BookingStatus status) {

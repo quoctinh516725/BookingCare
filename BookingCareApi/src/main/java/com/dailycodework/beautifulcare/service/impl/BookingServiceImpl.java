@@ -387,13 +387,27 @@ public class BookingServiceImpl implements BookingService {
     public BookingResponse updateBookingStatus(UUID id, BookingStatus status) {
         log.info("Updating status for booking ID: {} to {}", id, status);
 
-        // Only admin and staff should be able to update booking status
-        if (!securityUtils.isAdminOrStaff()) {
-            throw new AccessDeniedException("Only administrators and staff can update booking status");
-        }
-
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
+
+        // Check if user has permission to update this booking
+        User currentUser = securityUtils.getOrCreateUser();
+        
+        // If user is not admin/staff, they can only cancel their own bookings
+        if (!securityUtils.isAdminOrStaff()) {
+            if (!currentUser.getId().equals(booking.getCustomer().getId())) {
+                throw new AccessDeniedException("You can only cancel your own bookings");
+            }
+            // Users can only cancel bookings (not update to other statuses)
+            if (status != BookingStatus.CANCELLED) {
+                throw new AccessDeniedException("You can only cancel bookings");
+            }
+            // Users can only cancel pending or confirmed bookings
+            if (booking.getStatus() != BookingStatus.PENDING && 
+                booking.getStatus() != BookingStatus.CONFIRMED) {
+                throw new InvalidOperationException("Cannot cancel booking with status: " + booking.getStatus());
+            }
+        }
 
         // Validate status transitions
         validateStatusTransition(booking.getStatus(), status);
@@ -526,16 +540,6 @@ public class BookingServiceImpl implements BookingService {
                         .available(false)
                         .reason("STAFF_CONFLICT")
                         .message("The staff member is not available at this time slot")
-                        .build();
-            }
-            
-            // Kiểm tra giờ làm việc (ví dụ: 9:00 - 17:00)
-            if (request.getStartTime().isBefore(LocalTime.of(9, 0)) || 
-                request.getStartTime().isAfter(LocalTime.of(17, 0))) {
-                return TimeSlotAvailabilityResponse.builder()
-                        .available(false)
-                        .reason("OUTSIDE_WORKING_HOURS")
-                        .message("The selected time is outside our working hours (9:00 - 17:00)")
                         .build();
             }
             
