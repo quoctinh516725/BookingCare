@@ -15,6 +15,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -133,8 +134,15 @@ public class PermissionController {
     @GetMapping("/users/{userId}/groups")
     @Operation(summary = "Lấy danh sách nhóm quyền của một người dùng")
     public ResponseEntity<List<UUID>> getUserPermissionGroups(@PathVariable UUID userId) {
-        log.info("GET /api/v1/permissions/users/{}/groups: Lấy danh sách nhóm quyền của người dùng", userId);
-        return ResponseEntity.ok(permissionService.getUserPermissionGroups(userId));
+        List<UUID> permissionGroups = permissionService.getUserPermissionGroups(userId);
+        return ResponseEntity.ok(permissionGroups);
+    }
+    
+    @GetMapping("/users/all-permissions")
+    @Operation(summary = "Lấy danh sách nhóm quyền của tất cả người dùng")
+    public ResponseEntity<Map<UUID, List<UUID>>> getAllUserPermissionGroups() {
+        Map<UUID, List<UUID>> permissionGroups = permissionService.getAllUserPermissionGroups();
+        return ResponseEntity.ok(permissionGroups);
     }
     
     @PostMapping("/users/{userId}/groups/{groupId}")

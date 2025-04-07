@@ -21,8 +21,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.HashMap;
 
 /**
  * Triển khai PermissionService interface
@@ -313,22 +315,36 @@ public class PermissionServiceImpl implements PermissionService {
 
     @Override
     public List<UUID> getUserPermissionGroups(UUID userId) {
-        log.info("Getting permission groups for user with ID: {}", userId);
+        log.info("Fetching permission groups for user: {}", userId);
         
-        // Kiểm tra xem người dùng tồn tại không
-        if (!userRepository.existsById(userId)) {
-            throw new ResourceNotFoundException("User not found with ID: " + userId);
-        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         
-        // Lấy danh sách nhóm quyền từ repository
-        List<PermissionGroup> groups = permissionGroupRepository.findByUserId(userId);
-        
-        // Trả về danh sách ID
-        List<UUID> groupIds = groups.stream()
+        return user.getPermissionGroups().stream()
                 .map(PermissionGroup::getId)
                 .collect(Collectors.toList());
-                
-        log.info("Found {} permission groups for user", groupIds.size());
-        return groupIds;
+    }
+    
+    @Override
+    public Map<UUID, List<UUID>> getAllUserPermissionGroups() {
+        log.info("Fetching permission groups for all users");
+        
+        // Lấy tất cả người dùng
+        List<User> users = userRepository.findAll();
+        
+        // Tạo map để lưu trữ kết quả
+        Map<UUID, List<UUID>> result = new HashMap<>();
+        
+        // Lấy quyền cho mỗi người dùng
+        for (User user : users) {
+            List<UUID> permissionGroupIds = user.getPermissionGroups().stream()
+                    .map(PermissionGroup::getId)
+                    .collect(Collectors.toList());
+            
+            result.put(user.getId(), permissionGroupIds);
+        }
+        
+        log.info("Fetched permission groups for {} users", users.size());
+        return result;
     }
 } 

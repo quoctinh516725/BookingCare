@@ -301,6 +301,22 @@ const AdminService = {
   },
 
   /**
+   * Lấy danh sách nhóm quyền của tất cả người dùng
+   * @returns {Promise<Object>} Map với key là ID người dùng và value là danh sách ID của các nhóm quyền
+   */
+  getAllUserPermissionGroups: async () => {
+    try {
+      const response = await axiosInstance.get(`/api/v1/permissions/users/all-permissions`, {
+        headers: getAuthHeader()
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching all user permission groups:", error);
+      return {};
+    }
+  },
+
+  /**
    * Tạo nhóm quyền mới
    * @param {Object} groupData Thông tin nhóm quyền mới
    * @returns {Promise<Object>} Thông tin nhóm quyền đã tạo

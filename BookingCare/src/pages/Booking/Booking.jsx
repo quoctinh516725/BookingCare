@@ -3,7 +3,7 @@ import UserService from "../../../services/UserService";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { MessageContext } from "../../contexts/MessageProvider";
-import { useMutation } from "@tanstack/react-query";
+
 function Booking() {
   const navigate = useNavigate();
   const user = useSelector((state) => state.user);
@@ -23,13 +23,17 @@ function Booking() {
   const [services, setServices] = useState([]);
   const [specialists, setSpecialists] = useState([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [fetchingTimeSlots, setFetchingTimeSlots] = useState(false);
 
   // Thêm state mới để kiểm soát trạng thái giờ đã đặt
   const [bookedTimeSlots, setBookedTimeSlots] = useState([]);
 
+  // State lưu toàn bộ slot đã đặt của các nhân viên
+  const [allStaffBookedTimeSlots, setAllStaffBookedTimeSlots] = useState({});
+
   // Lấy dữ liệu từ API khi component được render
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchInitialData = async () => {
       try {
         setDataLoading(true);
         // Lấy danh sách dịch vụ
@@ -64,56 +68,177 @@ function Booking() {
       }
     };
 
-    fetchData();
+    fetchInitialData();
   }, []);
 
-  // Cập nhật hàm lấy các khung giờ đã đặt với xử lý lỗi tốt hơn
+  // Cập nhật hàm lấy các khung giờ đã đặt cải tiến
   const fetchBookedTimeSlots = async () => {
-    if (!formData.date || !formData.specialistId) {
-      console.log(
-        "Missing required data for fetchBookedTimeSlots. Date or specialistId is undefined."
-      );
+    // Chỉ fetch nếu có ngày được chọn
+    if (!formData.date) {
+      console.log("Missing date for fetchBookedTimeSlots.");
       setBookedTimeSlots([]);
       return;
     }
 
     try {
-      console.log(
-        `Fetching booked slots - Specialist: ${formData.specialistId}, Date: ${formData.date}`
-      );
-
-      const bookedSlots = await UserService.getBookedTimeSlots(
-        formData.specialistId,
-        formData.date
-      );
-
-      console.log("Booked slots received:", bookedSlots);
-      setBookedTimeSlots(Array.isArray(bookedSlots) ? bookedSlots : []);
-
-      // Kiểm tra nếu khung giờ hiện tại đã được đặt
-      if (formData.time && bookedSlots.includes(formData.time)) {
-        console.log(`Selected time ${formData.time} is already booked`);
-        message.warning(
-          "Khung giờ này đã được đặt. Vui lòng chọn thời gian khác."
-        );
+      // Hiển thị trạng thái đang tải 
+      setFetchingTimeSlots(true);
+      
+      // Chuyển đổi chuỗi ngày thành đối tượng Date
+      const dateObj = new Date(formData.date);
+      
+      // Lấy tất cả khung giờ đã đặt cho tất cả nhân viên trong ngày
+      const allBookedSlots = await UserService.getAllStaffBookedTimeSlots(dateObj);
+      console.log("All staff booked slots received:", allBookedSlots);
+      
+      // Lưu trữ tất cả dữ liệu để sử dụng lại khi người dùng chuyển đổi nhân viên
+      setAllStaffBookedTimeSlots(allBookedSlots || {});
+      
+      // Nếu đã chọn nhân viên, lọc các khung giờ đã đặt cho nhân viên đó
+      if (formData.specialistId) {
+        const staffBookedSlots = allBookedSlots[formData.specialistId] || [];
+        setBookedTimeSlots(staffBookedSlots);
+        
+        // Kiểm tra nếu khung giờ hiện tại đã được đặt
+        if (formData.time && staffBookedSlots.includes(formData.time)) {
+          console.log(`Selected time ${formData.time} is already booked`);
+          message.warning("Khung giờ này đã được đặt. Vui lòng chọn thời gian khác.");
+        }
+      } else {
+        setBookedTimeSlots([]);
       }
     } catch (error) {
       console.error("Failed to fetch booked slots:", error);
-      message.error(
-        "Không thể tải danh sách khung giờ đã đặt. Đang hiển thị tất cả khung giờ."
-      );
+      message.error("Không thể tải danh sách khung giờ đã đặt. Đang hiển thị tất cả khung giờ.");
       setBookedTimeSlots([]);
+    } finally {
+      // Ẩn trạng thái đang tải
+      setFetchingTimeSlots(false);
     }
   };
 
-  // Cập nhật fetchBookedTimeSlots khi thay đổi ngày hoặc nhân viên
+  // Cập nhật fetchBookedTimeSlots khi thay đổi ngày 
+  // Tối ưu hóa: chỉ gọi API khi ngày thay đổi, không phụ thuộc vào specialistId
   useEffect(() => {
-    fetchBookedTimeSlots();
-  }, [formData.date, formData.specialistId]);
+    if (formData.date) {
+      fetchBookedTimeSlots();
+    }
+  }, [formData.date]);
 
-  // Cập nhật kiểm tra khung giờ có bị chiếm không
+  // Cập nhật danh sách bookedTimeSlots từ cache khi thay đổi nhân viên
+  useEffect(() => {
+    if (formData.specialistId && Object.keys(allStaffBookedTimeSlots).length > 0) {
+      const staffBookedSlots = allStaffBookedTimeSlots[formData.specialistId] || [];
+      setBookedTimeSlots(staffBookedSlots);
+      
+      // Kiểm tra nếu khung giờ hiện tại đã được đặt
+      if (formData.time && staffBookedSlots.includes(formData.time)) {
+        message.warning("Khung giờ này đã được đặt cho nhân viên này. Vui lòng chọn thời gian khác.");
+      }
+    } else {
+      setBookedTimeSlots([]);
+    }
+  }, [formData.specialistId, allStaffBookedTimeSlots]);
+
+  // Kiểm tra xung đột thời gian khi người dùng thay đổi giờ đặt lịch
+  useEffect(() => {
+    // Chỉ kiểm tra nếu đã chọn giờ và có danh sách khung giờ đã đặt
+    if (formData.time && bookedTimeSlots.length > 0) {
+      if (bookedTimeSlots.includes(formData.time)) {
+        message.warning("Khung giờ này đã được đặt. Vui lòng chọn thời gian khác.");
+      }
+    }
+  }, [formData.time, bookedTimeSlots]);
+
+  // Tính toán thời lượng dịch vụ dựa trên các dịch vụ đã chọn
+  const calculateServiceDuration = () => {
+    if (selectedServices.length === 0) {
+      return 60; // Mặc định 60 phút nếu chưa chọn dịch vụ
+    }
+    
+    // Tính tổng thời lượng của các dịch vụ đã chọn
+    let totalDuration = 0;
+    selectedServices.forEach(serviceId => {
+      const service = services.find(s => s.id === serviceId);
+      if (service) {
+        totalDuration += service.duration || 60; // Mặc định 60 phút nếu không có thông tin thời lượng
+      }
+    });
+    
+    return Math.max(totalDuration, 30); // Đảm bảo thời lượng tối thiểu là 30 phút
+  };
+
+  // Hiển thị thời gian dự kiến của buổi hẹn
+  const getEstimatedDuration = () => {
+    const duration = calculateServiceDuration();
+    if (duration >= 60) {
+      const hours = Math.floor(duration / 60);
+      const minutes = duration % 60;
+      return `${hours} giờ${minutes > 0 ? ` ${minutes} phút` : ''}`;
+    } else {
+      return `${duration} phút`;
+    }
+  };
+
+  // Hiển thị thông tin về thời gian kết thúc dự kiến
+  const getEstimatedEndTime = () => {
+    if (!formData.time) return '';
+    
+    const duration = calculateServiceDuration();
+    const [hours, minutes] = formData.time.split(':').map(Number);
+    
+    // Tính thời gian kết thúc
+    let endHours = hours + Math.floor((minutes + duration) / 60);
+    const endMinutes = (minutes + duration) % 60;
+    
+    // Format thời gian kết thúc
+    return `${String(endHours).padStart(2, '0')}:${String(endMinutes).padStart(2, '0')}`;
+  };
+
+  // Cập nhật kiểm tra khung giờ có bị chiếm không - bao gồm cả thời lượng dịch vụ
   const isTimeSlotBooked = (timeSlot) => {
-    return bookedTimeSlots.includes(timeSlot);
+    // Kiểm tra xem khung giờ có nằm trong danh sách đã đặt không
+    if (bookedTimeSlots.includes(timeSlot)) {
+      return true;
+    }
+    
+    // Kiểm tra xem khung giờ có nằm trong khoảng thời gian của một lịch đặt nào đó không
+    // Chuyển timeSlot thành phút trong ngày để dễ so sánh
+    const [hours, minutes] = timeSlot.split(':').map(Number);
+    const timeSlotMinutes = hours * 60 + minutes;
+    
+    // Với mỗi khung giờ đã đặt, kiểm tra xem khung giờ hiện tại có nằm trong khoảng thời gian không
+    for (const bookedSlot of bookedTimeSlots) {
+      const [bookedHours, bookedMinutes] = bookedSlot.split(':').map(Number);
+      const bookedSlotMinutes = bookedHours * 60 + bookedMinutes;
+      
+      // Tính toán thời gian kết thúc dự kiến của lịch đặt dựa trên thời lượng dịch vụ
+      // Sử dụng thời lượng ước tính 60 phút cho các lịch đặt của người khác
+      const estimatedDuration = 60; // Thời lượng ước tính (phút)
+      
+      // Nếu khung giờ hiện tại nằm trong khoảng từ giờ bắt đầu đến giờ kết thúc của lịch đặt
+      if (timeSlotMinutes >= bookedSlotMinutes && timeSlotMinutes < bookedSlotMinutes + estimatedDuration) {
+        return true;
+      }
+    }
+    
+    // Kiểm tra thêm: Nếu người dùng đã chọn một khung giờ, cần kiểm tra xem khung giờ hiện tại
+    // có nằm trong khoảng thời gian sẽ được sử dụng bởi dịch vụ đã chọn
+    if (formData.time && timeSlot !== formData.time) {
+      const [selectedHours, selectedMinutes] = formData.time.split(':').map(Number);
+      const selectedTimeMinutes = selectedHours * 60 + selectedMinutes;
+      
+      // Sử dụng thời lượng thực tế của các dịch vụ đã chọn
+      const serviceDuration = calculateServiceDuration();
+      
+      // Nếu khung giờ hiện tại nằm trong khoảng thời gian sẽ được sử dụng cho dịch vụ đã chọn
+      if (timeSlotMinutes > selectedTimeMinutes && 
+          timeSlotMinutes < selectedTimeMinutes + serviceDuration) {
+        return true;
+      }
+    }
+    
+    return false;
   };
 
   // Cập nhật handleBooking để hiển thị thông báo chi tiết hơn
@@ -196,8 +321,10 @@ function Booking() {
                   specialistId: "",
                   notes: "",
                 });
-                // Làm mới danh sách khung giờ đã đặt
+                // Làm mới danh sách khung giờ đã đặt và cache
                 setBookedTimeSlots([]);
+                setAllStaffBookedTimeSlots({});
+                UserService.clearBookingCache();
               }}
             >
               Đặt lịch khác
@@ -269,8 +396,11 @@ function Booking() {
     }
   };
 
+  // Hàm xử lý khi người dùng thay đổi input
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    // Cập nhật giá trị vào formData
     setFormData({
       ...formData,
       [name]: value,
@@ -284,6 +414,30 @@ function Booking() {
       setSelectedServices(selectedServices.filter((id) => id !== serviceId));
     }
   };
+
+  // Cập nhật lại khung giờ đã đặt khi thay đổi dịch vụ đã chọn
+  useEffect(() => {
+    // Hiển thị lại thông tin các khung giờ đã đặt khi thay đổi dịch vụ hoặc thời gian
+    if (formData.time && formData.specialistId) {
+      // Không cần gọi API lại, chỉ cập nhật giao diện
+      console.log("Dịch vụ đã chọn thay đổi, cập nhật hiển thị khung giờ");
+    }
+  }, [selectedServices]);
+
+  // Kiểm tra thời lượng dịch vụ khi chọn
+  useEffect(() => {
+    if (selectedServices.length > 0) {
+      const duration = calculateServiceDuration();
+      if (duration > 120) { // Nếu thời gian dịch vụ vượt quá 2 giờ
+        message.warning(
+          <div>
+            <p className="font-semibold">Thời gian dịch vụ dài</p>
+            <p>Tổng thời gian cho các dịch vụ đã chọn là {getEstimatedDuration()}. Bạn có thể cân nhắc chia thành nhiều lần đặt lịch.</p>
+          </div>
+        );
+      }
+    }
+  }, [selectedServices]);
 
   // Hiển thị trạng thái loading khi đang lấy dữ liệu
   if (dataLoading) {
@@ -337,6 +491,18 @@ function Booking() {
                 </div>
               );
             })}
+            {selectedServices.length > 0 && (
+              <div className="mt-2 border-t border-gray-200 pt-2 flex justify-between items-center">
+                <div className="text-gray-700">
+                  <span className="font-medium">Tổng thời gian: </span> 
+                  <span>{getEstimatedDuration()}</span>
+                </div>
+                <div className="text-gray-700">
+                  <span className="font-medium">Đã chọn: </span>
+                  <span>{selectedServices.length} dịch vụ</span>
+                </div>
+              </div>
+            )}
           </div>
           <p className="text-xl font-semibold mt-5">Họ và tên</p>
           <input
@@ -361,16 +527,23 @@ function Booking() {
           <div className="flex space-x-5 mt-3">
             <div className="w-1/2">
               <p className="text-xl font-semibold">Ngày</p>
-              <input
-                type="date"
-                name="date"
-                id="date"
-                className="w-full p-2 border-2 border-black/10 rounded-md outline-none my-3 cursor-pointer"
-                onFocus={(e) => e.target.showPicker()}
-                value={formData.date}
-                onChange={handleInputChange}
-                min={new Date().toISOString().split("T")[0]}
-              />
+              <div className="relative">
+                <input
+                  type="date"
+                  name="date"
+                  id="date"
+                  className="w-full p-2 border-2 border-black/10 rounded-md outline-none my-3 cursor-pointer"
+                  onFocus={(e) => e.target.showPicker()}
+                  value={formData.date}
+                  onChange={handleInputChange}
+                  min={new Date().toISOString().split("T")[0]}
+                />
+                {fetchingTimeSlots && (
+                  <div className="absolute right-2 top-1/2 transform -translate-y-1/2">
+                    <div className="w-4 h-4 border-2 border-[var(--primary-color)] border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+              </div>
             </div>
             <div className="w-1/2">
               <p className="text-xl font-semibold">Giờ</p>
@@ -380,45 +553,60 @@ function Booking() {
                 className={`w-full p-2 border-2 border-black/10 rounded-md outline-none my-3 cursor-pointer`}
                 value={formData.time}
                 onChange={handleInputChange}
+                disabled={fetchingTimeSlots}
               >
                 <option value="">Chọn giờ</option>
-                {[
-                  "07:00",
-                  "07:30",
-                  "08:00",
-                  "08:30",
-                  "09:00",
-                  "09:30",
-                  "10:00",
-                  "10:30",
-                  "11:00",
-                  "11:30",
-                  "12:00",
-                  "12:30",
-                  "13:00",
-                  "13:30",
-                  "14:00",
-                  "14:30",
-                  "15:00",
-                  "15:30",
-                  "16:00",
-                  "16:30",
-                  "17:00",
-                  "17:30",
-                  "18:00",
-                ].map((time) => (
-                  <option
-                    key={time}
-                    value={time}
-                    disabled={isTimeSlotBooked(time)}
-                    className={
-                      isTimeSlotBooked(time) ? "text-gray-300 bg-gray-100" : ""
-                    }
-                  >
-                    {time} {isTimeSlotBooked(time) ? "(Đã đặt)" : ""}
-                  </option>
-                ))}
+                {fetchingTimeSlots ? (
+                  <option disabled>Đang tải khung giờ...</option>
+                ) : (
+                  [
+                    "07:00",
+                    "07:30",
+                    "08:00",
+                    "08:30",
+                    "09:00",
+                    "09:30",
+                    "10:00",
+                    "10:30",
+                    "11:00",
+                    "11:30",
+                    "12:00",
+                    "12:30",
+                    "13:00",
+                    "13:30",
+                    "14:00",
+                    "14:30",
+                    "15:00",
+                    "15:30",
+                    "16:00",
+                    "16:30",
+                    "17:00",
+                    "17:30",
+                    "18:00",
+                  ].map((time) => (
+                    <option
+                      key={time}
+                      value={time}
+                      disabled={isTimeSlotBooked(time)}
+                      className={
+                        isTimeSlotBooked(time) ? "text-gray-300 bg-gray-100" : ""
+                      }
+                    >
+                      {time} {isTimeSlotBooked(time) ? "(Đã đặt)" : ""}
+                    </option>
+                  ))
+                )}
               </select>
+              {formData.time && selectedServices.length > 0 && (
+                <div className="text-sm text-gray-600 mt-1">
+                  <p>
+                    Thời gian dự kiến: <span className="font-medium">{getEstimatedDuration()}</span>
+                  </p>
+                  <p>
+                    Kết thúc lúc: <span className="font-medium">{getEstimatedEndTime()}</span>
+                  </p>
+                </div>
+              )}
             </div>
           </div>
           <p className="text-xl font-semibold mt-3">Chuyên viên</p>
@@ -428,6 +616,7 @@ function Booking() {
             className="w-full p-2 border-2 border-black/10 rounded-md outline-none my-3"
             value={formData.specialistId}
             onChange={handleInputChange}
+            disabled={fetchingTimeSlots}
           >
             <option value="">Chọn chuyên viên</option>
             {specialists.map((specialist, index) => {

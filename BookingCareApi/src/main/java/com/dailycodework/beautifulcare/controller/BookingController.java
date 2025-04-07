@@ -169,16 +169,15 @@ public class BookingController {
     public ResponseEntity<List<String>> getBookedTimeSlots(
             @RequestParam UUID staffId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        
-        log.info("GET /api/v1/bookings/staff-booked-times: Getting booked slots for staff={}, date={}", staffId, date);
-        
-        try {
-            List<String> bookedSlots = bookingService.getBookedTimeSlots(staffId, date);
-            log.info("Found {} booked slots for staff {} on date {}", bookedSlots.size(), staffId, date);
-            return ResponseEntity.ok(bookedSlots);
-        } catch (Exception e) {
-            log.error("Error getting booked slots: {}", e.getMessage(), e);
-            return ResponseEntity.ok(Collections.emptyList()); // Return empty list on error
-        }
+        List<String> bookedTimeSlots = bookingService.getBookedTimeSlots(staffId, date);
+        return ResponseEntity.ok(bookedTimeSlots);
+    }
+    
+    @GetMapping("/all-staff-booked-times")
+    @Operation(summary = "Get all booked time slots for all staff members on a specific date")
+    public ResponseEntity<Map<UUID, List<String>>> getAllStaffBookedTimeSlots(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        Map<UUID, List<String>> allBookedTimeSlots = bookingService.getAllStaffBookedTimeSlots(date);
+        return ResponseEntity.ok(allBookedTimeSlots);
     }
 }

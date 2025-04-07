@@ -8,6 +8,7 @@ import com.dailycodework.beautifulcare.entity.Permission;
 import com.dailycodework.beautifulcare.entity.PermissionGroup;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public interface PermissionService {
@@ -115,4 +116,10 @@ public interface PermissionService {
      * @return Danh sách ID của các nhóm quyền
      */
     List<UUID> getUserPermissionGroups(UUID userId);
+    
+    /**
+     * Lấy danh sách quyền của tất cả người dùng
+     * @return Map với key là ID người dùng và value là danh sách ID của các nhóm quyền
+     */
+    Map<UUID, List<UUID>> getAllUserPermissionGroups();
 } 

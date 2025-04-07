@@ -158,6 +158,16 @@ const logoutUser = async () => {
   return response.data;
 };
 
+/**
+ * Xóa cache khung giờ đặt lịch
+ */
+const clearBookingCache = () => {
+  console.log("Clearing booking time slots cache");
+  timeSlotCache.data = {};
+  timeSlotCache.date = null;
+  timeSlotCache.timestamp = null;
+};
+
 const bookingUser = async (data) => {
   const tokenString = localStorage.getItem("access_token");
   const token = tokenString ? JSON.parse(tokenString) : null;
@@ -172,6 +182,8 @@ const bookingUser = async (data) => {
       withCredentials: true,
     });
     console.log("Booking successful:", response.data);
+    // Xóa cache khi đặt lịch thành công
+    clearBookingCache();
     return response.data;
   } catch (error) {
     console.error("Booking error:", error);
@@ -318,26 +330,75 @@ const checkTimeSlotAvailability = async (data) => {
  */
 const getBookedTimeSlots = async (staffId, date) => {
   try {
-    console.log(`Checking booked slots for staff ${staffId} on ${date}`);
-    
-    // Sử dụng endpoint mới để tránh xung đột
-    const url = `/api/v1/bookings/staff-booked-times?staffId=${staffId}&date=${date}`;
-    console.log(`API call: GET ${url}`);
-    
-    // Sử dụng axios trực tiếp để đơn giản hóa
-    const token = localStorage.getItem("access_token");
-    const headers = token ? { Authorization: `Bearer ${JSON.parse(token)}` } : {};
-    
-    const response = await axios.get(url, { headers });
-    console.log("API response success:", response.data);
+    const formattedDate = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    const response = await axiosJWT.get(`/api/v1/bookings/staff-booked-times?staffId=${staffId}&date=${formattedDate}`, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      withCredentials: true,
+    });
     return response.data;
   } catch (error) {
-    console.error("API call failed:", error.message);
-    if (error.response) {
-      console.error("Response status:", error.response.status);
-      console.error("Response data:", error.response.data);
-    }
+    console.error("Error fetching booked time slots:", error);
     return [];
+  }
+};
+
+// Cache cho API getAllStaffBookedTimeSlots
+const timeSlotCache = {
+  data: {},
+  date: null,
+  ttl: 5 * 60 * 1000 // 5 phút 
+};
+
+/**
+ * Lấy tất cả các khung giờ đã đặt cho tất cả nhân viên trong một ngày
+ * @param {Date} date Ngày cần kiểm tra
+ * @returns {Promise<Object>} Map với key là ID nhân viên và value là danh sách khung giờ đã đặt
+ */
+const getAllStaffBookedTimeSlots = async (date) => {
+  try {
+    const formattedDate = date.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+    
+    // Kiểm tra cache
+    const now = new Date().getTime();
+    if (
+      timeSlotCache.date === formattedDate &&
+      timeSlotCache.timestamp && 
+      (now - timeSlotCache.timestamp < timeSlotCache.ttl) &&
+      Object.keys(timeSlotCache.data).length > 0
+    ) {
+      console.log("Using cached time slots for date:", formattedDate);
+      return timeSlotCache.data;
+    }
+    
+    console.log("Fetching all staff booked time slots for date:", formattedDate);
+    const response = await axiosJWT.get(`/api/v1/bookings/all-staff-booked-times?date=${formattedDate}`, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      withCredentials: true,
+    });
+    
+    // Cập nhật cache
+    timeSlotCache.data = response.data;
+    timeSlotCache.date = formattedDate;
+    timeSlotCache.timestamp = now;
+    
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching all staff booked time slots:", error);
+    
+    // Nếu lỗi network nhưng có cache, sử dụng cache cũ
+    if (
+      timeSlotCache.date === date.toISOString().split('T')[0] &&
+      Object.keys(timeSlotCache.data).length > 0
+    ) {
+      console.log("Network error, using cached data");
+      return timeSlotCache.data;
+    }
+    
+    return {};
   }
 };
 
@@ -369,6 +430,8 @@ const cancelBooking = async (bookingId) => {
     );
     
     console.log("Booking cancelled successfully:", response.data);
+    // Xóa cache khi hủy lịch thành công
+    clearBookingCache();
     return response.data;
   } catch (error) {
     console.error("Error cancelling booking:", error);
@@ -398,5 +461,7 @@ export default {
   axiosJWT,
   checkTimeSlotAvailability,
   getBookedTimeSlots,
-  cancelBooking
+  cancelBooking,
+  getAllStaffBookedTimeSlots,
+  clearBookingCache
 };

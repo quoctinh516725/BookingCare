@@ -37,10 +37,11 @@ const UserPermissions = () => {
     try {
       setLoading(true);
       
-      // Lấy danh sách người dùng và nhóm quyền
-      const [usersData, groupsData] = await Promise.all([
+      // Lấy danh sách người dùng, nhóm quyền và quyền của tất cả người dùng (song song)
+      const [usersData, groupsData, allPermissionsData] = await Promise.all([
         AdminService.getAllUsers(),
-        AdminService.getAllPermissionGroups()
+        AdminService.getAllPermissionGroups(),
+        AdminService.getAllUserPermissionGroups()
       ]);
       
       if (!usersData || !Array.isArray(usersData)) {
@@ -57,29 +58,17 @@ const UserPermissions = () => {
         return;
       }
       
-      setUsers(usersData);
-      setPermissionGroups(groupsData);
-      
-      // Khởi tạo map quyền của người dùng
-      const permissionsMap = {};
-      
-      // Lấy quyền của mỗi người dùng
-      for (const user of usersData) {
-        try {
-          const userPermissionGroups = await AdminService.getUserPermissionGroups(user.id);
-          if (Array.isArray(userPermissionGroups)) {
-            permissionsMap[user.id] = userPermissionGroups;
-          } else {
-            console.warn(`Invalid permission groups for user ${user.id}:`, userPermissionGroups);
-            permissionsMap[user.id] = [];
-          }
-        } catch (error) {
-          console.error(`Error fetching permissions for user ${user.id}:`, error);
-          permissionsMap[user.id] = [];
-        }
+      if (!allPermissionsData || typeof allPermissionsData !== 'object') {
+        console.error("Invalid all permissions data:", allPermissionsData);
+        toast.error("Dữ liệu quyền không hợp lệ");
+        setLoading(false);
+        return;
       }
       
-      setUserPermissions(permissionsMap);
+      setUsers(usersData);
+      setPermissionGroups(groupsData);
+      setUserPermissions(allPermissionsData);
+      
       setLoading(false);
     } catch (error) {
       console.error("Error fetching data:", error);

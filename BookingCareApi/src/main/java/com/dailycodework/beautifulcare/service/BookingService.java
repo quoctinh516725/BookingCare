@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -116,4 +117,12 @@ public interface BookingService {
      * @return a list of booked time slots (formatted as "HH:mm")
      */
     List<String> getBookedTimeSlots(UUID staffId, LocalDate date);
+
+    /**
+     * Gets all booked time slots for all staff members on a specific date.
+     *
+     * @param date the date
+     * @return a map with staff ID as key and list of booked time slots as value
+     */
+    Map<UUID, List<String>> getAllStaffBookedTimeSlots(LocalDate date);
 }

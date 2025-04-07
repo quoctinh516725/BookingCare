@@ -36,6 +36,11 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.ArrayList;
+import java.time.format.DateTimeFormatter;
 
 @Component
 @RequiredArgsConstructor
@@ -562,34 +567,58 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public List<String> getBookedTimeSlots(UUID staffId, LocalDate date) {
-        log.info("Getting booked slots for staff={}, date={}", staffId, date);
+        // Chuyển LocalDate sang LocalDateTime để tìm kiếm
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.atTime(23, 59, 59);
         
-        try {
-            // Simple approach: get bookings between start and end of day
-            LocalDateTime startOfDay = date.atStartOfDay();
-            LocalDateTime endOfDay = date.atTime(23, 59, 59);
-            
-            log.debug("Searching for bookings between {} and {}", startOfDay, endOfDay);
-            
-            // Only get PENDING and CONFIRMED bookings
-            List<Booking> bookings = bookingRepository.findByAppointmentTimeBetweenAndStaffIdAndStatusIn(
-                    startOfDay,
-                    endOfDay,
-                    staffId,
-                    List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED));
-            
-            log.info("Found {} bookings for staff {} on date {}", bookings.size(), staffId, date);
-            
-            // Convert to a list of time strings (HH:mm format)
-            List<String> timeSlots = bookings.stream()
-                    .map(booking -> booking.getAppointmentTime().toLocalTime().format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")))
-                    .collect(Collectors.toList());
-            
-            log.debug("Returned time slots: {}", timeSlots);
-            return timeSlots;
-        } catch (Exception e) {
-            log.error("Error getting booked time slots: {}", e.getMessage(), e);
-            return Collections.emptyList();
+        // Tìm các lịch hẹn không bị hủy
+        List<BookingStatus> activeStatuses = Arrays.asList(
+                BookingStatus.PENDING, 
+                BookingStatus.CONFIRMED 
+        );
+        
+        // Lấy tất cả các lịch hẹn trong ngày cho nhân viên đó
+        List<Booking> bookings = bookingRepository.findByAppointmentTimeBetweenAndStaffIdAndStatusIn(
+                startOfDay, endOfDay, staffId, activeStatuses);
+        
+        // Chuyển đổi thành danh sách các khung giờ (format: HH:mm)
+        return bookings.stream()
+                .map(booking -> booking.getAppointmentTime().format(DateTimeFormatter.ofPattern("HH:mm")))
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public Map<UUID, List<String>> getAllStaffBookedTimeSlots(LocalDate date) {
+        // Chuyển LocalDate sang LocalDateTime để tìm kiếm
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = date.atTime(23, 59, 59);
+        
+        // Tìm các lịch hẹn không bị hủy
+        List<BookingStatus> activeStatuses = Arrays.asList(
+                BookingStatus.PENDING, 
+                BookingStatus.CONFIRMED 
+        );
+        
+        // Lấy tất cả các lịch hẹn trong ngày
+        List<Booking> bookings = bookingRepository.findByAppointmentTimeBetweenAndStatusIn(
+                startOfDay, endOfDay, activeStatuses);
+        
+        // Nhóm lịch hẹn theo nhân viên và lấy khung giờ
+        Map<UUID, List<String>> result = new HashMap<>();
+        
+        for (Booking booking : bookings) {
+            if (booking.getStaff() != null) {
+                UUID staffId = booking.getStaff().getId();
+                String timeSlot = booking.getAppointmentTime().format(DateTimeFormatter.ofPattern("HH:mm"));
+                
+                if (!result.containsKey(staffId)) {
+                    result.put(staffId, new ArrayList<>());
+                }
+                
+                result.get(staffId).add(timeSlot);
+            }
         }
+        
+        return result;
     }
 }
