@@ -284,10 +284,41 @@ public class PermissionServiceImpl implements PermissionService {
             return;
         }
         
-        user.addPermissionGroup(group);
-        userRepository.save(user);
+        // Lưu trạng thái ban đầu để so sánh
+        int initialGroupCount = user.getPermissionGroups().size();
         
-        log.info("Permission group assigned to user successfully");
+        // Thực hiện gán quyền
+        user.addPermissionGroup(group);
+        User savedUser = userRepository.save(user);
+        log.info("Permission group assigned to user, saving changes");
+        
+        // Flush để đảm bảo các thay đổi được ghi vào cơ sở dữ liệu
+        userRepository.flush();
+        
+        // Xác nhận lại quyền đã được gán bằng cách nạp lại user từ cơ sở dữ liệu
+        User refreshedUser = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found after save operation"));
+        
+        boolean permissionAssigned = false;
+        for (PermissionGroup pg : refreshedUser.getPermissionGroups()) {
+            if (pg.getId().equals(groupId)) {
+                permissionAssigned = true;
+                break;
+            }
+        }
+        
+        if (!permissionAssigned) {
+            log.error("Failed to assign permission group {} to user {}. Database state is inconsistent.", groupId, userId);
+            throw new RuntimeException("Failed to assign permission group. Please try again.");
+        }
+        
+        int newGroupCount = refreshedUser.getPermissionGroups().size();
+        if (newGroupCount <= initialGroupCount) {
+            log.warn("Permission group count did not increase after assignment operation. Initial: {}, New: {}", 
+                    initialGroupCount, newGroupCount);
+        }
+        
+        log.info("Permission group assigned to user successfully and verified");
     }
 
     @Override

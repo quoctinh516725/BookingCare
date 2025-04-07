@@ -14,7 +14,11 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -89,6 +93,19 @@ public class AuthController {
         loginResponse.setRefreshToken(null);
         
         return ResponseEntity.ok(loginResponse);
+    }
+    
+    @PostMapping("/force-refresh")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Force refresh token for a user after permission changes")
+    public ResponseEntity<?> forceRefreshToken(@RequestParam UUID userId) {
+        log.info("Forcing token refresh for user ID: {}", userId);
+        authService.forceRefreshToken(userId);
+        
+        return ResponseEntity.ok(Map.of(
+            "success", true,
+            "message", "User tokens invalidated. Next login will generate new tokens with updated permissions."
+        ));
     }
 
     @PostMapping("/logout")

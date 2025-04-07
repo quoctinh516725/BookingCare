@@ -60,6 +60,10 @@ public class User implements UserDetails {
     )
     @Builder.Default
     private Set<PermissionGroup> permissionGroups = new HashSet<>();
+    
+    // Thêm trường để theo dõi thời điểm quyền được cập nhật
+    @Column(name = "permissions_updated_at")
+    private LocalDateTime permissionsUpdatedAt;
 
     @Column(length = 1000)
     private String description;
@@ -102,10 +106,24 @@ public class User implements UserDetails {
             return true;
         }
         
+        // Kiểm tra đầu vào
+        if (permissionCode == null || permissionCode.trim().isEmpty()) {
+            return false;
+        }
+        
+        // Nếu không có nhóm quyền nào
+        if (permissionGroups == null || permissionGroups.isEmpty()) {
+            return false;
+        }
+        
         // Kiểm tra trong tất cả các nhóm quyền của người dùng
         for (PermissionGroup group : permissionGroups) {
+            if (group == null || group.getPermissions() == null || group.getPermissions().isEmpty()) {
+                continue;
+            }
+            
             for (Permission permission : group.getPermissions()) {
-                if (permission.getCode().equals(permissionCode)) {
+                if (permission != null && permissionCode.equals(permission.getCode())) {
                     return true;
                 }
             }
@@ -164,6 +182,7 @@ public class User implements UserDetails {
     public void addPermissionGroup(PermissionGroup group) {
         permissionGroups.add(group);
         group.getUsers().add(this);
+        updatePermissionsTimestamp();
     }
     
     /**
@@ -172,5 +191,13 @@ public class User implements UserDetails {
     public void removePermissionGroup(PermissionGroup group) {
         permissionGroups.remove(group);
         group.getUsers().remove(this);
+        updatePermissionsTimestamp();
+    }
+    
+    /**
+     * Cập nhật timestamp khi quyền của người dùng thay đổi
+     */
+    public void updatePermissionsTimestamp() {
+        this.permissionsUpdatedAt = LocalDateTime.now();
     }
 }

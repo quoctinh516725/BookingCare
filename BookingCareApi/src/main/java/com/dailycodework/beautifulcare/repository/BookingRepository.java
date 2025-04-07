@@ -61,4 +61,33 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             @Param("staffId") UUID staffId,
             @Param("date") LocalDate date,
             @Param("status") BookingStatus status);
+            
+    /**
+     * Find recent bookings with all necessary data loaded in a single query
+     * 
+     * @param pageable pagination info
+     * @return list of bookings with eager loaded services and user data
+     */
+    @Query("SELECT DISTINCT b FROM Booking b " +
+           "LEFT JOIN FETCH b.customer c " +
+           "LEFT JOIN FETCH b.staff s " +
+           "LEFT JOIN FETCH b.services " +
+           "ORDER BY b.createdAt DESC")
+    List<Booking> findRecentBookingsWithFullDetails(Pageable pageable);
+    
+    /**
+     * Count bookings by status
+     * 
+     * @param status the booking status
+     * @return number of bookings with the given status
+     */
+    long countByStatus(BookingStatus status);
+    
+    /**
+     * Calculate total revenue from completed bookings
+     * 
+     * @return the sum of totalPrice from all completed bookings
+     */
+    @Query("SELECT SUM(b.totalPrice) FROM Booking b WHERE b.status = 'COMPLETED'")
+    Double calculateTotalRevenue();
 }

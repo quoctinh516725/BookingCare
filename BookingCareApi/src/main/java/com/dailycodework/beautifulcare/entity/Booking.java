@@ -1,7 +1,10 @@
 package com.dailycodework.beautifulcare.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -13,7 +16,10 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
-@Data
+@Getter
+@Setter
+@ToString(exclude = {"services", "customer", "staff"})
+@EqualsAndHashCode(exclude = {"services", "customer", "staff"})
 @Entity
 @Table(name = "bookings")
 @EntityListeners(AuditingEntityListener.class)

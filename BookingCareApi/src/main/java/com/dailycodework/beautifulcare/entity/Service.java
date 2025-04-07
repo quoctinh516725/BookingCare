@@ -1,7 +1,10 @@
 package com.dailycodework.beautifulcare.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import lombok.EqualsAndHashCode;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -9,9 +12,14 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
-@Data
+@Getter
+@Setter
+@ToString(exclude = "bookings")
+@EqualsAndHashCode(exclude = "bookings")
 @Entity
 @Table(name = "services")
 @EntityListeners(AuditingEntityListener.class)
@@ -47,4 +55,11 @@ public class Service {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+    
+    @ManyToMany(mappedBy = "services")
+    private Set<Booking> bookings = new HashSet<>();
+    
+    public Set<Booking> getBookings() {
+        return bookings;
+    }
 }

@@ -7,12 +7,14 @@ import com.dailycodework.beautifulcare.dto.response.LoginResponse;
 import com.dailycodework.beautifulcare.entity.RefreshToken;
 import com.dailycodework.beautifulcare.entity.User;
 import com.dailycodework.beautifulcare.entity.UserRole;
+import com.dailycodework.beautifulcare.exception.ResourceNotFoundException;
 import com.dailycodework.beautifulcare.repository.RefreshTokenRepository;
 import com.dailycodework.beautifulcare.repository.UserRepository;
 import com.dailycodework.beautifulcare.service.AuthService;
 import com.dailycodework.beautifulcare.service.JwtService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
@@ -25,9 +27,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
@@ -139,6 +143,38 @@ public class AuthServiceImpl implements AuthService {
 
         // Xóa thông tin xác thực khỏi SecurityContext
         SecurityContextHolder.clearContext();
+    }
+    
+    @Override
+    @Transactional
+    public void forceRefreshToken(UUID userId) {
+        log.info("Forcing token refresh for user ID: {}", userId);
+        
+        // Tìm user trong cơ sở dữ liệu
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
+            
+        // Lấy email để vô hiệu hóa tất cả token hiện tại
+        String email = user.getEmail();
+        
+        // Vô hiệu hóa tất cả refresh token hiện tại của user
+        log.info("Invalidating all tokens for user with email: {}", email);
+        invalidateUserRefreshTokens(email); // Chỉ gọi phương thức, không cần lấy kết quả trả về
+        
+        log.info("Successfully invalidated tokens for user ID: {}", userId);
+        
+        // Cập nhật timestamp cho field permissionsUpdatedAt nếu có
+        // Đây là một cách để đánh dấu token hiện tại là hết hạn
+        try {
+            if (user.getClass().getDeclaredField("permissionsUpdatedAt") != null) {
+                user.getClass().getMethod("updatePermissionsTimestamp").invoke(user);
+                userRepository.save(user);
+                log.info("Updated permissions timestamp for user ID: {}", userId);
+            }
+        } catch (Exception e) {
+            // Trường này có thể chưa được thêm vào entity, bỏ qua
+            log.debug("permissionsUpdatedAt field not found in User entity, skipping update");
+        }
     }
 
     private void saveUserRefreshToken(User user, String token) {

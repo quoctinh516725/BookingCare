@@ -4,10 +4,12 @@ import com.dailycodework.beautifulcare.entity.User;
 import com.dailycodework.beautifulcare.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -20,55 +22,46 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     private final UserRepository userRepository;
 
     @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "userDetails", key = "#username", unless = "#result == null")
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        // Tìm user theo username hoặc email
         log.info("Attempting to load user: {}", username);
         
-        // Đối với bất kỳ username nào, ghi log chi tiết
         try {
-            // Thử tìm kiếm theo UUID để debug (nếu username có dạng UUID)
+            // Nếu username có dạng UUID, tìm theo ID
             if (username != null && username.matches("[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}")) {
                 log.info("Username appears to be a UUID, trying to find by ID");
-                Optional<User> userById = userRepository.findById(UUID.fromString(username));
+                Optional<User> userById = userRepository.findByIdWithPermissionsFull(UUID.fromString(username));
                 if (userById.isPresent()) {
-                    log.info("Found user by ID: {}", username);
-                    return userById.get();
+                    User user = userById.get();
+                    log.info("Found user by ID: {}, with {} permission groups", username, user.getPermissionGroups().size());
+                    return user;
                 }
             }
             
-            // Tìm theo username
-            Optional<User> userByUsername = userRepository.findByUsername(username);
-            if (userByUsername.isPresent()) {
-                log.info("Found user by username: {}", username);
-                return userByUsername.get();
+            // Sử dụng truy vấn tối ưu với JOIN FETCH để lấy tất cả dữ liệu liên quan trong 1 truy vấn
+            Optional<User> user = userRepository.findByUsernameOrEmailWithPermissionsFull(username, username);
+            
+            if (user.isPresent()) {
+                User foundUser = user.get();
+                log.info("Found user {} with {} permission groups", username, foundUser.getPermissionGroups().size());
+                return foundUser;
             }
             
-            // Tìm theo email
-            Optional<User> userByEmail = userRepository.findByEmail(username);
-            if (userByEmail.isPresent()) {
-                log.info("Found user by email: {}", username);
-                return userByEmail.get();
-            }
+            // Log chi tiết khi không tìm thấy user
+            log.warn("Could not find user with identifier: {}", username);
             
-            // Tìm theo username hoặc email
-            Optional<User> userByUsernameOrEmail = userRepository.findByUsernameOrEmail(username, username);
-            if (userByUsernameOrEmail.isPresent()) {
-                log.info("Found user by either username or email: {}", username);
-                return userByUsernameOrEmail.get();
-            }
-            
-            // Ghi log chi tiết về tìm kiếm
-            log.warn("Could not find user with identifier: {}. SQL queries executed.", username);
-            
-            // Ghi log số lượng người dùng trong hệ thống để debug
-            long userCount = userRepository.count();
-            log.info("Total users in the system: {}", userCount);
-            
-            if (userCount < 20) { // Chỉ log tất cả người dùng nếu số lượng không quá lớn
-                log.info("Listing all usernames for debugging:");
-                userRepository.findAll().forEach(user -> 
-                    log.info("User in database: {} ({}), id={}", user.getUsername(), user.getEmail(), user.getId())
-                );
+            // Chỉ log số lượng người dùng khi cần debug
+            if (log.isDebugEnabled()) {
+                long userCount = userRepository.count();
+                log.debug("Total users in the system: {}", userCount);
+                
+                if (userCount < 20) {
+                    log.debug("Listing all usernames for debugging:");
+                    userRepository.findAll().forEach(u -> 
+                        log.debug("User in database: {} ({}), id={}", u.getUsername(), u.getEmail(), u.getId())
+                    );
+                }
             }
             
             throw new UsernameNotFoundException("User not found with username: " + username);

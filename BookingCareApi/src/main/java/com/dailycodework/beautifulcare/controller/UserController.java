@@ -8,6 +8,7 @@ import com.dailycodework.beautifulcare.entity.User;
 import com.dailycodework.beautifulcare.entity.UserRole;
 import com.dailycodework.beautifulcare.exception.ResourceNotFoundException;
 import com.dailycodework.beautifulcare.exception.BadRequestException;
+import com.dailycodework.beautifulcare.security.HasPermission;
 import com.dailycodework.beautifulcare.security.SecurityUtils;
 import com.dailycodework.beautifulcare.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -39,30 +40,35 @@ public class UserController {
 
     @GetMapping
     @Operation(summary = "Get all users")
+    @HasPermission("user:view")
     public ResponseEntity<List<UserResponse>> getAllUsers() {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
     @GetMapping("/staff")
     @Operation(summary = "Get all staff members")
+    @HasPermission("user:view")
     public ResponseEntity<List<UserResponse>> getAllStaff() {
         return ResponseEntity.ok(userService.getUsersByRole(UserRole.STAFF));
     }
 
     @GetMapping("/{id}")
     @Operation(summary = "Get user by ID")
+    @HasPermission("user:view")
     public ResponseEntity<UserResponse> getUserById(@PathVariable UUID id) {
         return ResponseEntity.ok(userService.getUserById(id));
     }
 
     @PostMapping
     @Operation(summary = "Create new user")
+    @HasPermission("user:create")
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody UserRequest request) {
         return ResponseEntity.ok(userService.createUser(request));
     }
 
     @PutMapping("/{id}")
     @Operation(summary = "Update user")
+    @HasPermission("user:update")
     public ResponseEntity<?> updateUser(
             @PathVariable UUID id,
             @Valid @RequestBody UserUpdateRequest request) {
@@ -96,6 +102,7 @@ public class UserController {
 
     @DeleteMapping("/{id}")
     @Operation(summary = "Delete user")
+    @HasPermission("user:delete")
     public ResponseEntity<Void> deleteUser(@PathVariable UUID id) {
         userService.deleteUser(id);
         return ResponseEntity.ok().build();
@@ -103,6 +110,7 @@ public class UserController {
 
     @PostMapping("/{id}/change-password")
     @Operation(summary = "Change user password")
+    @HasPermission("user:update")
     public ResponseEntity<?> changePassword(
             @PathVariable UUID id,
             @Valid @RequestBody PasswordChangeRequest request) {

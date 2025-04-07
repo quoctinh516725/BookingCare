@@ -11,6 +11,8 @@ import com.dailycodework.beautifulcare.repository.UserRepository;
 import com.dailycodework.beautifulcare.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,33 +33,45 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
 
     @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "allUsers")
     public List<UserResponse> getAllUsers() {
-        return userRepository.findAll().stream()
+        log.info("Getting all users with permission groups");
+        // Sử dụng phương thức tải eager tất cả người dùng cùng với nhóm quyền
+        return userRepository.findAllWithPermissionGroups().stream()
                 .map(userMapper::toUserResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "usersByRole", key = "#role.name()")
     public List<UserResponse> getUsersByRole(UserRole role) {
-        log.info("Getting users by role: {}", role);
-        return userRepository.findByRole(role).stream()
+        log.info("Getting users by role with permission groups: {}", role);
+        // Sử dụng phương thức tải eager người dùng theo vai trò cùng với nhóm quyền
+        return userRepository.findByRoleWithPermissionGroups(role).stream()
                 .map(userMapper::toUserResponse)
                 .collect(Collectors.toList());
     }
 
     @Override
+    @Transactional(readOnly = true)
+    @Cacheable(value = "userById", key = "#id")
     public UserResponse getUserById(UUID id) {
-        log.info("Getting user by ID: {}", id);
-        User user = userRepository.findById(id)
+        log.info("Getting user by ID with permission groups: {}", id);
+        // Sử dụng phương thức tối ưu để lấy tất cả dữ liệu trong một truy vấn
+        User user = userRepository.findByIdWithPermissionsFull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        log.info("Found user with username: {}, email: {}", user.getUsername(), user.getEmail());
-        UserResponse response = userMapper.toUserResponse(user);
-        log.info("Mapped response - all fields: {}", response.toString());
-        return response;
+        
+        log.info("Found user with username: {}, email: {}, permission groups: {}", 
+                user.getUsername(), user.getEmail(), user.getPermissionGroups().size());
+        
+        return userMapper.toUserResponse(user);
     }
 
     @Override
     @Transactional
+    @CacheEvict(value = {"allUsers", "userById", "usersByRole", "userDetails"}, allEntries = true)
     public UserResponse createUser(UserRequest request) {
         // Ghi log và kiểm tra dữ liệu đầu vào
         log.info("Creating user with email: {}", request.getEmail());
@@ -80,26 +94,36 @@ public class UserServiceImpl implements UserService {
         
         User savedUser = userRepository.save(user);
         log.info("User created successfully with ID: {}", savedUser.getId());
+        
+        // Tải lại người dùng với đầy đủ quyền
+        User loadedUser = userRepository.findByIdWithPermissionsFull(savedUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found after saving"));
+        
+        return userMapper.toUserResponse(loadedUser);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = {"allUsers", "userById", "usersByRole", "userDetails"}, allEntries = true)
+    public UserResponse updateUser(UUID id, UserRequest request) {
+        User user = userRepository.findByIdWithPermissionsFull(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        userMapper.updateUser(user, request);
+        User savedUser = userRepository.save(user);
+        
+        // Không cần tải lại vì chúng ta đã tải đầy đủ dữ liệu từ truy vấn ban đầu
         return userMapper.toUserResponse(savedUser);
     }
 
     @Override
     @Transactional
-    public UserResponse updateUser(UUID id, UserRequest request) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-
-        userMapper.updateUser(user, request);
-        return userMapper.toUserResponse(userRepository.save(user));
-    }
-
-    @Override
-    @Transactional
+    @CacheEvict(value = {"allUsers", "userById", "usersByRole", "userDetails"}, allEntries = true)
     public UserResponse updateUser(UUID id, UserUpdateRequest request) {
         log.info("Updating user with ID: {}", id);
         
-        // Tìm user theo ID
-        User user = userRepository.findById(id)
+        // Tìm user theo ID với tất cả dữ liệu liên quan
+        User user = userRepository.findByIdWithPermissionsFull(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         
         // Cập nhật thông tin
@@ -134,11 +158,14 @@ public class UserServiceImpl implements UserService {
         // Lưu và trả về kết quả
         User savedUser = userRepository.save(user);
         log.info("User updated successfully: {}", savedUser.getId());
+        
+        // Không cần tải lại vì chúng ta đã tải đầy đủ dữ liệu từ truy vấn ban đầu
         return userMapper.toUserResponse(savedUser);
     }
 
     @Override
     @Transactional
+    @CacheEvict(value = {"allUsers", "userById", "usersByRole", "userDetails"}, allEntries = true)
     public void deleteUser(UUID id) {
         if (!userRepository.existsById(id)) {
             throw new ResourceNotFoundException("User not found");
@@ -148,14 +175,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"userById", "userDetails"}, key = "#id")
     public void changePassword(UUID id, PasswordChangeRequest request) {
         log.info("Changing password for user ID: {}", id);
         
-        // Tìm user theo ID
+        // Tìm user theo ID với eager loading quyền
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
         
-        // Kiểm tra mật khẩu hiện tại (giữ lại kiểm tra này vì liên quan đến bảo mật cơ bản)
+        // Kiểm tra mật khẩu hiện tại
         if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
             throw new BadRequestException("Current password is incorrect");
         }

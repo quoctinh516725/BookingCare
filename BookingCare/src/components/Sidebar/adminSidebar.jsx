@@ -6,6 +6,7 @@ import { MessageContext } from "../../contexts/MessageProvider.jsx";
 import { logout } from "../../redux/slices/userSlice";
 import UserService from "../../../services/UserService";
 import logo from "../../assets/logo.png";
+import { PermissionGuard, PermissionMenuItem } from "../Permission";
 
 function AdminSidebar() {
   const [openMenus, setOpenMenus] = useState({});
@@ -42,104 +43,11 @@ function AdminSidebar() {
   };
 
   const toggleMenu = (index) => {
-    setOpenMenus((prev) => {
-      return {
-        ...prev,
-        [index]: !prev[index],
-      };
-    });
+    setOpenMenus((prev) => ({
+      ...prev,
+      [index]: !prev[index],
+    }));
   };
-
-  const sideBarOptions = [
-    { title: "Tổng quan", icon: "fas fa-chart-pie", url: "/admin" },
-    {
-      title: "Quản lý người dùng",
-      icon: "fas fa-users",
-      children: [
-        {
-          title: "Danh sách người dùng",
-          icon: "fas fa-user",
-          url: "/admin/list",
-        },
-        {
-          title: "Vai trò người dùng",
-          icon: "fas fa-user-tag",
-          url: "/admin/users/roles",
-        },
-      ],
-    },
-    {
-      title: "Phân quyền hệ thống",
-      icon: "fas fa-key",
-      children: [
-        {
-          title: "Nhóm quyền",
-          icon: "fas fa-layer-group",
-          url: "/admin/permissions/groups",
-        },
-        {
-          title: "Phân quyền người dùng",
-          icon: "fas fa-user-shield",
-          url: "/admin/permissions/users",
-        },
-      ],
-    },
-    {
-      title: "Quản lý dịch vụ",
-      icon: "fas fa-file-circle-plus",
-      children: [
-        {
-          title: "Danh sách dịch vụ",
-          icon: "fas fa-list",
-          url: "/admin/services",
-        },
-        {
-          title: "Danh mục",
-          icon: "fas fa-tags",
-          url: "/admin/services/categories",
-        },
-      ],
-    },
-    {
-      title: "Quản lý chuyên viên",
-      icon: "fas fa-user-tie",
-      children: [
-        {
-          title: "Danh sách chuyên viên",
-          icon: "fas fa-id-badge",
-          url: "/admin/specialists",
-        },
-      ],
-    },
-    {
-      title: "Quản lý blog",
-      icon: "fas fa-book-open",
-      children: [
-        {
-          title: "Danh sách bài viết",
-          icon: "fas fa-file-alt",
-          url: "/admin/blog/posts",
-        },
-        {
-          title: "Danh mục",
-          icon: "fas fa-folder-open",
-          url: "/admin/blog/categories",
-        },
-      ],
-    },
-    {
-      title: "Lịch đặt",
-      icon: "fas fa-calendar-alt",
-      url: "/admin/appointments",
-    },
-    {
-      title: "Báo cáo & Thống kê",
-      icon: "fas fa-chart-line",
-      url: "/admin/reports",
-    },
-    { title: "Giao dịch", icon: "fas fa-pager", url: "/admin/transactions" },
-    { title: "Cài đặt", icon: "fas fa-cog", url: "/admin/settings" },
-  ];
 
   return (
     <div className="w-[278px] h-full border-r border-gray-200 flex flex-col justify-between">
@@ -151,62 +59,239 @@ function AdminSidebar() {
           </span>
         </div>
         <div className="flex flex-col mt-5 cursor-pointer">
-          {sideBarOptions.map((option, index) =>
-            option.children ? (
-              <div className="flex flex-col space-y-2 p-3" key={index}>
-                <div
-                  className="flex space-x-2 items-center"
-                  onClick={() => toggleMenu(index)}
-                >
-                  <i
-                    className={`${option.icon} text-2xl min-w-[30px] text-gray-500`}
-                  ></i>
-                  <div className="flex flex-col mr-auto">
-                    <span>{option.title}</span>
-                  </div>
-                  <i
-                    className={`fa-solid fa-angle-down ${
-                      openMenus[index] ? "rotate-180" : ""
-                    }`}
-                  ></i>
-                </div>
-                {openMenus[index] && (
-                  <div className="flex flex-col">
-                    {option.children.map((child, childIndex) => (
-                      <div
-                        key={childIndex}
-                        className={`transition-colors duration-300 ${
-                          child.url === location.pathname
-                            ? "bg-gray-200 rounded-md"
-                            : ""
-                        } hover:text-[var(--primary-color)]`}
-                      >
-                        <div
-                          className="flex items-center space-x-2 p-2 ml-8"
-                          onClick={() => handleNavigate(child.url)}
-                        >
-                          <span>{child.title}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
+          {/* Tổng quan - luôn hiển thị */}
+          <div
+            className={`flex items-center space-x-2 p-3 ${
+              location.pathname === "/admin" ? "bg-gray-200" : ""
+            } hover:text-[var(--primary-color)]`}
+            onClick={() => handleNavigate("/admin")}
+          >
+            <i className="fas fa-chart-pie text-2xl min-w-[30px] text-gray-500"></i>
+            <span>Tổng quan</span>
+          </div>
+
+          {/* Quản lý người dùng */}
+          <PermissionGuard permission="user:view">
+            <div className="flex flex-col space-y-2 p-3">
               <div
-                key={index}
-                className={`flex items-center space-x-2 p-3 ${
-                  option.url === location.pathname ? "bg-gray-200" : ""
-                } hover:text-[var(--primary-color)]`}
-                onClick={() => handleNavigate(option.url)}
+                className="flex space-x-2 items-center"
+                onClick={() => toggleMenu("users")}
               >
+                <i className="fas fa-users text-2xl min-w-[30px] text-gray-500"></i>
+                <div className="flex flex-col mr-auto">
+                  <span>Quản lý người dùng</span>
+                </div>
                 <i
-                  className={`${option.icon} text-2xl min-w-[30px] text-gray-500`}
+                  className={`fa-solid fa-angle-down ${
+                    openMenus["users"] ? "rotate-180" : ""
+                  }`}
                 ></i>
-                <span>{option.title}</span>
               </div>
-            )
-          )}
+              {openMenus["users"] && (
+                <div className="flex flex-col">
+                  <PermissionMenuItem
+                    permission="user:view"
+                    to="/admin/list"
+                    icon="fas fa-user"
+                  >
+                    Danh sách người dùng
+                  </PermissionMenuItem>
+                  <PermissionMenuItem
+                    permission="role:view"
+                    to="/admin/users/roles"
+                    icon="fas fa-user-tag"
+                  >
+                    Vai trò người dùng
+                  </PermissionMenuItem>
+                </div>
+              )}
+            </div>
+          </PermissionGuard>
+
+          {/* Phân quyền hệ thống */}
+          <PermissionGuard permission={["permission:view", "permission_group:view"]}>
+            <div className="flex flex-col space-y-2 p-3">
+              <div
+                className="flex space-x-2 items-center"
+                onClick={() => toggleMenu("permissions")}
+              >
+                <i className="fas fa-key text-2xl min-w-[30px] text-gray-500"></i>
+                <div className="flex flex-col mr-auto">
+                  <span>Phân quyền hệ thống</span>
+                </div>
+                <i
+                  className={`fa-solid fa-angle-down ${
+                    openMenus["permissions"] ? "rotate-180" : ""
+                  }`}
+                ></i>
+              </div>
+              {openMenus["permissions"] && (
+                <div className="flex flex-col">
+                  <PermissionMenuItem
+                    permission="permission_group:view"
+                    to="/admin/permissions/groups"
+                    icon="fas fa-layer-group"
+                  >
+                    Nhóm quyền
+                  </PermissionMenuItem>
+                  <PermissionMenuItem
+                    permission="user_permission:view"
+                    to="/admin/permissions/users"
+                    icon="fas fa-user-shield"
+                  >
+                    Phân quyền người dùng
+                  </PermissionMenuItem>
+                </div>
+              )}
+            </div>
+          </PermissionGuard>
+
+          {/* Quản lý dịch vụ */}
+          <PermissionGuard permission="service:view">
+            <div className="flex flex-col space-y-2 p-3">
+              <div
+                className="flex space-x-2 items-center"
+                onClick={() => toggleMenu("services")}
+              >
+                <i className="fas fa-file-circle-plus text-2xl min-w-[30px] text-gray-500"></i>
+                <div className="flex flex-col mr-auto">
+                  <span>Quản lý dịch vụ</span>
+                </div>
+                <i
+                  className={`fa-solid fa-angle-down ${
+                    openMenus["services"] ? "rotate-180" : ""
+                  }`}
+                ></i>
+              </div>
+              {openMenus["services"] && (
+                <div className="flex flex-col">
+                  <PermissionMenuItem
+                    permission="service:view"
+                    to="/admin/services"
+                    icon="fas fa-list"
+                  >
+                    Danh sách dịch vụ
+                  </PermissionMenuItem>
+                  <PermissionMenuItem
+                    permission="service:manage"
+                    to="/admin/services/categories"
+                    icon="fas fa-tags"
+                  >
+                    Danh mục
+                  </PermissionMenuItem>
+                </div>
+              )}
+            </div>
+          </PermissionGuard>
+
+          {/* Quản lý chuyên viên */}
+          <PermissionGuard permission="specialist:view">
+            <div className="flex flex-col space-y-2 p-3">
+              <div
+                className="flex space-x-2 items-center"
+                onClick={() => toggleMenu("specialists")}
+              >
+                <i className="fas fa-user-tie text-2xl min-w-[30px] text-gray-500"></i>
+                <div className="flex flex-col mr-auto">
+                  <span>Quản lý chuyên viên</span>
+                </div>
+                <i
+                  className={`fa-solid fa-angle-down ${
+                    openMenus["specialists"] ? "rotate-180" : ""
+                  }`}
+                ></i>
+              </div>
+              {openMenus["specialists"] && (
+                <div className="flex flex-col">
+                  <PermissionMenuItem
+                    permission="specialist:view"
+                    to="/admin/specialists"
+                    icon="fas fa-id-badge"
+                  >
+                    Danh sách chuyên viên
+                  </PermissionMenuItem>
+                </div>
+              )}
+            </div>
+          </PermissionGuard>
+
+          {/* Quản lý blog */}
+          <PermissionGuard permission="blog:view">
+            <div className="flex flex-col space-y-2 p-3">
+              <div
+                className="flex space-x-2 items-center"
+                onClick={() => toggleMenu("blog")}
+              >
+                <i className="fas fa-book-open text-2xl min-w-[30px] text-gray-500"></i>
+                <div className="flex flex-col mr-auto">
+                  <span>Quản lý blog</span>
+                </div>
+                <i
+                  className={`fa-solid fa-angle-down ${
+                    openMenus["blog"] ? "rotate-180" : ""
+                  }`}
+                ></i>
+              </div>
+              {openMenus["blog"] && (
+                <div className="flex flex-col">
+                  <PermissionMenuItem
+                    permission="blog:view"
+                    to="/admin/blog/posts"
+                    icon="fas fa-file-alt"
+                  >
+                    Danh sách bài viết
+                  </PermissionMenuItem>
+                  <PermissionMenuItem
+                    permission="blog:manage"
+                    to="/admin/blog/categories"
+                    icon="fas fa-folder-open"
+                  >
+                    Danh mục
+                  </PermissionMenuItem>
+                </div>
+              )}
+            </div>
+          </PermissionGuard>
+
+          {/* Lịch đặt */}
+          <PermissionMenuItem
+            permission="booking:view"
+            to="/admin/appointments"
+            icon="fas fa-calendar-alt"
+          >
+            Lịch đặt
+          </PermissionMenuItem>
+
+          {/* Báo cáo & Thống kê */}
+          <PermissionMenuItem
+            permission="report:view"
+            to="/admin/reports"
+            icon="fas fa-chart-line"
+          >
+            Báo cáo & Thống kê
+          </PermissionMenuItem>
+
+          {/* Giao dịch */}
+          <PermissionMenuItem
+            permission="transaction:view"
+            to="/admin/transactions"
+            icon="fas fa-pager"
+          >
+            Giao dịch
+          </PermissionMenuItem>
+
+          {/* Cài đặt */}
+          <PermissionGuard permission="admin:access">
+            <div
+              className={`flex items-center space-x-2 p-3 ${
+                location.pathname === "/admin/settings" ? "bg-gray-200" : ""
+              } hover:text-[var(--primary-color)]`}
+              onClick={() => handleNavigate("/admin/settings")}
+            >
+              <i className="fas fa-cog text-2xl min-w-[30px] text-gray-500"></i>
+              <span>Cài đặt</span>
+            </div>
+          </PermissionGuard>
         </div>
       </div>
       
