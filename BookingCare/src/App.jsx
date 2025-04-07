@@ -7,6 +7,13 @@ import { setUser } from "./redux/slices/userSlice";
 import UserService from "services/UserService";
 import Modal from "react-modal";
 import logo from "./assets/logo.png";
+import ServiceDetail from './pages/Service/ServiceDetail';
+import SpecialistDetail from './pages/Specialist/SpecialistDetail';
+import BlogDetail from './pages/Blog/BlogDetail';
+import ServiceList from './pages/Service/ServiceList';
+import SpecialistList from './pages/Specialist/SpecialistList';
+import BlogList from './pages/Blog/BlogList';
+import AdminProtectedRoute from './components/ProtectedRoute/AdminProtectedRoute';
 
 Modal.setAppElement("#root");
 
@@ -126,16 +133,27 @@ function App() {
     );
   }
 
+  // Separate public and admin routes for better organization
+  const publicRoutes = routes.filter(route => 
+    !route.path.startsWith("/admin") || route.path === "/admin/login"
+  );
+  
+  const adminRoutes = routes.filter(route => 
+    route.path.startsWith("/admin") && route.path !== "/admin/login"
+  );
+
   return (
     <div className="min-h-screen flex flex-col">
       <Router>
         <Routes>
-          {routes.map((item, index) => {
+          {/* Public routes - including login pages and user area */}
+          {publicRoutes.map((item, index) => {
             const Layout = item?.isDefaultPage ? item.layout : Fragment;
             const Page = item.page;
+            
             return (
               <Route
-                key={index}
+                key={`public-${index}`}
                 path={item.path}
                 element={
                   <Layout>
@@ -145,6 +163,33 @@ function App() {
               />
             );
           })}
+          
+          {/* Admin protected routes */}
+          <Route element={<AdminProtectedRoute />}>
+            {adminRoutes.map((item, index) => {
+              const Layout = item?.isDefaultPage ? item.layout : Fragment;
+              const Page = item.page;
+              return (
+                <Route
+                  key={`admin-${index}`}
+                  path={item.path}
+                  element={
+                    <Layout>
+                      <Page />
+                    </Layout>
+                  }
+                />
+              );
+            })}
+          </Route>
+          
+          {/* Detail routes */}
+          <Route path="/service/:id" element={<ServiceDetail />} />
+          <Route path="/specialist/:id" element={<SpecialistDetail />} />
+          <Route path="/blog/:id" element={<BlogDetail />} />
+          <Route path="/service" element={<ServiceList />} />
+          <Route path="/specialist" element={<SpecialistList />} />
+          <Route path="/blog" element={<BlogList />} />
         </Routes>
       </Router>
     </div>

@@ -8,7 +8,7 @@ import { jwtDecode } from "jwt-decode";
 import { useDispatch } from "react-redux";
 import { setUser } from "../../redux/slices/userSlice.js";
 
-function Login() {
+function AdminLogin() {
   const [isShowPassword, setIsShowPassword] = useState(false);
   const [username, setUserName] = useState("");
   const [password, setPassword] = useState("");
@@ -42,18 +42,19 @@ function Login() {
     if (isSuccess) {
       const token = data?.token;
       localStorage.setItem("access_token", JSON.stringify(token));
+      localStorage.setItem("isAdmin", "true"); // Set admin flag
 
       if (token) {
         const decoded = jwtDecode(token);
         if (decoded?.userId) {
           (async () => {
             try {
-              // Đợi lấy chi tiết người dùng thành công
+              // Get user details
               await handleGetDetailsUser(decoded?.userId, token);
               
-              // Chỉ hiển thị thông báo và chuyển hướng sau khi đã lấy dữ liệu thành công
+              // Show success message and navigate to admin dashboard
               message.success("Đăng nhập thành công");
-              navigate("/");
+              navigate("/admin");
             } catch (error) {
               console.error("Lỗi khi lấy thông tin người dùng:", error);
               message.error("Có lỗi xảy ra khi đăng nhập. Vui lòng thử lại.");
@@ -76,12 +77,12 @@ function Login() {
             <div className="flex items-center space-x-2">
               <img className="h-[40px] rounded-xl" src={logo} alt="BeautyCare Logo" />
               <span className="text-[var(--primary-color)] font-semibold text-xl md:text-2xl">
-                BeautyCare
+                BeautyCare Admin
               </span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold mt-5 mb-2">Đăng nhập</h1>
+            <h1 className="text-2xl md:text-3xl font-bold mt-5 mb-2">Đăng nhập Quản trị</h1>
             <p className="text-base md:text-lg text-gray-600">
-              Nhập thông tin tài khoản của bạn
+              Nhập thông tin tài khoản quản trị của bạn
             </p>
           </div>
           
@@ -97,7 +98,7 @@ function Login() {
                   type="text"
                   name="username"
                   id="username"
-                  placeholder="Nhập tên tài khoản..."
+                  placeholder="Nhập tên tài khoản quản trị..."
                   className="w-full h-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[var(--primary-color)] text-sm"
                 />
               </div>
@@ -117,9 +118,8 @@ function Login() {
                     className="w-full h-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[var(--primary-color)] text-sm"
                   />
                   <div
-                   
                     onClick={() => setIsShowPassword(!isShowPassword)}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500"
+                    className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500 cursor-pointer"
                   >
                     <i className={`fa-solid ${isShowPassword ? "fa-eye" : "fa-eye-slash"}`}></i>
                   </div>
@@ -145,23 +145,13 @@ function Login() {
             
             <div className="text-center mt-6">
               <p className="text-sm text-gray-600">
-                Chưa có tài khoản?
                 <Link
-                  to="/sign-up"
-                  className="text-[var(--primary-color)] font-medium ml-1 hover:underline"
+                  to="/"
+                  className="text-[var(--primary-color)] font-medium hover:underline"
                 >
-                  Đăng ký
+                  Quay lại trang chủ
                 </Link>
               </p>
-              
-              <div className="mt-3 border-t pt-3">
-                <Link
-                  to="/admin/login"
-                  className="text-gray-500 text-sm hover:text-[var(--primary-color)]"
-                >
-                  Đăng nhập với tư cách quản trị viên
-                </Link>
-              </div>
             </div>
           </div>
         </div>
@@ -170,4 +160,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default AdminLogin; 

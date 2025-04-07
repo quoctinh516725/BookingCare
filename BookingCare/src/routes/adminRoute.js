@@ -13,7 +13,15 @@ import Reports from "../pages/admin/Reports";
 import Transactions from "../pages/admin/Transactions";
 import Settings from "../pages/admin/Settings";
 import AdminLayout from "../layouts/AdminLayout";
+import AdminLogin from "../pages/admin/AdminLogin";
+
 const routes = [
+  {
+    path: "/admin/login",
+    page: AdminLogin,
+    layout: null,
+    isDefaultPage: false,
+  },
   {
     path: "/admin",
     page: AdminDashboard,

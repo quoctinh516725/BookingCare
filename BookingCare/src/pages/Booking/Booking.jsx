@@ -528,12 +528,12 @@ function Booking() {
             <div className="w-1/2">
               <p className="text-xl font-semibold">Ngày</p>
               <div className="relative">
-                <input
-                  type="date"
-                  name="date"
-                  id="date"
-                  className="w-full p-2 border-2 border-black/10 rounded-md outline-none my-3 cursor-pointer"
-                  onFocus={(e) => e.target.showPicker()}
+              <input
+                type="date"
+                name="date"
+                id="date"
+                className="w-full p-2 border-2 border-black/10 rounded-md outline-none my-3 cursor-pointer"
+                onFocus={(e) => e.target.showPicker()}
                   value={formData.date}
                   onChange={handleInputChange}
                   min={new Date().toISOString().split("T")[0]}
@@ -593,7 +593,7 @@ function Booking() {
                       }
                     >
                       {time} {isTimeSlotBooked(time) ? "(Đã đặt)" : ""}
-                    </option>
+                </option>
                   ))
                 )}
               </select>

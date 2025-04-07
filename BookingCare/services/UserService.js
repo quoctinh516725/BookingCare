@@ -219,24 +219,78 @@ const getUserBookings = async () => {
   return response.data;
 };
 
+/**
+ * Lấy danh sách dịch vụ
+ * @returns {Promise<Array>} Danh sách dịch vụ
+ */
 const getServices = async () => {
-  const response = await axios.get(`/api/v1/services`, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-    withCredentials: true,
-  });
-  return response.data;
+  try {
+    const response = await axios.get(`/api/v1/services`, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      withCredentials: true,
+    });
+    
+    // Kiểm tra và xử lý dữ liệu trả về
+    if (!response.data) {
+      console.error("No data returned from getServices API");
+      return [];
+    }
+    
+    // Kiểm tra các trường dữ liệu quan trọng
+    const validatedServices = Array.isArray(response.data) 
+      ? response.data.map(service => ({
+          ...service,
+          id: service.id || null,
+          name: service.name || "Dịch vụ chưa đặt tên",
+          price: service.price || 0,
+          duration: service.duration || 0,
+        }))
+      : [];
+      
+    return validatedServices;
+  } catch (error) {
+    console.error("Error in getServices:", error);
+    return [];
+  }
 };
 
+/**
+ * Lấy danh sách chuyên viên
+ * @returns {Promise<Array>} Danh sách chuyên viên
+ */
 const getStaff = async () => {
-  const response = await axios.get(`/api/v1/users/staff`, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-    withCredentials: true,
-  });
-  return response.data;
+  try {
+    const response = await axios.get(`/api/v1/users/staff`, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      withCredentials: true,
+    });
+    
+    // Kiểm tra và xử lý dữ liệu trả về
+    if (!response.data) {
+      console.error("No data returned from getStaff API");
+      return [];
+    }
+    
+    // Kiểm tra các trường dữ liệu quan trọng
+    const validatedStaff = Array.isArray(response.data) 
+      ? response.data.map(staff => ({
+          ...staff,
+          id: staff.id || null,
+          firstName: staff.firstName || "",
+          lastName: staff.lastName || "",
+          description: staff.description || staff.expertise || "Chuyên gia",
+        }))
+      : [];
+      
+    return validatedStaff;
+  } catch (error) {
+    console.error("Error in getStaff:", error);
+    return [];
+  }
 };
 
 // Thêm các API services cho admin dashboard
@@ -443,6 +497,170 @@ const cancelBooking = async (bookingId) => {
   }
 };
 
+/**
+ * Lấy danh sách các bài viết blog
+ * @param {number} limit Số lượng bài viết tối đa cần lấy
+ * @returns {Promise<Array>} Danh sách bài viết
+ */
+const getBlogPosts = async (limit = 10) => {
+  try {
+    const response = await axios.get(`/api/v1/blogs?limit=${limit}`, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      withCredentials: true,
+    });
+    
+    // Kiểm tra và xử lý dữ liệu trả về
+    if (!response.data) {
+      console.error("No data returned from getBlogPosts API");
+      return [];
+    }
+    
+    // Kiểm tra các trường dữ liệu quan trọng
+    const validatedBlogs = Array.isArray(response.data) 
+      ? response.data.map(blog => ({
+          ...blog,
+          id: blog.id || null,
+          title: blog.title || "Bài viết chưa có tiêu đề",
+          content: blog.content || "",
+          excerpt: blog.excerpt || "",
+        }))
+      : [];
+      
+    return validatedBlogs;
+  } catch (error) {
+    console.error("Error in getBlogPosts:", error);
+    return [];
+  }
+};
+
+/**
+ * Lấy chi tiết một bài viết blog
+ * @param {string|number} id ID của bài viết
+ * @returns {Promise<Object>} Chi tiết bài viết
+ */
+const getBlogPostById = async (id) => {
+  // Validate ID
+  if (id === undefined || id === null || id === '' || id === 'undefined') {
+    console.error('Invalid blog ID:', id);
+    throw new Error('ID bài viết không hợp lệ');
+  }
+  
+  try {
+    const response = await axios.get(`/api/v1/blogs/${id}`, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      withCredentials: true,
+    });
+    
+    // Validate response data
+    if (!response.data) {
+      throw new Error('Không tìm thấy dữ liệu bài viết');
+    }
+    
+    // Ensure all necessary fields are present
+    const blogData = {
+      ...response.data,
+      id: response.data.id || id,
+      title: response.data.title || "Bài viết chưa có tiêu đề",
+      content: response.data.content || "",
+      author: response.data.author || "Chưa có thông tin tác giả",
+      createdAt: response.data.createdAt || new Date().toISOString()
+    };
+    
+    return blogData;
+  } catch (error) {
+    console.error(`Error fetching blog post with ID ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Lấy chi tiết một dịch vụ
+ * @param {string|number} id ID của dịch vụ
+ * @returns {Promise<Object>} Chi tiết dịch vụ
+ */
+const getServiceById = async (id) => {
+  // Validate ID
+  if (id === undefined || id === null || id === '' || id === 'undefined') {
+    console.error('Invalid service ID:', id);
+    throw new Error('ID dịch vụ không hợp lệ');
+  }
+  
+  try {
+    const response = await axios.get(`/api/v1/services/${id}`, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      withCredentials: true,
+    });
+    
+    // Validate response data
+    if (!response.data) {
+      throw new Error('Không tìm thấy dữ liệu dịch vụ');
+    }
+    
+    // Ensure all necessary fields are present
+    const serviceData = {
+      ...response.data,
+      id: response.data.id || id,
+      name: response.data.name || "Dịch vụ chưa có tên",
+      description: response.data.description || "Chưa có mô tả",
+      price: response.data.price || 0,
+      duration: response.data.duration || 0
+    };
+    
+    return serviceData;
+  } catch (error) {
+    console.error(`Error fetching service with ID ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Lấy chi tiết thông tin của một chuyên viên
+ * @param {string|number} id ID của chuyên viên
+ * @returns {Promise<Object>} Chi tiết thông tin chuyên viên
+ */
+const getStaffById = async (id) => {
+  // Validate ID
+  if (id === undefined || id === null || id === '' || id === 'undefined') {
+    console.error('Invalid staff ID:', id);
+    throw new Error('ID chuyên viên không hợp lệ');
+  }
+  
+  try {
+    const response = await axios.get(`/api/v1/users/staff/${id}`, {
+      headers: {
+        "Content-Type": "application/json",
+      },
+      withCredentials: true,
+    });
+    
+    // Validate response data
+    if (!response.data) {
+      throw new Error('Không tìm thấy dữ liệu chuyên viên');
+    }
+    
+    // Ensure all necessary fields are present
+    const staffData = {
+      ...response.data,
+      id: response.data.id || id,
+      firstName: response.data.firstName || "",
+      lastName: response.data.lastName || "",
+      description: response.data.description || response.data.expertise || "Chuyên gia",
+      experience: response.data.experience || "Đang cập nhật kinh nghiệm"
+    };
+    
+    return staffData;
+  } catch (error) {
+    console.error(`Error fetching staff with ID ${id}:`, error);
+    throw error;
+  }
+};
+
 export default {
   signUpUser,
   loginUser,
@@ -463,5 +681,9 @@ export default {
   getBookedTimeSlots,
   cancelBooking,
   getAllStaffBookedTimeSlots,
-  clearBookingCache
+  clearBookingCache,
+  getBlogPosts,
+  getBlogPostById,
+  getServiceById,
+  getStaffById
 };

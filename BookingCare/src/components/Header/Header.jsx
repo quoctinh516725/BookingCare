@@ -12,7 +12,7 @@ function Header() {
   const menuRef = useRef();
   const showMenuRef = useRef();
   const dispatch = useDispatch();
-  const { username, email, role } = useSelector((state) => state.user);
+  const { username, role } = useSelector((state) => state.user);
   const [isShowMenu, setIsShowMenu] = useState(false);
 
   const navigate = useNavigate();
@@ -117,9 +117,6 @@ function Header() {
               <ul className="flex flex-col gap-2 cursor-pointer">
                 <li className="font-semibold text-xl border-b  border-black/10 cursor-auto">
                   Tài khoản
-                </li>
-                <li className="hover:bg-gray-100 p-2 rounded-md">
-                  <Link to="/admin">Tổng quan</Link>
                 </li>
                 <li className="hover:bg-gray-100 p-2 rounded-md">
                   <Link to="/profile">Quản lý thông tin</Link>
