@@ -8,15 +8,13 @@ import PermissionGuard from './PermissionGuard';
  * @param {Object} options - Tùy chọn cho việc bảo vệ component
  * @param {string|string[]} options.permission - Permission code đơn lẻ hoặc mảng permissions
  * @param {boolean} options.requireAll - Nếu true, yêu cầu tất cả permissions (AND logic)
- * @param {React.ReactNode} options.fallback - Component hiển thị khi không có quyền
  * @returns {React.ComponentType} - Component mới đã được bảo vệ
  */
-const withPermission = (Component, { permission, requireAll = false, fallback = null }) => {
+const withPermission = (Component, { permission, requireAll = false }) => {
   const WithPermissionComponent = (props) => (
     <PermissionGuard 
       permission={permission} 
-      requireAll={requireAll} 
-      fallback={fallback}
+      requireAll={requireAll}
     >
       <Component {...props} />
     </PermissionGuard>
@@ -34,8 +32,7 @@ withPermission.propTypes = {
       PropTypes.string,
       PropTypes.arrayOf(PropTypes.string)
     ]).isRequired,
-    requireAll: PropTypes.bool,
-    fallback: PropTypes.node
+    requireAll: PropTypes.bool
   }).isRequired
 };
 

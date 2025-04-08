@@ -122,4 +122,19 @@ public interface PermissionService {
      * @return Map với key là ID người dùng và value là danh sách ID của các nhóm quyền
      */
     Map<UUID, List<UUID>> getAllUserPermissionGroups();
+    
+    /**
+     * Kiểm tra người dùng có quyền thực hiện một hành động không
+     * @param username Tên đăng nhập của người dùng
+     * @param permissionCode Mã quyền cần kiểm tra
+     * @return true nếu người dùng có quyền, false nếu không có quyền
+     */
+    boolean hasPermission(String username, String permissionCode);
+    
+    /**
+     * Lấy thông tin chi tiết về quyền của người dùng
+     * @param username Tên đăng nhập của người dùng
+     * @return Map chứa thông tin về quyền của người dùng
+     */
+    Map<String, Object> getUserPermissionInfo(String username);
 } 

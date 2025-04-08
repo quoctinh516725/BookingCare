@@ -33,4 +33,7 @@ public interface PermissionGroupRepository extends JpaRepository<PermissionGroup
      */
     @Query("SELECT pg FROM PermissionGroup pg JOIN pg.users u WHERE u.id = :userId")
     List<PermissionGroup> findByUserId(@Param("userId") UUID userId);
+
+    @Query("SELECT pg FROM PermissionGroup pg LEFT JOIN FETCH pg.permissions WHERE pg.id = :id")
+    Optional<PermissionGroup> findByIdWithPermissions(@Param("id") UUID id);
 } 

@@ -29,98 +29,101 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-        private final JwtAuthenticationFilter jwtAuthFilter;
-        private final UserDetailsService userDetailsService;
+    private final JwtAuthenticationFilter jwtAuthFilter;
+    private final UserDetailsService userDetailsService;
 
-        @Value("${spring.profiles.active:default}")
-        private String activeProfile;
+    @Value("${spring.profiles.active:default}")
+    private String activeProfile;
 
-        @Bean
-        public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-                // Kiểm tra xem đang ở môi trường test hay không
-                boolean isTestEnvironment = activeProfile.equals("test");
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        // Kiểm tra xem đang ở môi trường test hay không
+        boolean isTestEnvironment = activeProfile.equals("test");
 
-                if (isTestEnvironment) {
-                        // Cấu hình cho môi trường test
-                        http
-                                        .csrf(csrf -> csrf.disable())
-                                        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                                        .authorizeHttpRequests(auth -> auth
-                                                        .anyRequest().permitAll())
-                                        .sessionManagement(session -> session
-                                                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
-                } else {
-                        // Cấu hình bảo mật thực tế - cho phép truy cập không cần xác thực đến các API user
-                        http
-                                        .csrf(csrf -> csrf.disable())
-                                        .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                                        .authorizeHttpRequests(auth -> auth
-                                                        .requestMatchers("/api/v1/auth/**").permitAll()
-                                                        .requestMatchers("/api/v1/services/**").permitAll()
-                                                        .requestMatchers("/api/v1/users/**").permitAll()
-                                                        .requestMatchers("/api/v1/permissions/**").permitAll()
-                                                        .requestMatchers("/swagger-ui/**", "/api-docs/**",
-                                                                        "/v3/api-docs/**")
-                                                        .permitAll()
-                                                        .anyRequest().authenticated())
-                                        .sessionManagement(session -> session
-                                                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                                        .authenticationProvider(authenticationProvider())
-                                        .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
-                }
-
-                return http.build();
+        if (isTestEnvironment) {
+            // Cấu hình cho môi trường test
+            http
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .authorizeHttpRequests(auth -> auth
+                    .anyRequest().permitAll())
+                .sessionManagement(session -> session
+                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        } else {
+            // Cấu hình bảo mật thực tế
+            http
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .authorizeHttpRequests(auth -> auth
+                    // Cho phép truy cập không cần xác thực
+                    .requestMatchers("/api/v1/auth/**").permitAll()
+                    .requestMatchers("/api/v1/services/**").permitAll()
+                    .requestMatchers("/swagger-ui/**", "/api-docs/**", "/v3/api-docs/**").permitAll()
+                    
+                    // Yêu cầu xác thực cho các API user
+                    .requestMatchers("/api/v1/users/**").authenticated()
+                    
+                    // Yêu cầu xác thực cho các API khác
+                    .requestMatchers("/api/v1/permissions/**").authenticated()
+                    .anyRequest().authenticated())
+                .sessionManagement(session -> session
+                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authenticationProvider(authenticationProvider())
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         }
 
-        @Bean
-        public CorsConfigurationSource corsConfigurationSource() {
-                CorsConfiguration configuration = new CorsConfiguration();
-                configuration.setAllowedOrigins(Arrays.asList(
-                    "http://localhost:5173",  // Local frontend
-                    "https://booking-care-rho.vercel.app",  // Production frontend
-                    "http://booking-care-rho.vercel.app",
-                    "https://www.booking-care-rho.vercel.app",
-                    "http://www.booking-care-rho.vercel.app"
-                )); 
-                configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-                configuration.setAllowedHeaders(Arrays.asList(
-                    "Authorization",
-                    "Content-Type",
-                    "X-Requested-With",
-                    "Accept",
-                    "Origin",
-                    "Access-Control-Request-Method",
-                    "Access-Control-Request-Headers"
-                ));
-                configuration.setExposedHeaders(Arrays.asList(
-                    "Authorization",
-                    "Access-Control-Allow-Origin",
-                    "Access-Control-Allow-Credentials",
-                    "Set-Cookie"
-                ));
-                configuration.setAllowCredentials(true);
-                configuration.setMaxAge(3600L);
+        return http.build();
+    }
 
-                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-                source.registerCorsConfiguration("/**", configuration);
-                return source;
-        }
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList(
+            "http://localhost:5173",  // Local frontend
+            "https://booking-care-rho.vercel.app",  // Production frontend
+            "http://booking-care-rho.vercel.app",
+            "https://www.booking-care-rho.vercel.app",
+            "http://www.booking-care-rho.vercel.app"
+        )); 
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        configuration.setAllowedHeaders(Arrays.asList(
+            "Authorization",
+            "Content-Type",
+            "X-Requested-With",
+            "Accept",
+            "Origin",
+            "Access-Control-Request-Method",
+            "Access-Control-Request-Headers"
+        ));
+        configuration.setExposedHeaders(Arrays.asList(
+            "Authorization",
+            "Access-Control-Allow-Origin",
+            "Access-Control-Allow-Credentials",
+            "Set-Cookie"
+        ));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
 
-        @Bean
-        public AuthenticationProvider authenticationProvider() {
-                DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
-                authProvider.setUserDetailsService(userDetailsService);
-                authProvider.setPasswordEncoder(passwordEncoder());
-                return authProvider;
-        }
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
 
-        @Bean
-        public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
-                return config.getAuthenticationManager();
-        }
+    @Bean
+    public AuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userDetailsService);
+        authProvider.setPasswordEncoder(passwordEncoder());
+        return authProvider;
+    }
 
-        @Bean
-        public PasswordEncoder passwordEncoder() {
-                return new BCryptPasswordEncoder();
-        }
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 }

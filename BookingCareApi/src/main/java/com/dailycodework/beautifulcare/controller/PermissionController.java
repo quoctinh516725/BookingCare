@@ -213,4 +213,12 @@ public class PermissionController {
             "message", "Đã gỡ bỏ nhóm quyền khỏi người dùng và làm mới token"
         ));
     }
+    
+    @GetMapping("/user/{username}/permissions")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<Map<String, Object>> getUserPermissions(@PathVariable String username) {
+        log.debug("Getting permissions for user: {}", username);
+        Map<String, Object> permissionInfo = permissionService.getUserPermissionInfo(username);
+        return ResponseEntity.ok(permissionInfo);
+    }
 } 

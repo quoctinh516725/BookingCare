@@ -20,11 +20,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.HashMap;
+import java.util.ArrayList;
 
 /**
  * Triển khai PermissionService interface
@@ -197,6 +199,9 @@ public class PermissionServiceImpl implements PermissionService {
         // Lưu nhóm quyền
         final PermissionGroup updatedGroup = permissionGroupRepository.save(group);
         
+        // Cập nhật permissionsUpdatedAt cho tất cả user trong nhóm
+        updateUsersPermissionsTimestamp(group);
+        
         log.info("Permission group updated successfully: {}", updatedGroup.getId());
         return permissionGroupMapper.toPermissionGroupResponse(updatedGroup);
     }
@@ -239,6 +244,9 @@ public class PermissionServiceImpl implements PermissionService {
         group.addPermission(permission);
         group = permissionGroupRepository.save(group);
         
+        // Cập nhật permissionsUpdatedAt cho tất cả user trong nhóm
+        updateUsersPermissionsTimestamp(group);
+        
         log.info("Permission added to group successfully");
         return permissionGroupMapper.toPermissionGroupResponse(group);
     }
@@ -262,6 +270,9 @@ public class PermissionServiceImpl implements PermissionService {
         
         group.removePermission(permission);
         group = permissionGroupRepository.save(group);
+        
+        // Cập nhật permissionsUpdatedAt cho tất cả user trong nhóm
+        updateUsersPermissionsTimestamp(group);
         
         log.info("Permission removed from group successfully");
         return permissionGroupMapper.toPermissionGroupResponse(group);
@@ -289,6 +300,7 @@ public class PermissionServiceImpl implements PermissionService {
         
         // Thực hiện gán quyền
         user.addPermissionGroup(group);
+        user.setPermissionsUpdatedAt(LocalDateTime.now());
         User savedUser = userRepository.save(user);
         log.info("Permission group assigned to user, saving changes");
         
@@ -339,6 +351,7 @@ public class PermissionServiceImpl implements PermissionService {
         
         // Gỡ bỏ nhóm quyền
         user.removePermissionGroup(group);
+        user.setPermissionsUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
         
         log.info("Permission group removed from user successfully");
@@ -376,6 +389,108 @@ public class PermissionServiceImpl implements PermissionService {
         }
         
         log.info("Fetched permission groups for {} users", users.size());
+        return result;
+    }
+
+    /**
+     * Cập nhật thời gian cập nhật quyền cho tất cả user trong nhóm
+     * @param group Nhóm quyền
+     */
+    private void updateUsersPermissionsTimestamp(PermissionGroup group) {
+        log.debug("Updating permissions timestamp for users in group: {}", group.getName());
+        
+        for (User user : group.getUsers()) {
+            user.setPermissionsUpdatedAt(LocalDateTime.now());
+            userRepository.save(user);
+            log.debug("Updated permissions timestamp for user: {}", user.getUsername());
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean hasPermission(String username, String permissionCode) {
+        log.debug("Checking permission for user: {}, permission: {}", username, permissionCode);
+        
+        try {
+            // Tìm người dùng theo username và tải eager các nhóm quyền
+            User user = userRepository.findByUsernameWithPermissionGroups(username)
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+            
+            log.debug("Found user: {}, role: {}", user.getUsername(), user.getRole().name());
+            
+            // Kiểm tra xem người dùng có quyền ADMIN không
+            if (user.getRole().name().equals("ADMIN")) {
+                log.debug("User is ADMIN, granting all permissions");
+                return true;
+            }
+            
+            // Log số lượng nhóm quyền của user
+            log.debug("User has {} permission groups", user.getPermissionGroups().size());
+            
+            // Tải eager các quyền cho mỗi nhóm quyền
+            for (PermissionGroup group : user.getPermissionGroups()) {
+                log.debug("Checking permission group: {}", group.getName());
+                
+                PermissionGroup loadedGroup = permissionGroupRepository.findByIdWithPermissions(group.getId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Permission group not found: " + group.getId()));
+                
+                // Log số lượng quyền trong nhóm
+                log.debug("Permission group {} has {} permissions", group.getName(), loadedGroup.getPermissions().size());
+                
+                for (Permission permission : loadedGroup.getPermissions()) {
+                    log.debug("Checking permission: {} against required: {}", permission.getCode(), permissionCode);
+                    if (permission.getCode().equals(permissionCode)) {
+                        log.debug("Permission found in user's permission groups");
+                        return true;
+                    }
+                }
+            }
+            
+            log.debug("Permission not found for user");
+            return false;
+        } catch (Exception e) {
+            log.error("Error checking permission: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<String, Object> getUserPermissionInfo(String username) {
+        log.debug("Getting permission info for user: {}", username);
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        // Tìm người dùng theo username và tải eager các nhóm quyền
+        User user = userRepository.findByUsernameWithPermissionGroups(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+        
+        result.put("username", user.getUsername());
+        result.put("role", user.getRole().name());
+        
+        // Lấy danh sách các nhóm quyền và quyền của user
+        List<Map<String, Object>> permissionGroups = new ArrayList<>();
+        for (PermissionGroup group : user.getPermissionGroups()) {
+            PermissionGroup loadedGroup = permissionGroupRepository.findByIdWithPermissions(group.getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Permission group not found: " + group.getId()));
+            
+            Map<String, Object> groupInfo = new HashMap<>();
+            groupInfo.put("groupId", loadedGroup.getId());
+            groupInfo.put("groupName", loadedGroup.getName());
+            
+            List<String> permissions = loadedGroup.getPermissions().stream()
+                    .map(Permission::getCode)
+                    .collect(Collectors.toList());
+            groupInfo.put("permissions", permissions);
+            
+            permissionGroups.add(groupInfo);
+        }
+        
+        result.put("permissionGroups", permissionGroups);
+        
+        // Log thông tin quyền
+        log.debug("User permission info: {}", result);
+        
         return result;
     }
 } 

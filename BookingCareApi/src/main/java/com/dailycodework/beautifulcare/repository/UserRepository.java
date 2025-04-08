@@ -102,4 +102,10 @@ public interface UserRepository extends JpaRepository<User, UUID> {
            "LEFT JOIN FETCH pg.permissions p " +
            "WHERE u.username = :username OR u.email = :email")
     Optional<User> findByUsernameOrEmailWithPermissionsFull(@Param("username") String username, @Param("email") String email);
+
+    @Query("SELECT DISTINCT u FROM User u " +
+           "LEFT JOIN FETCH u.permissionGroups pg " +
+           "LEFT JOIN FETCH pg.permissions p " +
+           "WHERE u.username = :username")
+    Optional<User> findByUsernameWithPermissionGroups(@Param("username") String username);
 }

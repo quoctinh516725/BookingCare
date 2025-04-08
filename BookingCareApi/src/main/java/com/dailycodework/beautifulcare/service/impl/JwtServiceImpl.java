@@ -8,14 +8,17 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -100,22 +103,33 @@ public class JwtServiceImpl implements JwtService {
     private String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
         User user = (User) userDetails;
 
-        // Thêm thông tin hữu ích vào token
+        // Thêm thông tin cơ bản vào token
         Map<String, Object> claims = new HashMap<>(extraClaims);
         claims.put("role", user.getRole().name());
         claims.put("userId", user.getId().toString());
-        claims.put("firstName", user.getFirstName());
-        claims.put("lastName", user.getLastName());
         claims.put("email", user.getEmail());
-        claims.put("username", user.getUsername()); // Thêm username vào claims
-
-        // Log để debug quá trình tạo token
-        log.debug("Generating JWT token for user: {} ({})", user.getUsername(), user.getEmail());
+        claims.put("username", user.getUsername());
+        
+        // Tối ưu thông tin quyền: chỉ lưu mã quyền
+        List<String> permissionCodes = user.getAuthorities().stream()
+            .map(GrantedAuthority::getAuthority)
+            .collect(Collectors.toList());
+        claims.put("permissions", permissionCodes);
+        
+        // Tối ưu thông tin nhóm quyền: chỉ lưu ID nhóm quyền
+        List<String> permissionGroupIds = user.getPermissionGroups().stream()
+            .map(group -> group.getId().toString())
+            .collect(Collectors.toList());
+        claims.put("permissionGroups", permissionGroupIds);
+        
+        // Log thông tin quyền được thêm vào token
+        log.debug("Adding permissions to JWT token - User: {}, Permission Codes: {}, Permission Group IDs: {}", 
+                user.getUsername(), permissionCodes, permissionGroupIds);
 
         return Jwts
                 .builder()
                 .claims(claims)
-                .subject(user.getUsername()) // Sử dụng username làm subject
+                .subject(user.getUsername())
                 .issuedAt(new Date(System.currentTimeMillis()))
                 .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
                 .signWith(getSignInKey())
@@ -125,7 +139,7 @@ public class JwtServiceImpl implements JwtService {
     private String generateRefreshToken(Map<String, Object> extraClaims, UserDetails userDetails) {
         User user = (User) userDetails;
         
-        // Thêm cả username và email vào refresh token để dễ dàng xác thực sau này
+        // Thêm thông tin tối thiểu vào refresh token
         Map<String, Object> claims = new HashMap<>(extraClaims);
         claims.put("email", user.getEmail());
         claims.put("username", user.getUsername());

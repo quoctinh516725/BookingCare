@@ -11,23 +11,22 @@ import { jwtDecode } from 'jwt-decode';
 const checkPermissionInToken = (permissionCode, decoded) => {
   if (!decoded) return false;
 
-  // Kiểm tra xem JWT có chứa thông tin về quyền không
-  if (decoded.authorities && Array.isArray(decoded.authorities)) {
-    // Kiểm tra nếu quyền tồn tại trong JWT claims
-    return decoded.authorities.includes(permissionCode);
+  // Kiểm tra role ADMIN
+  if (decoded.role === 'ADMIN') {
+    console.debug('User is ADMIN, granting all permissions');
+    return true;
   }
-  
-  // Kiểm tra nếu JWT có chứa thông tin về nhóm quyền
-  if (decoded.permissionGroups && Array.isArray(decoded.permissionGroups)) {
-    // Duyệt qua từng nhóm quyền để tìm quyền cần kiểm tra
-    return decoded.permissionGroups.some(group => 
-      group.permissions && 
-      Array.isArray(group.permissions) && 
-      group.permissions.some(perm => 
-        perm.code === permissionCode || 
-        perm === permissionCode
-      )
-    );
+
+  // Kiểm tra xem JWT có chứa thông tin về quyền không
+  if (decoded.permissions && Array.isArray(decoded.permissions)) {
+    // Kiểm tra nếu quyền tồn tại trong JWT claims
+    const hasPermission = decoded.permissions.includes(permissionCode);
+    console.debug('Checking permission in token:', {
+      permissionCode,
+      permissions: decoded.permissions,
+      hasPermission
+    });
+    return hasPermission;
   }
 
   return false;
@@ -42,9 +41,15 @@ const checkPermissionInToken = (permissionCode, decoded) => {
 const checkPermissionInUserData = (permissionCode, user) => {
   if (!user) return false;
 
+  // Kiểm tra role ADMIN
+  if (user.role === 'ADMIN') {
+    console.debug('User is ADMIN, granting all permissions');
+    return true;
+  }
+
   // Kiểm tra từ thông tin người dùng trong Redux store
   if (user.permissionGroups && Array.isArray(user.permissionGroups)) {
-    return user.permissionGroups.some(group => 
+    const hasPermission = user.permissionGroups.some(group => 
       group.permissions && 
       Array.isArray(group.permissions) && 
       group.permissions.some(perm => 
@@ -52,6 +57,12 @@ const checkPermissionInUserData = (permissionCode, user) => {
         perm === permissionCode
       )
     );
+    console.debug('Checking permission in user data:', {
+      permissionCode,
+      permissionGroups: user.permissionGroups,
+      hasPermission
+    });
+    return hasPermission;
   }
 
   return false;
@@ -67,24 +78,36 @@ const usePermission = (permissionCode) => {
 
   return useMemo(() => {
     // Không kiểm tra với permissionCode rỗng
-    if (!permissionCode) return false;
+    if (!permissionCode) {
+      console.debug('No permission code provided');
+      return false;
+    }
 
     try {
       // Kiểm tra người dùng đã đăng nhập chưa
-      if (!user || !user.access_token) return false;
+      if (!user || !user.access_token) {
+        console.debug('User not logged in or no access token');
+        return false;
+      }
 
-      // Người dùng với role ADMIN luôn có tất cả quyền
-      if (user.role === 'ADMIN') return true;
-
-      // Xử lý từ JWT token (Nếu có claims cho quyền)
+      // Xử lý từ JWT token
       const token = localStorage.getItem('access_token');
       if (token) {
         try {
           const parsedToken = JSON.parse(token);
           const decoded = jwtDecode(parsedToken);
           
+          // Log thông tin quyền từ token
+          console.debug('Checking permissions in token:', {
+            permissionCode,
+            permissions: decoded.permissions,
+            permissionGroups: decoded.permissionGroups,
+            role: decoded.role
+          });
+          
           // Kiểm tra quyền trong token
           if (checkPermissionInToken(permissionCode, decoded)) {
+            console.debug('Permission found in token');
             return true;
           }
         } catch (error) {
@@ -93,7 +116,9 @@ const usePermission = (permissionCode) => {
       }
 
       // Fallback: Kiểm tra từ thông tin người dùng trong Redux store
-      return checkPermissionInUserData(permissionCode, user);
+      const hasPermission = checkPermissionInUserData(permissionCode, user);
+      console.debug('Permission check result from user data:', hasPermission);
+      return hasPermission;
     } catch (error) {
       console.error('Error checking permission:', error);
       return false;
@@ -112,17 +137,18 @@ export const useAnyPermission = (permissionCodes) => {
   return useMemo(() => {
     // Không kiểm tra với mảng rỗng
     if (!permissionCodes || !Array.isArray(permissionCodes) || permissionCodes.length === 0) {
+      console.debug('No permission codes to check');
       return false;
     }
 
     try {
       // Kiểm tra người dùng đã đăng nhập chưa
-      if (!user || !user.access_token) return false;
+      if (!user || !user.access_token) {
+        console.debug('User not logged in or no access token');
+        return false;
+      }
 
-      // Người dùng với role ADMIN luôn có tất cả quyền
-      if (user.role === 'ADMIN') return true;
-
-      // Xử lý từ JWT token (Nếu có claims cho quyền)
+      // Xử lý từ JWT token
       const token = localStorage.getItem('access_token');
       let decoded = null;
       
@@ -130,26 +156,37 @@ export const useAnyPermission = (permissionCodes) => {
         try {
           const parsedToken = JSON.parse(token);
           decoded = jwtDecode(parsedToken);
+          
+          // Log thông tin quyền từ token
+          console.debug('Checking permissions in token:', {
+            permissionCodes,
+            permissions: decoded.permissions,
+            permissionGroups: decoded.permissionGroups,
+            role: decoded.role
+          });
         } catch (error) {
           console.error('Error decoding JWT token:', error);
         }
       }
       
-      // Kiểm tra từng quyền trong mảng bằng cách sử dụng vòng lặp thay vì callback
+      // Kiểm tra từng quyền trong mảng
       for (let i = 0; i < permissionCodes.length; i++) {
         const code = permissionCodes[i];
         
         // Kiểm tra trong token
         if (decoded && checkPermissionInToken(code, decoded)) {
+          console.debug('Permission found in token:', code);
           return true;
         }
         
         // Kiểm tra trong thông tin người dùng
         if (checkPermissionInUserData(code, user)) {
+          console.debug('Permission found in user data:', code);
           return true;
         }
       }
       
+      console.debug('No permissions found in token or user data');
       return false;
     } catch (error) {
       console.error('Error checking any permissions:', error);
@@ -169,17 +206,18 @@ export const useAllPermissions = (permissionCodes) => {
   return useMemo(() => {
     // Không kiểm tra với mảng rỗng
     if (!permissionCodes || !Array.isArray(permissionCodes) || permissionCodes.length === 0) {
+      console.debug('No permission codes to check');
       return false;
     }
 
     try {
       // Kiểm tra người dùng đã đăng nhập chưa
-      if (!user || !user.access_token) return false;
+      if (!user || !user.access_token) {
+        console.debug('User not logged in or no access token');
+        return false;
+      }
 
-      // Người dùng với role ADMIN luôn có tất cả quyền
-      if (user.role === 'ADMIN') return true;
-
-      // Xử lý từ JWT token (Nếu có claims cho quyền)
+      // Xử lý từ JWT token
       const token = localStorage.getItem('access_token');
       let decoded = null;
       
@@ -187,12 +225,20 @@ export const useAllPermissions = (permissionCodes) => {
         try {
           const parsedToken = JSON.parse(token);
           decoded = jwtDecode(parsedToken);
+          
+          // Log thông tin quyền từ token
+          console.debug('Checking permissions in token:', {
+            permissionCodes,
+            permissions: decoded.permissions,
+            permissionGroups: decoded.permissionGroups,
+            role: decoded.role
+          });
         } catch (error) {
           console.error('Error decoding JWT token:', error);
         }
       }
       
-      // Kiểm tra từng quyền trong mảng bằng cách sử dụng vòng lặp thay vì callback
+      // Kiểm tra từng quyền trong mảng
       for (let i = 0; i < permissionCodes.length; i++) {
         const code = permissionCodes[i];
         
@@ -202,13 +248,21 @@ export const useAllPermissions = (permissionCodes) => {
         // Kiểm tra trong thông tin người dùng
         const hasPermissionInUserData = checkPermissionInUserData(code, user);
         
+        // Log kết quả kiểm tra
+        console.debug('Permission check result:', {
+          code,
+          hasPermissionInToken,
+          hasPermissionInUserData
+        });
+        
         // Nếu không có quyền này trong cả hai nơi, trả về false
         if (!hasPermissionInToken && !hasPermissionInUserData) {
+          console.debug('Permission not found:', code);
           return false;
         }
       }
       
-      // Nếu tất cả các quyền đều được tìm thấy, trả về true
+      console.debug('All permissions found');
       return true;
     } catch (error) {
       console.error('Error checking all permissions:', error);
