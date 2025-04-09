@@ -17,6 +17,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.firewall.HttpFirewall;
+import org.springframework.security.web.firewall.StrictHttpFirewall;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -35,6 +37,20 @@ public class SecurityConfig {
     @Value("${spring.profiles.active:default}")
     private String activeProfile;
 
+    /**
+     * Cấu hình HttpFirewall cho phép một số ký tự đặc biệt trong URL
+     * @return HttpFirewall đã được cấu hình
+     */
+    @Bean
+    public HttpFirewall httpFirewall() {
+        StrictHttpFirewall firewall = new StrictHttpFirewall();
+        // Cho phép dấu slash kép trong URL
+        firewall.setAllowUrlEncodedDoubleSlash(true);
+        // Cho phép các ký tự khác nếu cần
+        firewall.setAllowSemicolon(true);
+        return firewall;
+    }
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         // Kiểm tra xem đang ở môi trường test hay không
@@ -50,28 +66,29 @@ public class SecurityConfig {
                 .sessionManagement(session -> session
                     .sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         } else {
-            // Cấu hình bảo mật thực tế
+            // Cấu hình cho môi trường sản xuất
             http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth
-                    // Cho phép truy cập không cần xác thực
                     .requestMatchers("/api/v1/auth/**").permitAll()
                     .requestMatchers("/api/v1/services/**").permitAll()
-                    .requestMatchers("/swagger-ui/**", "/api-docs/**", "/v3/api-docs/**").permitAll()
-                    
-                    // Yêu cầu xác thực cho các API user
-                    .requestMatchers("/api/v1/users/**").authenticated()
-                    
-                    // Yêu cầu xác thực cho các API khác
-                    .requestMatchers("/api/v1/permissions/**").authenticated()
-                    .anyRequest().authenticated())
+                    .requestMatchers("/api/v1/service-categories/**").permitAll()
+                    .requestMatchers("/api/v1/upload/files/**").permitAll() // Cho phép truy cập các file đã tải lên
+                    .requestMatchers("/static/**").permitAll() // Cho phép truy cập tài nguyên tĩnh
+                    .requestMatchers("/uploads/**").permitAll() // Cho phép truy cập thư mục uploads
+                    .requestMatchers("/api-docs/**").permitAll()
+                    .requestMatchers("/swagger-ui/**").permitAll()
+                    .requestMatchers("/swagger-ui.html").permitAll()
+                    .anyRequest().authenticated()
+                )
                 .sessionManagement(session -> session
-                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                    .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
                 .authenticationProvider(authenticationProvider())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         }
-
+        
         return http.build();
     }
 

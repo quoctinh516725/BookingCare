@@ -10,7 +10,6 @@ import org.hibernate.annotations.GenericGenerator;
 import org.hibernate.annotations.UpdateTimestamp;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
@@ -18,40 +17,33 @@ import java.util.UUID;
 
 @Getter
 @Setter
-@ToString(exclude = {"bookings", "category"})
-@EqualsAndHashCode(exclude = {"bookings", "category"})
+@ToString(exclude = "services")
+@EqualsAndHashCode(exclude = "services")
 @Entity
-@Table(name = "services")
+@Table(name = "service_categories")
 @EntityListeners(AuditingEntityListener.class)
-public class Service {
+public class ServiceCategory {
     @Id
     @GeneratedValue(generator = "uuid2")
     @GenericGenerator(name = "uuid2", strategy = "uuid2")
     @Column(name = "id", columnDefinition = "BINARY(16)")
     private UUID id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String name;
-
+    
+    @Column(nullable = false, unique = true)
+    private String code;
+    
     @Column(length = 1000)
     private String description;
-
-    @Column(nullable = false)
-    private BigDecimal price;
-
-    @Column(nullable = false)
-    private Integer duration;
-
-    @Column(name = "image_url")
-    private String imageUrl;
-
+    
+    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL)
+    private Set<Service> services = new HashSet<>();
+    
     @Column(name = "is_active")
     private Boolean isActive = true;
     
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id")
-    private ServiceCategory category;
-
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -60,10 +52,14 @@ public class Service {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
     
-    @ManyToMany(mappedBy = "services")
-    private Set<Booking> bookings = new HashSet<>();
-    
-    public Set<Booking> getBookings() {
-        return bookings;
+    // Helper methods
+    public void addService(Service service) {
+        services.add(service);
+        service.setCategory(this);
     }
-}
+    
+    public void removeService(Service service) {
+        services.remove(service);
+        service.setCategory(null);
+    }
+} 

@@ -221,11 +221,16 @@ const getUserBookings = async () => {
 
 /**
  * Lấy danh sách dịch vụ
+ * @param {string} categoryId ID của danh mục (tùy chọn) để lọc theo danh mục
  * @returns {Promise<Array>} Danh sách dịch vụ
  */
-const getServices = async () => {
+const getServices = async (categoryId = null) => {
   try {
-    const response = await axios.get(`/api/v1/services`, {
+    const url = categoryId 
+      ? `/api/v1/services?categoryId=${categoryId}` 
+      : `/api/v1/services`;
+      
+    const response = await axios.get(url, {
       headers: {
         "Content-Type": "application/json",
       },
@@ -661,6 +666,109 @@ const getStaffById = async (id) => {
   }
 };
 
+/**
+ * Tạo dịch vụ mới
+ * @param {Object} serviceData Dữ liệu dịch vụ cần tạo
+ * @returns {Promise<Object>} Thông tin dịch vụ đã tạo
+ */
+const createService = async (serviceData) => {
+  const tokenString = localStorage.getItem("access_token");
+  const token = tokenString ? JSON.parse(tokenString) : null;
+  
+  try {
+    const response = await axiosJWT.post(`/api/v1/services`, serviceData, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` })
+      },
+      withCredentials: true,
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error("Error creating service:", error);
+    throw error;
+  }
+};
+
+/**
+ * Cập nhật thông tin dịch vụ
+ * @param {string} id ID của dịch vụ
+ * @param {Object} serviceData Dữ liệu dịch vụ cần cập nhật
+ * @returns {Promise<Object>} Thông tin dịch vụ đã cập nhật
+ */
+const updateService = async (id, serviceData) => {
+  const tokenString = localStorage.getItem("access_token");
+  const token = tokenString ? JSON.parse(tokenString) : null;
+  
+  try {
+    const response = await axiosJWT.put(`/api/v1/services/${id}`, serviceData, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` })
+      },
+      withCredentials: true,
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error(`Error updating service with ID ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Xóa dịch vụ
+ * @param {string} id ID của dịch vụ cần xóa
+ * @returns {Promise<void>}
+ */
+const deleteService = async (id) => {
+  const tokenString = localStorage.getItem("access_token");
+  const token = tokenString ? JSON.parse(tokenString) : null;
+  
+  try {
+    await axiosJWT.delete(`/api/v1/services/${id}`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` })
+      },
+      withCredentials: true,
+    });
+  } catch (error) {
+    console.error(`Error deleting service with ID ${id}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Upload ảnh lên server
+ * @param {File} file File ảnh cần upload
+ * @returns {Promise<string>} URL của ảnh đã upload
+ */
+const uploadImage = async (file) => {
+  const tokenString = localStorage.getItem("access_token");
+  const token = tokenString ? JSON.parse(tokenString) : null;
+  
+  // Tạo FormData để gửi file
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  try {
+    const response = await axiosJWT.post('/api/v1/upload/image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+        ...(token && { Authorization: `Bearer ${token}` })
+      },
+      withCredentials: true,
+    });
+    
+    return response.data.imageUrl;
+  } catch (error) {
+    console.error("Error uploading image:", error);
+    throw error;
+  }
+};
+
 export default {
   signUpUser,
   loginUser,
@@ -685,5 +793,9 @@ export default {
   getBlogPosts,
   getBlogPostById,
   getServiceById,
-  getStaffById
+  getStaffById,
+  createService,
+  updateService,
+  deleteService,
+  uploadImage
 };

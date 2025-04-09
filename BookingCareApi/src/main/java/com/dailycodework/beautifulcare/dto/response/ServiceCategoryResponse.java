@@ -5,7 +5,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -13,19 +12,13 @@ import java.util.UUID;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class ServiceResponse {
+public class ServiceCategoryResponse {
     private UUID id;
     private String name;
+    private String code;
     private String description;
-    private BigDecimal price;
-    private Integer duration;
-    private String image;
     private Boolean isActive;
+    private Integer serviceCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    
-    // Thông tin danh mục
-    private UUID categoryId;
-    private String categoryName;
-    private String categoryCode;
-}
+} 

@@ -77,4 +77,37 @@ WHERE NOT EXISTS (SELECT 1 FROM services LIMIT 1);
 
 INSERT INTO services (id, name, description, price, duration, image_url, is_active, created_at, updated_at)
 SELECT UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000010'), 'Tạo hình lông mày', 'Tạo hình lông mày theo phương pháp cân đối khuôn mặt, sử dụng chì kẻ tự nhiên và nhuộm lông mày an toàn. Giúp định hình khuôn mặt và tạo vẻ đẹp hài hòa, phù hợp với từng khách hàng.', 150000, 20, 'https://i.imgur.com/RrFtOFW.jpg', 1, NOW(), NOW()
-WHERE NOT EXISTS (SELECT 1 FROM services LIMIT 1); 
+WHERE NOT EXISTS (SELECT 1 FROM services LIMIT 1);
+
+-- Chèn dữ liệu mẫu cho bảng service_categories - chỉ chèn nếu bảng trống
+INSERT INTO service_categories (id, name, code, description, is_active, created_at, updated_at)
+SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000001'), 'Chăm sóc da', 'SKIN_CARE', 'Các dịch vụ chăm sóc da cơ bản và chuyên sâu', 1, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM service_categories LIMIT 1);
+
+INSERT INTO service_categories (id, name, code, description, is_active, created_at, updated_at)
+SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000002'), 'Điều trị da', 'SKIN_TREATMENT', 'Các dịch vụ điều trị da chuyên sâu', 1, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM service_categories LIMIT 1);
+
+INSERT INTO service_categories (id, name, code, description, is_active, created_at, updated_at)
+SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000003'), 'Trẻ hóa', 'REJUVENATION', 'Các dịch vụ trẻ hóa da và chống lão hóa', 1, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM service_categories LIMIT 1);
+
+INSERT INTO service_categories (id, name, code, description, is_active, created_at, updated_at)
+SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000004'), 'Massage', 'MASSAGE', 'Các dịch vụ massage mặt và cơ thể', 1, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM service_categories LIMIT 1);
+
+INSERT INTO service_categories (id, name, code, description, is_active, created_at, updated_at)
+SELECT UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000005'), 'Làm đẹp', 'BEAUTY', 'Các dịch vụ làm đẹp khác', 1, NOW(), NOW()
+WHERE NOT EXISTS (SELECT 1 FROM service_categories LIMIT 1);
+
+-- Cập nhật category_id cho các dịch vụ hiện có
+UPDATE services SET category_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000001') WHERE id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000001');
+UPDATE services SET category_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000002') WHERE id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000002');
+UPDATE services SET category_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000003') WHERE id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000003');
+UPDATE services SET category_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000004') WHERE id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000004');
+UPDATE services SET category_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000001') WHERE id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000005');
+UPDATE services SET category_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000004') WHERE id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000006');
+UPDATE services SET category_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000005') WHERE id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000007');
+UPDATE services SET category_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000005') WHERE id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000008');
+UPDATE services SET category_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000005') WHERE id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000009');
+UPDATE services SET category_id = UUID_TO_BIN('c1b2c3d4-e5f6-11ec-8000-000000000005') WHERE id = UUID_TO_BIN('b1b2c3d4-e5f6-11ec-8000-000000000010'); 

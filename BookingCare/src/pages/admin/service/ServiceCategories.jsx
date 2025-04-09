@@ -1,6 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Modal from "react-modal";
+import ServiceCategoryService from "../../../../services/ServiceCategoryService";
+import { useContext } from "react";
+import { MessageContext } from "../../../contexts/MessageProvider.jsx";
 
 const customStyles = {
   content: {
@@ -20,85 +23,134 @@ const customStyles = {
 };
 
 const ServiceCategories = () => {
+  const message = useContext(MessageContext);
   const [isOpen, setIsOpen] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
   const [categoryName, setCategoryName] = useState("");
+  const [categoryCode, setCategoryCode] = useState("");
   const [description, setDescription] = useState("");
   const [errors, setErrors] = useState({});
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentCategoryId, setCurrentCategoryId] = useState(null);
+
+  // Tải danh sách danh mục khi component mount
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  // Hàm tải danh sách danh mục
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      const data = await ServiceCategoryService.getAllCategories();
+      setCategories(data);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      message.error("Không thể tải danh sách danh mục");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const validateForm = () => {
     const newErrors = {};
     if (!categoryName.trim()) {
       newErrors.categoryName = "Tên danh mục không được để trống";
     }
+    
+    if (!categoryCode.trim()) {
+      newErrors.categoryCode = "Mã danh mục không được để trống";
+    } else if (!/^[A-Za-z0-9_-]+$/.test(categoryCode)) {
+      newErrors.categoryCode = "Mã danh mục chỉ chứa chữ cái, số, gạch ngang và gạch dưới";
+    }
+    
     if (!description.trim()) {
       newErrors.description = "Mô tả không được để trống";
     }
+    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (validateForm()) {
-      // TODO: Implement API call to save category
-      console.log({
-        categoryName,
-        description,
-      });
-      handleClose();
+      try {
+        const categoryData = {
+          name: categoryName,
+          code: categoryCode,
+          description,
+          isActive: true
+        };
+        
+        if (isEditMode) {
+          await ServiceCategoryService.updateCategory(currentCategoryId, categoryData);
+          message.success("Cập nhật danh mục thành công");
+        } else {
+          await ServiceCategoryService.createCategory(categoryData);
+          message.success("Thêm danh mục thành công");
+        }
+        
+        // Tải lại danh sách danh mục
+        fetchCategories();
+        handleClose();
+      } catch (error) {
+        console.error("Error saving category:", error);
+        const errorMessage = error.response?.data?.message || "Có lỗi xảy ra khi lưu danh mục";
+        message.error(errorMessage);
+      }
     }
+  };
+
+  const handleEdit = (category) => {
+    setCurrentCategoryId(category.id);
+    setCategoryName(category.name);
+    setCategoryCode(category.code);
+    setDescription(category.description);
+    setIsEditMode(true);
+    setIsOpen(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Bạn có chắc chắn muốn xóa danh mục này không?")) {
+      try {
+        await ServiceCategoryService.deleteCategory(id);
+        message.success("Xóa danh mục thành công");
+        fetchCategories();
+      } catch (error) {
+        console.error("Error deleting category:", error);
+        const errorMessage = error.response?.data?.message || "Có lỗi xảy ra khi xóa danh mục";
+        message.error(errorMessage);
+      }
+    }
+  };
+
+  const handleOpenModal = () => {
+    setIsEditMode(false);
+    setCategoryName("");
+    setCategoryCode("");
+    setDescription("");
+    setCurrentCategoryId(null);
+    setErrors({});
+    setIsOpen(true);
   };
 
   const handleClose = () => {
     setIsOpen(false);
     setCategoryName("");
+    setCategoryCode("");
     setDescription("");
     setErrors({});
+    setIsEditMode(false);
+    setCurrentCategoryId(null);
   };
-
-  const categories = [
-    {
-      id: 1,
-      name: "Chăm sóc da",
-      code: "CSD001",
-      description: "Các dịch vụ chăm sóc da cơ bản và chuyên sâu",
-      serviceCount: 5,
-    },
-    {
-      id: 2,
-      name: "Điều trị",
-      code: "DT002",
-      description: "Các dịch vụ điều trị da chuyên sâu",
-      serviceCount: 3,
-    },
-    {
-      id: 3,
-      name: "Trẻ hóa",
-      code: "TH003",
-      description: "Các dịch vụ trẻ hóa da và chống lão hóa",
-      serviceCount: 2,
-    },
-    {
-      id: 4,
-      name: "Massage",
-      code: "MS004",
-      description: "Các dịch vụ massage mặt và cơ thể",
-      serviceCount: 4,
-    },
-    {
-      id: 5,
-      name: "Làm đẹp",
-      code: "LD005",
-      description: "Các dịch vụ làm đẹp khác",
-      serviceCount: 1,
-    },
-  ];
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-xl font-bold">Quản lý danh mục dịch vụ</h1>
         <span
-          onClick={() => setIsOpen(true)}
+          onClick={handleOpenModal}
           className="flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-md cursor-pointer"
         >
           <i className="fas fa-plus-circle"></i>
@@ -110,53 +162,78 @@ const ServiceCategories = () => {
       <div className="bg-white rounded-md shadow-sm p-6">
         <h2 className="text-lg font-medium mb-4">Danh sách danh mục dịch vụ</h2>
 
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead>
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Tên danh mục
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Mô tả
-              </th>
-
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Số dịch vụ
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Thao tác
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {categories.map((category) => (
-              <tr key={category.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap">{category.name}</td>
-                <td className="px-6 py-4 whitespace-nowrap">
-                  {category.description}
-                </td>
-
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {category.serviceCount}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                  <span className="text-blue-500 hover:text-blue-700 bg-blue-100 hover:bg-blue-200 p-1 rounded mr-2 cursor-pointer">
-                    <i className="fas fa-edit"></i>
-                  </span>
-                  <span className="text-red-500 hover:text-red-700 bg-red-100 hover:bg-red-200 p-1 rounded cursor-pointer ">
-                    <i className="fas fa-trash-alt"></i>
-                  </span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        {loading ? (
+          <div className="text-center py-4">
+            <i className="fas fa-spinner fa-spin text-2xl text-pink-500"></i>
+            <p className="mt-2">Đang tải danh mục...</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead>
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Tên danh mục
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Mã danh mục
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Mô tả
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Số dịch vụ
+                  </th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Thao tác
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {categories.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
+                      Không có danh mục nào
+                    </td>
+                  </tr>
+                ) : (
+                  categories.map((category) => (
+                    <tr key={category.id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap">{category.name}</td>
+                      <td className="px-6 py-4 whitespace-nowrap font-mono text-sm">{category.code}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{category.description}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        {category.serviceCount}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <span 
+                          className="text-blue-500 hover:text-blue-700 bg-blue-100 hover:bg-blue-200 p-1 rounded mr-2 cursor-pointer"
+                          onClick={() => handleEdit(category)}
+                        >
+                          <i className="fas fa-edit"></i>
+                        </span>
+                        <span 
+                          className="text-red-500 hover:text-red-700 bg-red-100 hover:bg-red-200 p-1 rounded cursor-pointer"
+                          onClick={() => handleDelete(category.id)}
+                        >
+                          <i className="fas fa-trash-alt"></i>
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       <Modal isOpen={isOpen} onRequestClose={handleClose} style={customStyles}>
         <div className="bg-white rounded-lg p-6 w-[500px]">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">Thêm danh mục dịch vụ mới</h2>
+            <h2 className="text-lg font-semibold">
+              {isEditMode ? "Cập nhật danh mục dịch vụ" : "Thêm danh mục dịch vụ mới"}
+            </h2>
             <span
               onClick={handleClose}
               className="text-gray-500 hover:text-gray-700 cursor-pointer"
@@ -165,7 +242,9 @@ const ServiceCategories = () => {
             </span>
           </div>
           <p className="text-sm text-gray-500 mb-4">
-            Tạo danh mục dịch vụ mới để phân loại các dịch vụ.
+            {isEditMode 
+              ? "Cập nhật thông tin danh mục dịch vụ" 
+              : "Tạo danh mục dịch vụ mới để phân loại các dịch vụ."}
           </p>
           <div className="space-y-4">
             <div>
@@ -183,6 +262,26 @@ const ServiceCategories = () => {
               {errors.categoryName && (
                 <p className="text-red-500 text-sm mt-1">
                   {errors.categoryName}
+                </p>
+              )}
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium">
+                Mã danh mục *
+              </label>
+              <input
+                className={`w-full border border-black/30 mt-1 p-2 rounded-md font-mono ${
+                  errors.categoryCode ? "border-red-500" : ""
+                }`}
+                value={categoryCode}
+                onChange={(e) => setCategoryCode(e.target.value.toUpperCase())}
+                placeholder="Nhập mã danh mục (ví dụ: SKIN_CARE)"
+                disabled={isEditMode} // Không cho phép sửa mã danh mục
+              />
+              {errors.categoryCode && (
+                <p className="text-red-500 text-sm mt-1">
+                  {errors.categoryCode}
                 </p>
               )}
             </div>
@@ -215,7 +314,7 @@ const ServiceCategories = () => {
                 onClick={handleSubmit}
                 className="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-md cursor-pointer"
               >
-                Thêm danh mục
+                {isEditMode ? "Cập nhật" : "Thêm danh mục"}
               </span>
             </div>
           </div>

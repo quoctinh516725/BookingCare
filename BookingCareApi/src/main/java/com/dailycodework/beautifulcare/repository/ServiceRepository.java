@@ -1,6 +1,7 @@
 package com.dailycodework.beautifulcare.repository;
 
 import com.dailycodework.beautifulcare.entity.Service;
+import com.dailycodework.beautifulcare.entity.ServiceCategory;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -12,7 +13,11 @@ import java.util.UUID;
 @Repository
 public interface ServiceRepository extends JpaRepository<Service, UUID> {
     List<Service> findByIsActiveTrue();
-
+    
+    List<Service> findByCategoryId(UUID categoryId);
+    
+    List<Service> findByCategoryAndIsActiveTrue(ServiceCategory category);
+    
     boolean existsByName(String name);
     
     /**
@@ -35,4 +40,13 @@ public interface ServiceRepository extends JpaRepository<Service, UUID> {
      */
     @Query("SELECT DISTINCT s FROM Service s LEFT JOIN FETCH s.bookings")
     List<Service> findAllWithBookings();
+    
+    /**
+     * Find services by category with eager loading 
+     * 
+     * @param categoryId ID của danh mục
+     * @return Danh sách dịch vụ thuộc danh mục với eager loading
+     */
+    @Query("SELECT DISTINCT s FROM Service s LEFT JOIN FETCH s.bookings WHERE s.category.id = :categoryId")
+    List<Service> findByCategoryIdWithBookings(UUID categoryId);
 }
