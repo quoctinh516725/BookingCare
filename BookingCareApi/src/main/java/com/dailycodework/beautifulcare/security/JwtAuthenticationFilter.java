@@ -1,5 +1,7 @@
 package com.dailycodework.beautifulcare.security;
 
+import com.dailycodework.beautifulcare.entity.User;
+import com.dailycodework.beautifulcare.repository.UserRepository;
 import com.dailycodework.beautifulcare.service.JwtService;
 import com.dailycodework.beautifulcare.service.PermissionService;
 import jakarta.servlet.FilterChain;
@@ -17,6 +19,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Component
@@ -26,6 +32,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
     private final PermissionService permissionService;
+    private final UserRepository userRepository;
 
     @Override
     protected void doFilterInternal(
@@ -67,8 +74,28 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         hasPermission = permissionService.hasPermission(username, "user:update");
                         log.debug("Checking user:update permission for user: {}, result: {}", username, hasPermission);
                     } else if (method.equals("GET")) {
-                        hasPermission = permissionService.hasPermission(username, "user:view");
-                        log.debug("Checking user:view permission for user: {}, result: {}", username, hasPermission);
+                        // Kiểm tra nếu user đang truy cập thông tin của chính mình
+                        String requestedUserId = extractUserIdFromUrl(requestURI);
+                        
+                        if (requestedUserId != null) {
+                            // Cố gắng lấy ID của người dùng hiện tại
+                            Optional<User> currentUser = userRepository.findByUsername(username);
+                            
+                            if (currentUser.isPresent() && requestedUserId.equals(currentUser.get().getId().toString())) {
+                                // User đang truy cập thông tin của chính mình, cho phép không cần kiểm tra quyền
+                                log.debug("User {} is accessing their own profile, granting access without permission check", username);
+                                hasPermission = true;
+                            } else {
+                                // User đang truy cập thông tin của người khác, kiểm tra quyền user:view
+                                hasPermission = permissionService.hasPermission(username, "user:view");
+                                log.debug("User {} is accessing another user's profile, checking user:view permission: {}", 
+                                         username, hasPermission);
+                            }
+                        } else {
+                            // Truy cập danh sách người dùng hoặc endpoint khác, kiểm tra quyền user:view
+                            hasPermission = permissionService.hasPermission(username, "user:view");
+                            log.debug("Checking user:view permission for user: {}, result: {}", username, hasPermission);
+                        }
                     }
                 }
                 
@@ -90,5 +117,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             }
         }
         filterChain.doFilter(request, response);
+    }
+    
+    /**
+     * Trích xuất ID người dùng từ URL dạng /api/v1/users/{id}
+     * @param url Đường dẫn URL
+     * @return userId nếu có, null nếu không tìm thấy
+     */
+    private String extractUserIdFromUrl(String url) {
+        // Pattern để trích xuất UUID từ đường dẫn
+        Pattern pattern = Pattern.compile("/api/v1/users/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})");
+        Matcher matcher = pattern.matcher(url);
+        
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        
+        return null;
     }
 }

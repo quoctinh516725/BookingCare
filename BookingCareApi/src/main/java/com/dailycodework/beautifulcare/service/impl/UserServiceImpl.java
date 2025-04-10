@@ -79,10 +79,10 @@ public class UserServiceImpl implements UserService {
     @Transactional
     @CacheEvict(value = {"allUsers", "userById", "usersByRole", "userDetails"}, allEntries = true)
     public UserResponse createUser(UserRequest request) {
-        log.info("Creating new user: {}", request.getUsername());
+        log.info("Creating new user: {}", request.getLastName());
         
         // Kiểm tra trùng lặp username và email
-        if (userRepository.existsByUsername(request.getUsername())) {
+        if (userRepository.existsByUsername(request.getLastName())) {
             throw new DuplicateResourceException("Username already exists");
         }
         
