@@ -25,13 +25,49 @@ function App() {
   useEffect(() => {
     const initializeUserData = async () => {
       try {
+        console.log("Initializing user data...");
         const { decoded, token } = handleDecodeToken();
+        
         if (token && decoded?.userId) {
-          // Đợi lấy thông tin người dùng hoàn tất
-          await handleGetDetailsUser(decoded.userId, token);
+          console.log("Found valid token, retrieving user details...");
+          
+          try {
+            // Đợi lấy thông tin người dùng hoàn tất
+            await handleGetDetailsUser(decoded.userId, token);
+          } catch (error) {
+            console.error("Error getting user details:", error);
+            
+            // Nếu lỗi 403, thử lấy thông tin từ profile API
+            if (error.response && error.response.status === 403) {
+              console.log("Permission error, trying profile API...");
+              try {
+                const profileData = await UserService.getUserProfile(token);
+                if (profileData) {
+                  console.log("Profile data retrieved successfully");
+                  dispatch(setUser({ ...profileData, access_token: token }));
+                }
+              } catch (profileError) {
+                console.error("Error getting profile:", profileError);
+                
+                // Nếu không thể lấy profile, sử dụng thông tin từ JWT token
+                const userRole = localStorage.getItem("user_role") || decoded.role || "CUSTOMER";
+                console.log("Using minimal data from JWT with role:", userRole);
+                
+                dispatch(setUser({ 
+                  id: decoded.userId, 
+                  username: decoded.sub || "",
+                  email: decoded.email || "",
+                  role: userRole,
+                  access_token: token
+                }));
+              }
+            }
+          }
+        } else {
+          console.log("No valid token found, skipping user initialization");
         }
       } catch (error) {
-        console.error("Error initializing user data:", error);
+        console.error("Error in initializeUserData:", error);
       } finally {
         // Đánh dấu đã hoàn tất khởi tạo, bất kể thành công hay thất bại
         setIsInitializing(false);
@@ -43,11 +79,40 @@ function App() {
 
   const handleGetDetailsUser = async (id, token) => {
     try {
-      const response = await UserService.getDetailUser(id, token);
-      dispatch(setUser({ ...response, access_token: token, id }));
-      return response;
+      console.log("Getting user details for ID:", id);
+      
+      // Thử lấy thông tin user từ API /users/{id} trước
+      try {
+        const response = await UserService.getDetailUser(id, token);
+        console.log("User details retrieved successfully");
+        dispatch(setUser({ ...response, access_token: token, id }));
+        return response;
+      } catch (error) {
+        // Xử lý lỗi 403 Forbidden
+        if (error.response && error.response.status === 403) {
+          console.log("Permission error when accessing user details, trying profile API");
+          
+          // Thử lấy profile từ API /auth/profile
+          try {
+            const profileResponse = await UserService.getUserProfile(token);
+            
+            if (profileResponse && profileResponse.id) {
+              console.log("Profile retrieved successfully");
+              dispatch(setUser({ ...profileResponse, access_token: token }));
+              return profileResponse;
+            } else {
+              console.warn("Profile API returned incomplete data");
+            }
+          } catch (profileError) {
+            console.error("Failed to fetch profile:", profileError);
+          }
+        }
+        
+        // Re-throw original error to be handled by caller
+        throw error;
+      }
     } catch (error) {
-      console.error("Error getting user details:", error);
+      console.error("Final error in handleGetDetailsUser:", error);
       throw error;
     }
   };
@@ -125,7 +190,7 @@ function App() {
             <img
               src={logo}
               alt="logo"
-              className="w-20 h-20 rounded-full transform animate-spin"
+              className="w-20 h-20 rounded-2xl transform animate-spin"
             />
           </p>
         </div>

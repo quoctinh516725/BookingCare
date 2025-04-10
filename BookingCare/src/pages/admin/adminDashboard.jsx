@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import AdminService from "../../../services/AdminService";
-import { Link } from "react-router-dom";
 
 const AdminDashboard = () => {
   // State để lưu trữ dữ liệu từ API
@@ -302,8 +301,8 @@ const AdminDashboard = () => {
             <div className="lg:col-span-3 bg-white rounded-md shadow p-4">
               <div className="flex justify-between items-center mb-1">
                 <h2 className="font-semibold text-lg">Lịch đặt gần đây</h2>
-                <button className="text-blue-600 text-sm">
-                  <Link to="/admin/appointments">Xem tất cả</Link>
+                <button className="text-blue-600 hover:underline text-sm">
+                  Xem tất cả
                 </button>
               </div>
               <p className="text-gray-500 text-sm mb-4">
@@ -372,8 +371,8 @@ const AdminDashboard = () => {
             <div className="lg:col-span-2 bg-white rounded-md shadow p-4">
               <div className="flex justify-between items-center mb-1">
                 <h2 className="font-semibold text-lg">Dịch vụ phổ biến</h2>
-                <button className="text-blue-600   text-sm">
-                  <Link to="/admin/services">Quản lý dịch vụ</Link>
+                <button className="text-blue-600 hover:underline text-sm">
+                  Quản lý dịch vụ
                 </button>
               </div>
               <p className="text-gray-500 text-sm mb-4">

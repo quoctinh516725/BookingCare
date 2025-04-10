@@ -214,7 +214,7 @@ function SignUp() {
                 Đã có tài khoản?
                 <Link
                   to="/login"
-                  className="text-[var(--primary-color)] font-medium ml-1  "
+                  className="text-[var(--primary-color)] font-medium ml-1 hover:underline"
                 >
                   Đăng nhập
                 </Link>

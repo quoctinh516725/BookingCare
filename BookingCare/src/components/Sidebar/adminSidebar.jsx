@@ -23,17 +23,17 @@ function AdminSidebar() {
     try {
       // Call logout API
       await UserService.logoutUser();
-
+      
       // Clear user state in Redux
       dispatch(logout());
-
+      
       // Clear localStorage items
       localStorage.removeItem("access_token");
       localStorage.removeItem("isAdmin");
-
+      
       // Show success message
       message.success("Đăng xuất thành công");
-
+      
       // Navigate to login page
       navigate("/admin/login");
     } catch (error) {
@@ -53,16 +53,12 @@ function AdminSidebar() {
     <div className="w-[278px] h-full border-r border-gray-200 flex flex-col justify-between">
       <div>
         <div className="flex items-center space-x-2 border-b border-gray-200 p-3">
-          <img
-            className="h-[40px] rounded-xl"
-            src={logo}
-            alt="BeautyCare Logo"
-          />
+          <img className="h-[40px] rounded-xl" src={logo} alt="BeautyCare Logo" />
           <span className="text-[var(--primary-color)] font-semibold text-2xl">
             BeautyCare
           </span>
         </div>
-        <div className="list-none cursor-pointer">
+        <div className="flex flex-col mt-5 cursor-pointer">
           {/* Tổng quan - luôn hiển thị */}
           <div
             className={`flex items-center space-x-2 p-3 ${
@@ -92,7 +88,7 @@ function AdminSidebar() {
                 ></i>
               </div>
               {openMenus["users"] && (
-                <div className="flex flex-col list-none">
+                <div className="flex flex-col">
                   <PermissionMenuItem
                     permission="user:view"
                     to="/admin/list"
@@ -113,9 +109,7 @@ function AdminSidebar() {
           </PermissionGuard>
 
           {/* Phân quyền hệ thống */}
-          <PermissionGuard
-            permission={["permission:view", "permission_group:view"]}
-          >
+          <PermissionGuard permission={["permission:view", "permission_group:view"]}>
             <div className="flex flex-col space-y-2 p-3">
               <div
                 className="flex space-x-2 items-center"
@@ -132,7 +126,7 @@ function AdminSidebar() {
                 ></i>
               </div>
               {openMenus["permissions"] && (
-                <div className="flex flex-col list-none">
+                <div className="flex flex-col">
                   <PermissionMenuItem
                     permission="permission_group:view"
                     to="/admin/permissions/groups"
@@ -151,6 +145,7 @@ function AdminSidebar() {
               )}
             </div>
           </PermissionGuard>
+
           {/* Quản lý dịch vụ */}
           <PermissionGuard permission="service:view">
             <div className="flex flex-col space-y-2 p-3">
@@ -169,7 +164,7 @@ function AdminSidebar() {
                 ></i>
               </div>
               {openMenus["services"] && (
-                <div className="flex flex-col list-none">
+                <div className="flex flex-col">
                   <PermissionMenuItem
                     permission="service:view"
                     to="/admin/services"
@@ -207,7 +202,7 @@ function AdminSidebar() {
                 ></i>
               </div>
               {openMenus["specialists"] && (
-                <div className="flex flex-col list-none">
+                <div className="flex flex-col">
                   <PermissionMenuItem
                     permission="specialist:view"
                     to="/admin/specialists"
@@ -238,7 +233,7 @@ function AdminSidebar() {
                 ></i>
               </div>
               {openMenus["blog"] && (
-                <div className="flex flex-col list-none">
+                <div className="flex flex-col">
                   <PermissionMenuItem
                     permission="blog:view"
                     to="/admin/blog/posts"
@@ -299,9 +294,9 @@ function AdminSidebar() {
           </PermissionGuard>
         </div>
       </div>
-
+      
       {/* Logout button */}
-      <div
+      <div 
         className="flex items-center space-x-2 p-4 border-t border-gray-200 text-red-500 hover:bg-gray-100 cursor-pointer mt-auto mb-5"
         onClick={handleLogout}
       >

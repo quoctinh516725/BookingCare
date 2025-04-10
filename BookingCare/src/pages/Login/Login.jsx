@@ -29,11 +29,66 @@ function Login() {
 
   const handleGetDetailsUser = async (id, token) => {
     try {
-      const response = await UserService.getDetailUser(id, token);
-      dispatch(setUser({ ...response, access_token: token, id }));
-      return response;
+      console.log("Getting user details for ID:", id);
+      // Thử lấy thông tin user từ API /users/{id} trước
+      try {
+        const response = await UserService.getDetailUser(id, token);
+        console.log("User details retrieved successfully:", response);
+        dispatch(setUser({ ...response, access_token: token, id }));
+        return response;
+      } catch (error) {
+        // Xử lý lỗi 403 Forbidden
+        if (error.response && error.response.status === 403) {
+          console.log("Permission error when accessing user details, trying profile API");
+          
+          // Thử lấy profile từ API /auth/profile
+          try {
+            const profileResponse = await UserService.getUserProfile(token);
+            console.log("User profile retrieved:", profileResponse);
+            
+            if (profileResponse && profileResponse.id === id) {
+              dispatch(setUser({ ...profileResponse, access_token: token }));
+              return profileResponse;
+            } else {
+              console.warn("Profile ID doesn't match requested user ID");
+              throw new Error("User profile mismatch");
+            }
+          } catch (profileError) {
+            console.error("Failed to fetch user profile:", profileError);
+            
+            // Nếu cả hai cách đều thất bại, thử lấy từ JWT token
+            const decoded = jwtDecode(token);
+            if (decoded) {
+              // Tạo thông tin người dùng tối thiểu từ JWT token
+              const minimalUserData = {
+                id: decoded.userId || id,
+                username: decoded.sub || "user",
+                email: decoded.email || "",
+                role: decoded.role || localStorage.getItem("user_role") || "CUSTOMER",
+                // Các trường khác sẽ được cập nhật sau khi refresh
+              };
+              
+              console.log("Using minimal user data from JWT:", minimalUserData);
+              dispatch(setUser({ ...minimalUserData, access_token: token }));
+              
+              // Lập lịch thử lại sau 1 giây
+              setTimeout(() => {
+                UserService.refreshToken().catch(e => console.error("Failed to refresh token:", e));
+              }, 1000);
+              
+              return minimalUserData;
+            }
+            
+            throw profileError;
+          }
+        } else {
+          // Các lỗi khác
+          console.error("Error retrieving user details:", error);
+          throw error;
+        }
+      }
     } catch (error) {
-      console.log("Error get details user", error);
+      console.error("Final error in handleGetDetailsUser:", error);
       throw error;
     }
   };

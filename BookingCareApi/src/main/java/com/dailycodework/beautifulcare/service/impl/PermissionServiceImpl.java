@@ -281,32 +281,53 @@ public class PermissionServiceImpl implements PermissionService {
     @Override
     @Transactional
     public void assignPermissionGroupToUser(UUID userId, UUID groupId) {
-        log.info("Assigning permission group to user: userId={}, groupId={}", userId, groupId);
+        log.info("Assigning permission group {} to user {}", groupId, userId);
         
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
-                
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        
         PermissionGroup group = permissionGroupRepository.findById(groupId)
-                .orElseThrow(() -> new ResourceNotFoundException("Permission group not found with ID: " + groupId));
+                .orElseThrow(() -> new ResourceNotFoundException("Permission group not found"));
         
         // Kiểm tra xem người dùng đã có nhóm quyền này chưa
         if (user.getPermissionGroups().contains(group)) {
-            log.info("User already has this permission group: {}", group.getName());
+            log.info("User already has this permission group");
             return;
         }
         
-        // Gán nhóm quyền
+        // Lưu trạng thái ban đầu để so sánh
+        int initialGroupCount = user.getPermissionGroups().size();
+        
+        // Thực hiện gán quyền
         user.addPermissionGroup(group);
         user.setPermissionsUpdatedAt(LocalDateTime.now());
+        User savedUser = userRepository.save(user);
+        log.info("Permission group assigned to user, saving changes");
         
-        // Lưu user
-        user = userRepository.save(user);
+        // Flush để đảm bảo các thay đổi được ghi vào cơ sở dữ liệu
+        userRepository.flush();
         
-        // Kiểm tra lại để đảm bảo nhóm quyền đã được gán
-        boolean permissionAssigned = user.getPermissionGroups().contains(group);
+        // Xác nhận lại quyền đã được gán bằng cách nạp lại user từ cơ sở dữ liệu
+        User refreshedUser = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found after save operation"));
+        
+        boolean permissionAssigned = false;
+        for (PermissionGroup pg : refreshedUser.getPermissionGroups()) {
+            if (pg.getId().equals(groupId)) {
+                permissionAssigned = true;
+                break;
+            }
+        }
+        
         if (!permissionAssigned) {
             log.error("Failed to assign permission group {} to user {}. Database state is inconsistent.", groupId, userId);
             throw new RuntimeException("Failed to assign permission group. Please try again.");
+        }
+        
+        int newGroupCount = refreshedUser.getPermissionGroups().size();
+        if (newGroupCount <= initialGroupCount) {
+            log.warn("Permission group count did not increase after assignment operation. Initial: {}, New: {}", 
+                    initialGroupCount, newGroupCount);
         }
         
         log.info("Permission group assigned to user successfully and verified");

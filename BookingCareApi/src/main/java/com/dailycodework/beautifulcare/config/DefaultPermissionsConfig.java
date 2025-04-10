@@ -110,14 +110,6 @@ public class DefaultPermissionsConfig {
     private void initializePermissionGroups() {
         Map<String, String[]> defaultGroups = new HashMap<>();
         
-        // ==== NHÓM QUYỀN CHO KHÁCH HÀNG ====
-        defaultGroups.put("Khách hàng", new String[]{
-            "VIEW_USERS", "VIEW_USER_DETAILS",
-            "VIEW_SERVICES", "VIEW_SERVICE_DETAILS",
-            "VIEW_BOOKINGS", "VIEW_BOOKING_DETAILS", "CREATE_BOOKING", "UPDATE_BOOKING",
-            "VIEW_FEEDBACKS", "CREATE_FEEDBACK"
-        });
-        
         // ==== NHÓM QUYỀN CHO NHÂN VIÊN ====
         
         // Nhân viên lễ tân

@@ -177,33 +177,21 @@ public class User implements UserDetails {
     }
     
     /**
-     * Thêm một nhóm quyền cho người dùng
-     * @param group Nhóm quyền cần thêm
+     * Helper method to add a permission group to this user
      */
     public void addPermissionGroup(PermissionGroup group) {
-        if (group == null) {
-            return;
-        }
-        
-        if (permissionGroups == null) {
-            permissionGroups = new HashSet<>();
-        }
-        
         permissionGroups.add(group);
         group.getUsers().add(this);
+        updatePermissionsTimestamp();
     }
     
     /**
-     * Xóa một nhóm quyền khỏi người dùng
-     * @param group Nhóm quyền cần xóa
+     * Helper method to remove a permission group from this user
      */
     public void removePermissionGroup(PermissionGroup group) {
-        if (group == null || permissionGroups == null) {
-            return;
-        }
-        
         permissionGroups.remove(group);
         group.getUsers().remove(this);
+        updatePermissionsTimestamp();
     }
     
     /**

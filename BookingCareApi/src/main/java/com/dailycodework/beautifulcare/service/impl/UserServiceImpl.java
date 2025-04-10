@@ -23,10 +23,6 @@ import java.util.stream.Collectors;
 
 import com.dailycodework.beautifulcare.dto.request.PasswordChangeRequest;
 import com.dailycodework.beautifulcare.exception.BadRequestException;
-import com.dailycodework.beautifulcare.entity.PermissionGroup;
-import com.dailycodework.beautifulcare.repository.PermissionGroupRepository;
-import com.dailycodework.beautifulcare.service.PermissionService;
-import com.dailycodework.beautifulcare.exception.DuplicateResourceException;
 
 @Service
 @RequiredArgsConstructor
@@ -35,8 +31,6 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
-    private final PermissionGroupRepository permissionGroupRepository;
-    private final PermissionService permissionService;
 
     @Override
     @Transactional(readOnly = true)
@@ -79,26 +73,33 @@ public class UserServiceImpl implements UserService {
     @Transactional
     @CacheEvict(value = {"allUsers", "userById", "usersByRole", "userDetails"}, allEntries = true)
     public UserResponse createUser(UserRequest request) {
-        log.info("Creating new user: {}", request.getUsername());
+        // Ghi log và kiểm tra dữ liệu đầu vào
+        log.info("Creating user with email: {}", request.getEmail());
         
-        // Kiểm tra trùng lặp username và email
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new DuplicateResourceException("Username already exists");
+        // Kiểm tra mật khẩu
+        if (request.getPassword() == null || request.getPassword().isEmpty()) {
+            log.error("Password is null or empty in the request");
+            throw new IllegalArgumentException("Password cannot be null or empty");
         }
         
-        if (userRepository.existsByEmail(request.getEmail())) {
-            throw new DuplicateResourceException("Email already exists");
-        }
-        
-        // Tạo user mới
         User user = userMapper.toUser(request);
+        
+        // Mã hóa mật khẩu
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         
-        // Lưu user
-        user = userRepository.save(user);
+        // Tạo username từ email nếu không có
+        if (user.getUsername() == null || user.getUsername().isEmpty()) {
+            user.setUsername(request.getEmail().split("@")[0]);
+        }
         
-        log.info("User created successfully: {}", user.getId());
-        return userMapper.toUserResponse(user);
+        User savedUser = userRepository.save(user);
+        log.info("User created successfully with ID: {}", savedUser.getId());
+        
+        // Tải lại người dùng với đầy đủ quyền
+        User loadedUser = userRepository.findByIdWithPermissionsFull(savedUser.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("User not found after saving"));
+        
+        return userMapper.toUserResponse(loadedUser);
     }
 
     @Override

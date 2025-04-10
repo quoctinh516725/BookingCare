@@ -343,12 +343,12 @@ const PermissionGroups = () => {
         ariaHideApp={false}
       >
         <div className="relative">
-          <span
+          <button
             onClick={closeModal}
             className="absolute top-0 right-0 text-gray-400 hover:text-gray-600"
           >
             <i className="fas fa-times text-xl"></i>
-          </span>
+          </button>
           
           <h2 className="text-xl font-bold mb-4">{isEditMode ? "Cập nhật nhóm quyền" : "Thêm nhóm quyền mới"}</h2>
           
