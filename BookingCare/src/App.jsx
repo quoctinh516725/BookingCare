@@ -125,7 +125,7 @@ function App() {
             <img
               src={logo}
               alt="logo"
-              className="w-20 h-20 rounded-2xl transform animate-spin"
+              className="w-20 h-20 rounded-full transform animate-spin"
             />
           </p>
         </div>

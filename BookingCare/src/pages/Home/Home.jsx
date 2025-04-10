@@ -136,21 +136,8 @@ function Home() {
     </div>
   );
 
-  // Hiển thị thông báo lỗi
-  const ErrorMessage = ({ message }) => (
-    <div className="w-full p-4 bg-red-50 text-red-600 rounded-lg text-center my-4">
-      <p>{message}</p>
-      <button 
-        className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
-        onClick={() => window.location.reload()}
-      >
-        Thử lại
-      </button>
-    </div>
-  );
-
   return (
-    <div className="flex flex-col mt-[60px]">
+    <div className="flex flex-col">
       <div className="w-full h-[600px] relative">
         <img
           src={Background}
@@ -186,7 +173,6 @@ function Home() {
           </p>
         </div>
         
-        {error.services && <ErrorMessage message={error.services} />}
         
         <div className="flex justify-between flex-wrap gap-4">
           {loading.services ? (
@@ -225,7 +211,6 @@ function Home() {
           </p>
         </div>
         
-        {error.specialists && <ErrorMessage message={error.specialists} />}
         
         <div className="flex justify-between flex-wrap gap-4">
           {loading.specialists ? (
@@ -308,7 +293,6 @@ function Home() {
           </p>
         </div>
         
-        {error.blogs && <ErrorMessage message={error.blogs} />}
         
         <div className="flex justify-between flex-wrap gap-4">
           {loading.blogs ? (

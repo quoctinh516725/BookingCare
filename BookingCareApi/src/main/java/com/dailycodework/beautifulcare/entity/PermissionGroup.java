@@ -66,6 +66,47 @@ public class PermissionGroup {
     private LocalDateTime updatedAt;
     
     /**
+     * Lấy danh sách người dùng thuộc nhóm quyền này
+     * @return Danh sách người dùng
+     */
+    public Set<User> getUsers() {
+        if (users == null) {
+            users = new HashSet<>();
+        }
+        return users;
+    }
+    
+    /**
+     * Thêm người dùng vào nhóm quyền
+     * @param user Người dùng cần thêm
+     */
+    public void addUser(User user) {
+        if (user == null) {
+            return;
+        }
+        
+        if (users == null) {
+            users = new HashSet<>();
+        }
+        
+        users.add(user);
+        user.getPermissionGroups().add(this);
+    }
+    
+    /**
+     * Xóa người dùng khỏi nhóm quyền
+     * @param user Người dùng cần xóa
+     */
+    public void removeUser(User user) {
+        if (user == null || users == null) {
+            return;
+        }
+        
+        users.remove(user);
+        user.getPermissionGroups().remove(this);
+    }
+    
+    /**
      * Helper method to add a permission to this group
      */
     public void addPermission(Permission permission) {
