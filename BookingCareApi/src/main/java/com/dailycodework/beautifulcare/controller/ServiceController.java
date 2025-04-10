@@ -11,12 +11,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/services")
@@ -80,19 +83,79 @@ public class ServiceController {
                description = "Upload an image for a service and returns the image URL")
     @HasPermission("service:create")
     public ResponseEntity<ImageUploadResponse> uploadServiceImage(
-            @RequestParam("file") MultipartFile file) {
-        log.info("POST /api/v1/services/upload-image: Uploading service image");
+            @RequestParam(value = "file", required = false) MultipartFile file,
+            @RequestParam(value = "imageUrl", required = false) String imageUrl) {
         
-        String fileName = fileStorageService.storeFile(file);
-        String fileUrl = fileStorageService.getFileUrl(fileName);
+        // Kiểm tra xem có ít nhất một trong hai tham số hay không
+        if (file == null && (imageUrl == null || imageUrl.isEmpty())) {
+            return ResponseEntity.badRequest().body(
+                new ImageUploadResponse(
+                    null, 
+                    null, 
+                    "Either file or imageUrl parameter is required"
+                )
+            );
+        }
         
-        log.info("Service image uploaded successfully: {}", fileName);
+        // Ưu tiên file upload nếu cả hai tham số đều được cung cấp
+        if (file != null && !file.isEmpty()) {
+            log.info("POST /api/v1/services/upload-image: Uploading service image file");
+            
+            String fileName = fileStorageService.storeFile(file);
+            String fileUrl = fileStorageService.getFileUrl(fileName);
+            
+            log.info("Service image uploaded successfully: {}", fileName);
+            
+            return ResponseEntity.ok(new ImageUploadResponse(
+                    fileName, 
+                    fileUrl, 
+                    "Service image uploaded successfully"));
+        } else {
+            // Xử lý URL ảnh bên ngoài
+            log.info("POST /api/v1/services/upload-image: Using external image URL: {}", imageUrl);
+            
+            return ResponseEntity.ok(new ImageUploadResponse(
+                    null, 
+                    imageUrl, 
+                    "External image URL saved successfully"));
+        }
+    }
+    
+    @GetMapping("/check-image")
+    @Operation(summary = "Check if an image exists",
+               description = "Checks if an image exists and returns status")
+    public ResponseEntity<Map<String, Object>> checkImageExists(
+            @RequestParam("imageUrl") String imageUrl) {
         
-        ImageUploadResponse response = new ImageUploadResponse(
-                fileName, 
-                fileUrl, 
-                "Service image uploaded successfully");
+        log.info("GET /api/v1/services/check-image: Checking image: {}", imageUrl);
         
-        return ResponseEntity.ok(response);
+        Map<String, Object> response = new HashMap<>();
+        // Nếu là URL nội bộ, kiểm tra file có tồn tại không
+        if (imageUrl.startsWith("/api/v1/upload/files/")) {
+            String fileName = imageUrl.substring("/api/v1/upload/files/".length());
+            try {
+                Resource resource = fileStorageService.loadFileAsResource(fileName);
+                boolean exists = resource.exists() && !resource.getFilename().equals("default-image.png");
+                
+                response.put("exists", exists);
+                response.put("imageUrl", exists ? imageUrl : "/api/v1/upload/files/default-image.png");
+                response.put("message", exists ? "Image exists" : "Image does not exist, using default");
+                
+                return ResponseEntity.ok(response);
+            } catch (Exception e) {
+                response.put("exists", false);
+                response.put("imageUrl", "/api/v1/upload/files/default-image.png");
+                response.put("message", "Error checking image, using default");
+                
+                return ResponseEntity.ok(response);
+            }
+        } else {
+            // URL bên ngoài, giả định là tồn tại
+            response.put("exists", true);
+            response.put("imageUrl", imageUrl);
+            response.put("message", "External URL assumed valid");
+            
+            return ResponseEntity.ok(response);
+        }
     }
 }

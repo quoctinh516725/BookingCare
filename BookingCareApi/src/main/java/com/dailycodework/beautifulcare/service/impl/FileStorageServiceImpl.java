@@ -100,9 +100,35 @@ public class FileStorageServiceImpl implements FileStorageService {
                 return resource;
             } else {
                 log.error("File not found: {}", fileName);
-                throw new FileStorageException("File not found: " + fileName);
+                // Trả về ảnh mặc định thay vì ném ngoại lệ
+                Path defaultImagePath = fileStorageLocation.resolve("default-image.png").normalize();
+                if (Files.exists(defaultImagePath)) {
+                    return new UrlResource(defaultImagePath.toUri());
+                } else {
+                    // Tạo ảnh mặc định nếu chưa có
+                    try {
+                        // Tạo thư mục nếu chưa tồn tại
+                        Files.createDirectories(fileStorageLocation);
+                        
+                        // Tạo một ảnh mặc định đơn giản (1x1 pixel trong suốt)
+                        byte[] transparentPixel = new byte[] {
+                            (byte) 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
+                            0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08,
+                            0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, (byte) 0xC4, (byte) 0x89, 0x00, 0x00, 0x00,
+                            0x0A, 0x49, 0x44, 0x41, 0x54, 0x08, (byte) 0x99, 0x63, 0x00, 0x01, 0x00, 0x00, 0x05,
+                            0x00, 0x01, 0x0D, 0x0A, 0x2D, (byte) 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45,
+                            0x4E, 0x44, (byte) 0xAE, 0x42, 0x60, (byte) 0x82
+                        };
+                        Files.write(defaultImagePath, transparentPixel);
+                        return new UrlResource(defaultImagePath.toUri());
+                    } catch (IOException e) {
+                        log.error("Error creating default image", e);
+                        throw new FileStorageException("Could not create default image");
+                    }
+                }
             }
         } catch (MalformedURLException ex) {
+            log.error("Error loading file: {}", fileName, ex);
             throw new FileStorageException("File not found: " + fileName, ex);
         }
     }

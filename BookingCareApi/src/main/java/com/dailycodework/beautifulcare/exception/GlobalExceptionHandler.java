@@ -8,6 +8,10 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
+import java.nio.file.Files;
+import org.springframework.http.MediaType;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -112,6 +116,44 @@ public class GlobalExceptionHandler {
                 ex.getMessage(),
                 LocalDateTime.now());
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(FileStorageException.class)
+    public ResponseEntity<?> handleFileStorageException(FileStorageException ex) {
+        log.error("File storage error: {}", ex.getMessage());
+        
+        // Nếu là lỗi không tìm thấy file, trả về ảnh mặc định
+        if (ex.getMessage().startsWith("File not found")) {
+            try {
+                // Tạo đường dẫn đến file ảnh mặc định trong classpath
+                Resource defaultImage = new ClassPathResource("static/default-image.png");
+                if (!defaultImage.exists()) {
+                    // Nếu không có ảnh mặc định sẵn, trả về phản hồi json
+                    Map<String, Object> response = new HashMap<>();
+                    response.put("status", HttpStatus.NOT_FOUND.value());
+                    response.put("error", "File not found");
+                    response.put("message", "The requested file was not found and no default is available");
+                    response.put("timestamp", LocalDateTime.now());
+                    
+                    return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+                }
+                
+                // Trả về ảnh mặc định
+                byte[] imageBytes = Files.readAllBytes(defaultImage.getFile().toPath());
+                return ResponseEntity.ok()
+                        .contentType(MediaType.IMAGE_PNG)
+                        .body(imageBytes);
+            } catch (Exception e) {
+                log.error("Error serving default image: {}", e.getMessage());
+            }
+        }
+        
+        // Trả về lỗi dạng JSON nếu không xử lý được
+        ErrorResponse response = new ErrorResponse(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                ex.getMessage(),
+                LocalDateTime.now());
+        return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @ExceptionHandler(Exception.class)

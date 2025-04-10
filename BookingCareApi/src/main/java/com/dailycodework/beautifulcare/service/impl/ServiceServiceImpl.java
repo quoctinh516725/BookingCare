@@ -63,20 +63,14 @@ public class ServiceServiceImpl implements ServiceService {
             throw new DuplicateResourceException("Service name already exists");
         }
         
-        // Xử lý URL ảnh
+        // Xử lý URL ảnh - giữ nguyên URL bất kể nguồn
         String imageUrl = request.getImage();
         if (imageUrl != null) {
-            if (isValidUrl(imageUrl)) {
-                // Nếu là URL hợp lệ (http://, https://), giữ nguyên
-                log.info("Using external image URL: {}", imageUrl);
-            } else if (isBase64Image(imageUrl)) {
-                // Nếu là ảnh base64, lưu vào backend
-                log.info("Converting base64 image and storing on backend");
-                imageUrl = storeBase64Image(imageUrl);
-            } else if (!imageUrl.startsWith("/api/v1/upload/files/")) {
-                // Nếu không phải URL đã biết, coi như đường dẫn tương đối
-                log.info("Image URL is a relative path: {}", imageUrl);
-            }
+            log.info("Using image URL: {}", imageUrl);
+        } else {
+            // Sử dụng ảnh mặc định nếu không có
+            imageUrl = "/api/v1/upload/files/default-image.png";
+            log.info("No image provided, using default image");
         }
         
         // Tạo service mới
@@ -114,20 +108,10 @@ public class ServiceServiceImpl implements ServiceService {
         service.setPrice(request.getPrice());
         service.setDuration(request.getDuration());
         
-        // Xử lý URL ảnh
+        // Xử lý URL ảnh - giữ nguyên URL gốc nếu không có URL mới
         String imageUrl = request.getImage();
         if (imageUrl != null) {
-            if (isValidUrl(imageUrl)) {
-                // Nếu là URL hợp lệ (http://, https://), giữ nguyên
-                log.info("Using external image URL: {}", imageUrl);
-            } else if (isBase64Image(imageUrl)) {
-                // Nếu là ảnh base64, lưu vào backend
-                log.info("Converting base64 image and storing on backend");
-                imageUrl = storeBase64Image(imageUrl);
-            } else if (!imageUrl.startsWith("/api/v1/upload/files/")) {
-                // Nếu không phải URL đã biết, coi như đường dẫn tương đối
-                log.info("Image URL is a relative path: {}", imageUrl);
-            }
+            log.info("Updating image URL: {}", imageUrl);
             service.setImageUrl(imageUrl);
         }
         
