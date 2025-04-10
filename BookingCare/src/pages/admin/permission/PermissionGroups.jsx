@@ -36,6 +36,13 @@ const PermissionGroups = () => {
     permissionIds: [],
   });
 
+  // State để quản lý thông báo lỗi trong form
+  const [formError, setFormError] = useState({
+    hasError: false,
+    message: "",
+    details: []
+  });
+
   // Fetch permission groups and permissions data
   const { data: permissionGroups = [], isLoading: isLoadingGroups, refetch: refetchGroups } = useQuery({
     queryKey: ["permissionGroups"],
@@ -61,11 +68,70 @@ const PermissionGroups = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["permissionGroups"] });
       toast.success("Nhóm quyền đã được tạo thành công!");
+      // Reset lỗi form
+      setFormError({
+        hasError: false,
+        message: "",
+        details: []
+      });
       closeModal();
     },
     onError: (error) => {
       console.error("Error creating permission group:", error);
-      toast.error(error.response?.data?.message || "Không thể tạo nhóm quyền. Vui lòng thử lại.");
+      
+      // Xử lý thông báo lỗi chi tiết
+      let errorMessage = "Không thể tạo nhóm quyền. Vui lòng thử lại.";
+      let errorDetails = [];
+      
+      if (error.response) {
+        // Lấy thông tin lỗi từ response
+        if (error.response.data) {
+          if (error.response.data.message) {
+            errorMessage = error.response.data.message;
+          } else if (error.response.data.error) {
+            errorMessage = error.response.data.error;
+          } else if (typeof error.response.data === 'string') {
+            errorMessage = error.response.data;
+          }
+          
+          // Lấy chi tiết lỗi nếu có
+          if (error.response.data.details) {
+            errorDetails = Array.isArray(error.response.data.details) 
+              ? error.response.data.details 
+              : [error.response.data.details];
+          }
+          
+          // Lấy thông tin vi phạm hợp lệ nếu có
+          if (error.response.data.violations) {
+            errorDetails = error.response.data.violations.map(v => `${v.field}: ${v.message}`);
+          }
+        }
+        
+        // Thêm mã lỗi HTTP vào thông báo
+        const statusCode = error.response.status;
+        errorMessage = `[${statusCode}] ${errorMessage}`;
+        
+        // Trường hợp lỗi xung đột (tên đã tồn tại)
+        if (statusCode === 409 && errorMessage.toLowerCase().includes('name')) {
+          errorDetails.push("Tên nhóm quyền đã tồn tại, vui lòng chọn tên khác");
+        }
+      } else if (error.detail) {
+        // Sử dụng chi tiết lỗi từ enhancedError
+        errorDetails.push(error.detail.message || "Lỗi không xác định");
+      } else if (error.message) {
+        // Nếu chỉ có message
+        errorMessage = error.message;
+      }
+      
+      // Hiển thị thông báo lỗi
+      toast.error(`Lỗi: ${errorMessage}`);
+      
+      // Cập nhật state lỗi để hiển thị trong form
+      setFormError({
+        hasError: true,
+        message: errorMessage,
+        details: errorDetails
+      });
     },
   });
 
@@ -75,11 +141,65 @@ const PermissionGroups = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["permissionGroups"] });
       toast.success("Nhóm quyền đã được cập nhật thành công!");
+      // Reset lỗi form
+      setFormError({
+        hasError: false,
+        message: "",
+        details: []
+      });
       closeModal();
     },
     onError: (error) => {
       console.error("Error updating permission group:", error);
-      toast.error(error.response?.data?.message || "Không thể cập nhật nhóm quyền. Vui lòng thử lại.");
+      
+      // Xử lý thông báo lỗi chi tiết
+      let errorMessage = "Không thể cập nhật nhóm quyền. Vui lòng thử lại.";
+      let errorDetails = [];
+      
+      if (error.response) {
+        // Lấy thông tin lỗi từ response
+        if (error.response.data) {
+          if (error.response.data.message) {
+            errorMessage = error.response.data.message;
+          } else if (error.response.data.error) {
+            errorMessage = error.response.data.error;
+          } else if (typeof error.response.data === 'string') {
+            errorMessage = error.response.data;
+          }
+          
+          // Lấy chi tiết lỗi nếu có
+          if (error.response.data.details) {
+            errorDetails = Array.isArray(error.response.data.details) 
+              ? error.response.data.details 
+              : [error.response.data.details];
+          }
+          
+          // Lấy thông tin vi phạm hợp lệ nếu có
+          if (error.response.data.violations) {
+            errorDetails = error.response.data.violations.map(v => `${v.field}: ${v.message}`);
+          }
+        }
+        
+        // Thêm mã lỗi HTTP vào thông báo
+        const statusCode = error.response.status;
+        errorMessage = `[${statusCode}] ${errorMessage}`;
+      } else if (error.detail) {
+        // Sử dụng chi tiết lỗi từ enhancedError
+        errorDetails.push(error.detail.message || "Lỗi không xác định");
+      } else if (error.message) {
+        // Nếu chỉ có message
+        errorMessage = error.message;
+      }
+      
+      // Hiển thị thông báo lỗi
+      toast.error(`Lỗi: ${errorMessage}`);
+      
+      // Cập nhật state lỗi để hiển thị trong form
+      setFormError({
+        hasError: true,
+        message: errorMessage,
+        details: errorDetails
+      });
     },
   });
 
@@ -92,7 +212,40 @@ const PermissionGroups = () => {
     },
     onError: (error) => {
       console.error("Error deleting permission group:", error);
-      toast.error(error.response?.data?.message || "Không thể xóa nhóm quyền. Vui lòng thử lại.");
+      
+      // Xử lý thông báo lỗi chi tiết
+      let errorMessage = "Không thể xóa nhóm quyền. Vui lòng thử lại.";
+      
+      if (error.response) {
+        // Lấy thông tin lỗi từ response
+        if (error.response.data) {
+          if (error.response.data.message) {
+            errorMessage = error.response.data.message;
+          } else if (error.response.data.error) {
+            errorMessage = error.response.data.error;
+          } else if (typeof error.response.data === 'string') {
+            errorMessage = error.response.data;
+          }
+        }
+        
+        // Thêm mã lỗi HTTP vào thông báo
+        const statusCode = error.response.status;
+        errorMessage = `[${statusCode}] ${errorMessage}`;
+        
+        // Thông báo đặc biệt khi nhóm quyền đang được sử dụng
+        if (statusCode === 409) {
+          errorMessage = "Không thể xóa nhóm quyền đang được sử dụng. Vui lòng xóa liên kết với người dùng trước.";
+        }
+      } else if (error.detail) {
+        // Sử dụng chi tiết lỗi từ enhancedError
+        errorMessage = error.detail.message || errorMessage;
+      } else if (error.message) {
+        // Nếu chỉ có message
+        errorMessage = error.message;
+      }
+      
+      // Hiển thị thông báo lỗi
+      toast.error(`Lỗi: ${errorMessage}`);
     },
   });
 
@@ -105,6 +258,13 @@ const PermissionGroups = () => {
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
+    
+    // Reset thông báo lỗi khi người dùng thay đổi thông tin
+    setFormError({
+      hasError: false,
+      message: "",
+      details: []
+    });
     
     if (type === "checkbox") {
       const permissionId = value;
@@ -352,8 +512,22 @@ const PermissionGroups = () => {
           
           <h2 className="text-xl font-bold mb-4">{isEditMode ? "Cập nhật nhóm quyền" : "Thêm nhóm quyền mới"}</h2>
           
-          <form onSubmit={handleFormSubmit}>
-            <div className="mb-4">
+          <form onSubmit={handleFormSubmit} className="space-y-4">
+            {/* Hiển thị thông báo lỗi */}
+            {formError.hasError && (
+              <div className="bg-red-50 text-red-500 p-3 rounded-md mb-4">
+                <p className="font-medium">{formError.message}</p>
+                {formError.details.length > 0 && (
+                  <ul className="mt-2 text-sm list-disc list-inside">
+                    {formError.details.map((detail, index) => (
+                      <li key={index}>{detail}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+            
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Tên nhóm quyền <span className="text-red-500">*</span>
               </label>
@@ -366,7 +540,7 @@ const PermissionGroups = () => {
                 className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
               />
             </div>
-            <div className="mb-4">
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Mô tả <span className="text-red-500">*</span>
               </label>

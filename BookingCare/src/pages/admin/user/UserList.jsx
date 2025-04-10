@@ -37,11 +37,40 @@ const UserList = () => {
     password: "",
     role: "CUSTOMER",
   });
+  const [formError, setFormError] = useState({
+    hasError: false,
+    message: "",
+    details: []
+  });
 
   // Fetch users data
   const { data: users = [], isLoading, isError, error, refetch } = useQuery({
     queryKey: ["users"],
-    queryFn: AdminService.getAllUsers,
+    queryFn: async () => {
+      try {
+        console.log("Fetching users from UserList component");
+        const data = await AdminService.getAllUsers();
+        console.log("Received user data:", data);
+        return data;
+      } catch (error) {
+        console.error("Error in UserList query function:", error);
+        
+        // Check for specific error types
+        if (error.response && error.response.status === 403) {
+          toast.error("Bạn không có quyền xem danh sách người dùng");
+          throw new Error("Không có quyền truy cập: Bạn không có quyền xem danh sách người dùng");
+        }
+        
+        throw error;
+      }
+    },
+    // Retry đến 2 lần nếu có lỗi
+    retry: 2,
+    // Báo lỗi chi tiết
+    onError: (err) => {
+      console.error("Query error in UserList:", err);
+      toast.error(`Không thể tải danh sách người dùng: ${err.message}`);
+    }
   });
 
   // Làm mới dữ liệu
@@ -56,13 +85,95 @@ const UserList = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["users"] });
       toast.success("Người dùng đã được tạo thành công!");
+      toast.dismiss("creating-user");
+      setFormError({
+        hasError: false,
+        message: "",
+        details: []
+      });
       closeModal();
     },
     onError: (error) => {
       console.error("Error creating user:", error);
-      // Hiển thị thông báo lỗi chi tiết nếu có
-      const errorDetail = error.response?.data?.error || error.message || "Không thể tạo người dùng. Vui lòng thử lại.";
-      toast.error(`Lỗi: ${errorDetail}`);
+      
+      toast.dismiss("creating-user");
+      
+      let errorMessage = "Không thể tạo người dùng. Vui lòng thử lại.";
+      let errorDetails = [];
+      
+      if (error.response) {
+        if (error.response.data) {
+          if (error.response.data.message) {
+            errorMessage = error.response.data.message;
+          } else if (error.response.data.error) {
+            errorMessage = error.response.data.error;
+          } else if (typeof error.response.data === 'string') {
+            errorMessage = error.response.data;
+          }
+          
+          if (error.response.data.details) {
+            errorDetails = Array.isArray(error.response.data.details) 
+              ? error.response.data.details 
+              : [error.response.data.details];
+          }
+          
+          if (error.response.data.violations) {
+            errorDetails = error.response.data.violations.map(v => `${v.field}: ${v.message}`);
+          }
+        }
+        
+        const statusCode = error.response.status;
+        if (statusCode) {
+          errorMessage = `[${statusCode}] ${errorMessage}`;
+          
+          switch (statusCode) {
+            case 400:
+              errorMessage = `Dữ liệu không hợp lệ: ${errorMessage}`;
+              break;
+            case 401:
+              errorMessage = `Không có quyền truy cập: ${errorMessage}`;
+              break;
+            case 403:
+              errorMessage = `Không đủ quyền hạn: ${errorMessage}`;
+              break;
+            case 409:
+              errorMessage = `Xung đột dữ liệu: ${errorMessage}`;
+              if (errorMessage.toLowerCase().includes('email')) {
+                errorDetails.push("Email đã được sử dụng, vui lòng chọn email khác");
+              }
+              if (errorMessage.toLowerCase().includes('username')) {
+                errorDetails.push("Tên đăng nhập đã tồn tại, vui lòng chọn tên đăng nhập khác");
+              }
+              break;
+            case 500:
+              errorMessage = `Lỗi máy chủ: ${errorMessage}`;
+              break;
+          }
+        }
+      } else if (error.request) {
+        errorMessage = "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.";
+      } else if (error.message) {
+        errorMessage = error.message;
+        
+        if (error.detail) {
+          errorDetails.push(error.detail.message || "Không có thông tin chi tiết");
+        }
+      }
+      
+      toast.error(`Lỗi: ${errorMessage}`);
+      
+      setFormError({
+        hasError: true,
+        message: errorMessage,
+        details: errorDetails
+      });
+      
+      console.error("Detailed error info:", {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message
+      });
     },
   });
 
@@ -95,51 +206,103 @@ const UserList = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    
+    if (name === 'username') {
+      const sanitizedValue = value.replace(/\s+/g, '');
+      setFormData((prev) => ({
+        ...prev,
+        [name]: sanitizedValue,
+      }));
+      
+      if (value !== sanitizedValue) {
+        toast.info("Tên đăng nhập không được chứa khoảng trắng", {
+          id: "username-whitespace",
+          duration: 3000
+        });
+      }
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
+    
+    setFormError({
+      hasError: false,
+      message: "",
+      details: []
+    });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
-    // Chuẩn bị dữ liệu gửi đi
     const userData = { ...formData };
     
-    // Đảm bảo số điện thoại đúng định dạng 10 số
-    if (userData.phone) {
-      userData.phone = userData.phone.trim();
-      // Nếu không phải là số 10 chữ số, hiển thị lỗi
-      if (!/^\d{10}$/.test(userData.phone)) {
-        toast.error("Số điện thoại phải có đúng 10 chữ số");
-        return;
-      }
+    const validationErrors = [];
+    
+    if (!userData.firstName || userData.firstName.trim() === '') {
+      validationErrors.push("Họ không được để trống");
     }
     
-    // Kiểm tra email hợp lệ
-    if (!/\S+@\S+\.\S+/.test(userData.email)) {
-      toast.error("Email không hợp lệ");
-      return;
+    if (!userData.lastName || userData.lastName.trim() === '') {
+      validationErrors.push("Tên không được để trống");
+    }
+    
+    if (!userData.email || userData.email.trim() === '') {
+      validationErrors.push("Email không được để trống");
+    } else if (!/^\S+@\S+\.\S+$/.test(userData.email)) {
+      validationErrors.push("Email không hợp lệ");
+    }
+    
+    if (!userData.username || userData.username.trim() === '') {
+      validationErrors.push("Tên đăng nhập không được để trống");
+    } else if (userData.username.length < 3) {
+      validationErrors.push("Tên đăng nhập phải có ít nhất 3 ký tự");
+    }
+    
+    if (userData.phone) {
+      userData.phone = userData.phone.trim();
+      if (!/^\d{10}$/.test(userData.phone)) {
+        validationErrors.push("Số điện thoại phải có đúng 10 chữ số");
+      }
+    } else {
+      validationErrors.push("Số điện thoại không được để trống");
     }
     
     // Kiểm tra mật khẩu (chỉ khi tạo mới hoặc có nhập mật khẩu khi cập nhật)
-    if (!isEditMode || userData.password) {
-      if (userData.password && userData.password.length < 6) {
-        toast.error("Mật khẩu phải có ít nhất 6 ký tự");
-        return;
+    if (!isEditMode) {
+      if (!userData.password || userData.password.trim() === '') {
+        validationErrors.push("Mật khẩu không được để trống");
+      } else if (userData.password.length < 6) {
+        validationErrors.push("Mật khẩu phải có ít nhất 6 ký tự");
       }
+    } else if (userData.password && userData.password.length < 6 && userData.password.trim() !== '') {
+      validationErrors.push("Mật khẩu phải có ít nhất 6 ký tự");
+    }
+    
+    if (validationErrors.length > 0) {
+      // Cập nhật: hiển thị tất cả các lỗi validation trong form thay vì chỉ lỗi đầu tiên
+      toast.error(`Đã xảy ra ${validationErrors.length} lỗi khi kiểm tra dữ liệu nhập vào`);
+      
+      // Cập nhật state formError để hiển thị tất cả các lỗi
+      setFormError({
+        hasError: true,
+        message: "Vui lòng kiểm tra và sửa các lỗi sau:",
+        details: validationErrors
+      });
+      
+      console.error("Validation errors:", validationErrors);
+      return;
     }
     
     console.log("Submitting user data:", userData);
     
     if (isEditMode && selectedUser) {
-      // For editing, we don't need to send the password if it's empty
-      if (!userData.password) {
+      if (!userData.password || userData.password.trim() === '') {
         delete userData.password;
       }
       
-      // Đảm bảo trường role được gửi đi khi cập nhật
       if (!userData.role) {
         userData.role = selectedUser.role;
       }
@@ -149,8 +312,12 @@ const UserList = () => {
         data: userData
       });
     } else {
-      // Creating a new user
       createUserMutation.mutate(userData);
+      
+      toast.info("Đang tạo người dùng mới...", {
+        id: "creating-user",
+        duration: 5000
+      });
     }
   };
 
@@ -162,7 +329,7 @@ const UserList = () => {
       email: user.email || "",
       username: user.username || "",
       phone: user.phoneNumber || "",
-      password: "", // Password field is empty during edit
+      password: "",
       role: user.role || "CUSTOMER",
     });
     setIsEditMode(true);
@@ -196,7 +363,6 @@ const UserList = () => {
     setSelectedUser(null);
   };
 
-  // Filter users based on search term
   const filteredUsers = users.filter(user => 
     (user.firstName && user.firstName.toLowerCase().includes(searchTerm.toLowerCase())) ||
     (user.lastName && user.lastName.toLowerCase().includes(searchTerm.toLowerCase())) ||
@@ -246,7 +412,27 @@ const UserList = () => {
         </div>
       ) : isError ? (
         <div className="bg-red-50 text-red-500 p-4 rounded-md mb-6">
-          <p className="font-medium">Lỗi khi tải dữ liệu: {error?.message || "Không thể tải danh sách người dùng"}</p>
+          <h3 className="text-lg font-medium mb-2">Lỗi khi tải dữ liệu</h3>
+          <p className="mb-2">{error?.message || "Không thể tải danh sách người dùng"}</p>
+          {error?.response?.status === 403 && (
+            <div className="mt-2 text-sm bg-red-100 p-3 rounded">
+              <p className="font-medium">Lỗi quyền truy cập:</p>
+              <ul className="list-disc list-inside mt-1">
+                <li>Tài khoản của bạn không có quyền xem danh sách người dùng</li>
+                <li>Vui lòng đăng nhập với tài khoản có quyền quản trị</li>
+                <li>Hoặc liên hệ quản trị viên để được cấp quyền</li>
+              </ul>
+            </div>
+          )}
+          <div className="mt-4">
+            <button 
+              onClick={refreshData}
+              className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md"
+            >
+              <i className="fas fa-sync-alt"></i>
+              <span>Thử lại</span>
+            </button>
+          </div>
         </div>
       ) : (
         <div className="bg-white rounded-md shadow overflow-hidden">
@@ -344,6 +530,20 @@ const UserList = () => {
               : "Nhập thông tin để tạo tài khoản người dùng mới"}
           </p>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Hiển thị thông báo lỗi */}
+            {formError.hasError && (
+              <div className="bg-red-50 text-red-500 p-3 rounded-md mb-4">
+                <p className="font-medium">{formError.message}</p>
+                {formError.details.length > 0 && (
+                  <ul className="mt-2 text-sm list-disc list-inside">
+                    {formError.details.map((detail, index) => (
+                      <li key={index}>{detail}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            )}
+            
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

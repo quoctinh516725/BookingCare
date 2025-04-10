@@ -7,11 +7,31 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 // Cấu hình mặc định cho axios
 axios.defaults.withCredentials = true;
 axios.defaults.baseURL = API_URL;
+axios.defaults.timeout = 30000; // Default timeout to 30 seconds
 
 const axiosJWT = axios.create({
   baseURL: API_URL,
   withCredentials: true,
+  timeout: 30000 // Default timeout to 30 seconds
 });
+
+// Global variables for token refresh handling
+let isRefreshing = false;
+let failedQueue = [];
+const MAX_RETRY_COUNT = 3;
+
+// Process queued failed requests
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+  
+  failedQueue = [];
+};
 
 // Thêm interceptor để tự động refresh token
 axiosJWT.interceptors.response.use(
@@ -19,34 +39,167 @@ axiosJWT.interceptors.response.use(
     return response;
   },
   async (error) => {
+    // Lưu request ban đầu để thử lại
+    const originalRequest = error.config;
+    
+    // Nếu không có response hoặc không có originalRequest, không thể xử lý
+    if (!error.response || !originalRequest) {
+      console.error("Lỗi mạng hoặc không có request ban đầu:", error.message);
+      
+      // Thử lại request cho lỗi mạng (không có response)
+      if (!error.response && !originalRequest._retryCount) {
+        originalRequest._retryCount = 1;
+        
+        // Thực hiện thử lại với độ trễ tăng dần
+        const retryDelay = Math.pow(2, originalRequest._retryCount) * 1000;
+        console.log(`Thử lại request sau ${retryDelay}ms (lần ${originalRequest._retryCount}/${MAX_RETRY_COUNT})`);
+        
+        if (originalRequest._retryCount <= MAX_RETRY_COUNT) {
+          return new Promise(resolve => {
+            setTimeout(() => resolve(axiosJWT(originalRequest)), retryDelay);
+          });
+        }
+      }
+      
+      return Promise.reject(error);
+    }
+    
     // Nếu lỗi 401 Unauthorized, thử refresh token và gửi lại request
-    if (error.response && error.response.status === 401) {
-      console.log("Token expired, attempting to refresh...");
+    if (error.response.status === 401 && !originalRequest._retry) {
+      console.log("Token hết hạn, đang thử refresh...");
+      
+      // Kiểm tra nếu đang refresh token
+      if (isRefreshing) {
+        console.log("Đang có refresh token khác đang xử lý, request hiện tại sẽ đợi");
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(token => {
+            console.log("Dùng token đã refresh để thử lại request");
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return axiosJWT(originalRequest);
+          })
+          .catch(err => {
+            console.error("Thử lại request với token mới thất bại:", err);
+            return Promise.reject(err);
+          });
+      }
+      
+      // Thêm flag để tránh lặp vô hạn
+      originalRequest._retry = true;
+      isRefreshing = true;
       
       try {
-        // Lưu request ban đầu để thử lại
-        const originalRequest = error.config;
+        // Gọi API refresh token
+        console.log("Đang gọi API refresh token...");
+        const refreshResponse = await refreshToken();
         
-        // Thêm flag để tránh lặp vô hạn
-        if (!originalRequest._retry) {
-          originalRequest._retry = true;
+        if (refreshResponse && refreshResponse.token) {
+          const newToken = refreshResponse.token;
+          console.log("Token đã được refresh thành công");
           
-          // Gọi API refresh token
-          const refreshResponse = await refreshToken();
+          // Xử lý hàng đợi các request đang chờ
+          processQueue(null, newToken);
           
-          if (refreshResponse && refreshResponse.token) {
-            // Cập nhật token mới vào request ban đầu
-            originalRequest.headers["Authorization"] = `Bearer ${refreshResponse.token}`;
-            console.log("Token refreshed, retrying original request");
-            
-            // Thử lại request ban đầu với token mới
-            return axiosJWT(originalRequest);
-          }
+          // Cập nhật token mới vào request ban đầu
+          originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
+          
+          // Kết thúc quá trình refresh
+          isRefreshing = false;
+          
+          // Thử lại request ban đầu với token mới
+          return axiosJWT(originalRequest);
+        } else {
+          console.error("API refresh token trả về không có token mới");
+          processQueue(new Error("Không thể refresh token"));
+          isRefreshing = false;
+          
+          // Xóa token cũ
+          localStorage.removeItem("access_token");
+          
+          // Chuyển hướng về trang login
+          window.location.href = "/login";
+          
+          return Promise.reject(new Error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại"));
         }
       } catch (refreshError) {
-        console.error("Failed to refresh token:", refreshError);
-        // Chuyển hướng về trang login nếu refresh token cũng thất bại
+        console.error("Lỗi khi refresh token:", refreshError);
+        
+        // Xử lý thông báo lỗi
+        processQueue(refreshError);
+        isRefreshing = false;
+        
+        // Xóa token cũ vì không còn hợp lệ
+        localStorage.removeItem("access_token");
+        
+        // Log chi tiết về lỗi refresh token
+        const errorDetails = {
+          message: refreshError.message,
+          response: refreshError.response?.data,
+          status: refreshError.response?.status,
+          time: new Date().toISOString()
+        };
+        console.error("Chi tiết lỗi refresh token:", errorDetails);
+        
+        // Chuyển hướng về trang login
         window.location.href = "/login";
+        
+        return Promise.reject(refreshError);
+      }
+    }
+    
+    // Xử lý các loại lỗi HTTP khác
+    if (error.response) {
+      const { status, data } = error.response;
+      
+      // Tạo thông tin lỗi chi tiết để log
+      const errorContext = {
+        url: originalRequest.url,
+        method: originalRequest.method,
+        status,
+        data,
+        timestamp: new Date().toISOString()
+      };
+      
+      switch (status) {
+        case 403:
+          console.error("Lỗi quyền truy cập (403):", errorContext);
+          break;
+          
+        case 404:
+          console.error("Tài nguyên không tồn tại (404):", errorContext);
+          break;
+          
+        case 400:
+          console.error("Yêu cầu không hợp lệ (400):", errorContext);
+          break;
+          
+        case 500:
+        case 502:
+        case 503:
+        case 504:
+          console.error(`Lỗi máy chủ (${status}):`, errorContext);
+          
+          // Thử lại request cho lỗi máy chủ
+          if (!originalRequest._serverErrorRetryCount) {
+            originalRequest._serverErrorRetryCount = 1;
+          } else {
+            originalRequest._serverErrorRetryCount++;
+          }
+          
+          // Giới hạn số lần thử lại
+          if (originalRequest._serverErrorRetryCount <= 2) {
+            const retryDelay = originalRequest._serverErrorRetryCount * 1000;
+            console.log(`Thử lại request sau lỗi máy chủ sau ${retryDelay}ms (lần ${originalRequest._serverErrorRetryCount}/2)`);
+            
+            return new Promise(resolve => {
+              setTimeout(() => resolve(axiosJWT(originalRequest)), retryDelay);
+            });
+          }
+          break;
+          
+        default:
+          console.error(`Lỗi HTTP không xử lý (${status}):`, errorContext);
       }
     }
     
@@ -54,6 +207,42 @@ axiosJWT.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+// Request interceptor để thêm token và xử lý request
+axiosJWT.interceptors.request.use(function (config) {
+  // Đảm bảo tất cả request đều có timeout
+  if (!config.timeout) {
+    config.timeout = 30000; // Default 30s
+  }
+  
+  // Đảm bảo tất cả request đều có withCredentials
+  config.withCredentials = true;
+  
+  // Thêm timestamp để tránh cache
+  if (config.method === 'get') {
+    if (!config.params) {
+      config.params = {};
+    }
+    config.params._t = new Date().getTime();
+  }
+  
+  // Thêm token vào request nếu chưa có
+  if (!config.headers.Authorization) {
+    const tokenString = localStorage.getItem("access_token");
+    if (tokenString) {
+      try {
+        const token = JSON.parse(tokenString);
+        config.headers.Authorization = `Bearer ${token}`;
+      } catch (error) {
+        console.error("Error parsing token for request:", error);
+      }
+    }
+  }
+  
+  return config;
+}, function (error) {
+  return Promise.reject(error);
+});
 
 const signUpUser = async (data) => {
   try {

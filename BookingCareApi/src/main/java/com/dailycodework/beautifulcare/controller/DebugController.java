@@ -302,4 +302,235 @@ public class DebugController {
         
         return ResponseEntity.ok(result);
     }
+    
+    @GetMapping("/database-mappings")
+    @Operation(summary = "Inspect database mappings for permission related tables")
+    public ResponseEntity<Map<String, Object>> inspectDatabaseMappings() {
+        log.info("Kiểm tra mapping database cho các bảng liên quan đến quyền");
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            // Lấy tất cả nhóm quyền
+            List<PermissionGroup> allGroups = permissionGroupRepository.findAll();
+            
+            // Lấy tổng số user và permission
+            long userCount = userRepository.count();
+            long permissionCount = permissionRepository.count();
+            
+            // Thông tin cơ bản
+            Map<String, Object> overview = new HashMap<>();
+            overview.put("numberOfPermissionGroups", allGroups.size());
+            overview.put("numberOfUsers", userCount);
+            overview.put("numberOfPermissions", permissionCount);
+            result.put("overview", overview);
+            
+            // Thống kê chi tiết về các nhóm quyền
+            List<Map<String, Object>> groupStats = new ArrayList<>();
+            for (PermissionGroup group : allGroups) {
+                Map<String, Object> groupInfo = new HashMap<>();
+                groupInfo.put("id", group.getId());
+                groupInfo.put("name", group.getName());
+                groupInfo.put("userCount", group.getUsers().size());
+                groupInfo.put("permissionCount", group.getPermissions().size());
+                groupStats.add(groupInfo);
+            }
+            result.put("permissionGroupStats", groupStats);
+            
+            // Thống kê top user theo số lượng nhóm quyền
+            List<User> allUsers = userRepository.findAll();
+            allUsers.sort((u1, u2) -> u2.getPermissionGroups().size() - u1.getPermissionGroups().size());
+            
+            List<Map<String, Object>> topUsers = new ArrayList<>();
+            for (int i = 0; i < Math.min(10, allUsers.size()); i++) {
+                User user = allUsers.get(i);
+                Map<String, Object> userInfo = new HashMap<>();
+                userInfo.put("id", user.getId());
+                userInfo.put("username", user.getUsername());
+                userInfo.put("groupCount", user.getPermissionGroups().size());
+                
+                // Danh sách tên các nhóm
+                List<String> groupNames = new ArrayList<>();
+                for (PermissionGroup group : user.getPermissionGroups()) {
+                    groupNames.add(group.getName());
+                }
+                userInfo.put("groups", groupNames);
+                
+                topUsers.add(userInfo);
+            }
+            result.put("topUsersByGroupCount", topUsers);
+            
+            // Kiểm tra mapping trong database
+            result.put("success", true);
+            result.put("message", "Mapping được kiểm tra thành công");
+            
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("Lỗi khi kiểm tra database mapping: {}", e.getMessage());
+            
+            result.put("success", false);
+            result.put("message", "Lỗi khi kiểm tra database mapping: " + e.getMessage());
+            return ResponseEntity.status(500).body(result);
+        }
+    }
+    
+    @GetMapping("/user-permission-groups")
+    @Operation(summary = "Inspect the user_permission_groups join table")
+    public ResponseEntity<Map<String, Object>> inspectUserPermissionGroups() {
+        log.info("Kiểm tra bảng user_permission_groups");
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            // Lấy thông tin người dùng và nhóm quyền
+            List<User> allUsers = userRepository.findAll();
+            List<PermissionGroup> allGroups = permissionGroupRepository.findAll();
+            
+            // Tạo mapping id -> tên user để dễ dàng tham chiếu
+            Map<UUID, String> userIdToName = new HashMap<>();
+            for (User user : allUsers) {
+                userIdToName.put(user.getId(), user.getUsername());
+            }
+            
+            // Tạo mapping id -> tên group để dễ dàng tham chiếu
+            Map<UUID, String> groupIdToName = new HashMap<>();
+            for (PermissionGroup group : allGroups) {
+                groupIdToName.put(group.getId(), group.getName());
+            }
+            
+            // Thông tin quan hệ user-group từ phía user
+            List<Map<String, Object>> userToGroups = new ArrayList<>();
+            for (User user : allUsers) {
+                if (user.getPermissionGroups().isEmpty()) {
+                    continue; // Bỏ qua user không có nhóm quyền
+                }
+                
+                Map<String, Object> relationship = new HashMap<>();
+                relationship.put("userId", user.getId());
+                relationship.put("username", user.getUsername());
+                
+                List<Map<String, Object>> groups = new ArrayList<>();
+                for (PermissionGroup group : user.getPermissionGroups()) {
+                    Map<String, Object> groupInfo = new HashMap<>();
+                    groupInfo.put("groupId", group.getId());
+                    groupInfo.put("groupName", group.getName());
+                    groups.add(groupInfo);
+                }
+                relationship.put("groups", groups);
+                relationship.put("groupCount", groups.size());
+                
+                userToGroups.add(relationship);
+            }
+            result.put("userToGroups", userToGroups);
+            
+            // Thông tin quan hệ group-user từ phía group
+            List<Map<String, Object>> groupToUsers = new ArrayList<>();
+            for (PermissionGroup group : allGroups) {
+                if (group.getUsers().isEmpty()) {
+                    continue; // Bỏ qua group không có user
+                }
+                
+                Map<String, Object> relationship = new HashMap<>();
+                relationship.put("groupId", group.getId());
+                relationship.put("groupName", group.getName());
+                
+                List<Map<String, Object>> users = new ArrayList<>();
+                for (User user : group.getUsers()) {
+                    Map<String, Object> userInfo = new HashMap<>();
+                    userInfo.put("userId", user.getId());
+                    userInfo.put("username", user.getUsername());
+                    users.add(userInfo);
+                }
+                relationship.put("users", users);
+                relationship.put("userCount", users.size());
+                
+                groupToUsers.add(relationship);
+            }
+            result.put("groupToUsers", groupToUsers);
+            
+            // Thống kê tổng hợp
+            result.put("totalUserGroupMappings", userToGroups.stream().mapToInt(m -> (Integer)m.get("groupCount")).sum());
+            result.put("usersWithGroups", userToGroups.size());
+            result.put("groupsWithUsers", groupToUsers.size());
+            
+            result.put("success", true);
+            result.put("message", "Kiểm tra user_permission_groups thành công");
+            
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("Lỗi khi kiểm tra user_permission_groups: {}", e.getMessage());
+            log.error("Chi tiết lỗi:", e);
+            
+            result.put("success", false);
+            result.put("message", "Lỗi khi kiểm tra user_permission_groups: " + e.getMessage());
+            result.put("stackTrace", e.getStackTrace());
+            return ResponseEntity.status(500).body(result);
+        }
+    }
+
+    // Thêm endpoint mới để kiểm tra sự tồn tại của cột trong bảng
+    @GetMapping("/check-table-structure")
+    @Operation(summary = "Check the structure of permission-related tables")
+    public ResponseEntity<Map<String, Object>> checkTableStructure() {
+        log.info("Kiểm tra cấu trúc các bảng liên quan đến quyền");
+        
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            // Kiểm tra mapping Java
+            Map<String, Object> javaMapping = new HashMap<>();
+            
+            // Kiểm tra User entity - mối quan hệ với PermissionGroup
+            Map<String, Object> userEntityInfo = new HashMap<>();
+            User sampleUser = userRepository.findAll().stream().findFirst().orElse(null);
+            userEntityInfo.put("userClass", User.class.getName());
+            userEntityInfo.put("userPermissionGroupsField", "Set<PermissionGroup> permissionGroups");
+            userEntityInfo.put("joinTableAnnotation", "@JoinTable(name = \"user_permission_groups\")");
+            userEntityInfo.put("joinColumnAnnotation", "@JoinColumn(name = \"user_id\")");
+            userEntityInfo.put("inverseJoinColumnAnnotation", "@JoinColumn(name = \"permission_group_id\")");
+            
+            if (sampleUser != null) {
+                userEntityInfo.put("sampleUserHasPermissionGroups", !sampleUser.getPermissionGroups().isEmpty());
+                userEntityInfo.put("mapperAccessible", true);
+            } else {
+                userEntityInfo.put("sampleUserHasPermissionGroups", "No users found");
+                userEntityInfo.put("mapperAccessible", false);
+            }
+            
+            javaMapping.put("userEntity", userEntityInfo);
+            
+            // Kiểm tra PermissionGroup entity
+            Map<String, Object> groupEntityInfo = new HashMap<>();
+            PermissionGroup sampleGroup = permissionGroupRepository.findAll().stream().findFirst().orElse(null);
+            groupEntityInfo.put("permissionGroupClass", PermissionGroup.class.getName());
+            groupEntityInfo.put("usersField", "Set<User> users");
+            groupEntityInfo.put("mappedByAnnotation", "@ManyToMany(mappedBy = \"permissionGroups\")");
+            
+            if (sampleGroup != null) {
+                groupEntityInfo.put("sampleGroupHasUsers", !sampleGroup.getUsers().isEmpty());
+                groupEntityInfo.put("mapperAccessible", true);
+            } else {
+                groupEntityInfo.put("sampleGroupHasUsers", "No groups found");
+                groupEntityInfo.put("mapperAccessible", false);
+            }
+            
+            javaMapping.put("permissionGroupEntity", groupEntityInfo);
+            
+            // Thêm thông tin mapping vào kết quả
+            result.put("javaMapping", javaMapping);
+            
+            // Thêm thông tin trạng thái
+            result.put("success", true);
+            result.put("message", "Kiểm tra cấu trúc bảng thành công");
+            
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            log.error("Lỗi khi kiểm tra cấu trúc bảng: {}", e.getMessage());
+            log.error("Chi tiết lỗi:", e);
+            
+            result.put("success", false);
+            result.put("message", "Lỗi khi kiểm tra cấu trúc bảng: " + e.getMessage());
+            return ResponseEntity.status(500).body(result);
+        }
+    }
 } 

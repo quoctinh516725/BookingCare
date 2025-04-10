@@ -56,7 +56,7 @@ public class User implements UserDetails {
     @JoinTable(
         name = "user_permission_groups",
         joinColumns = @JoinColumn(name = "user_id"),
-        inverseJoinColumns = @JoinColumn(name = "group_id")
+        inverseJoinColumns = @JoinColumn(name = "permission_group_id")
     )
     @Builder.Default
     private Set<PermissionGroup> permissionGroups = new HashSet<>();

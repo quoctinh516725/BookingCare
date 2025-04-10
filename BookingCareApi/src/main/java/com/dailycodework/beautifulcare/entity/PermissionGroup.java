@@ -46,7 +46,7 @@ public class PermissionGroup {
     @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
         name = "permission_group_permissions",
-        joinColumns = @JoinColumn(name = "group_id"),
+        joinColumns = @JoinColumn(name = "permission_group_id"),
         inverseJoinColumns = @JoinColumn(name = "permission_id")
     )
     @Builder.Default
