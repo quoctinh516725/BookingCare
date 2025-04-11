@@ -13,9 +13,11 @@ import com.dailycodework.beautifulcare.exception.ResourceNotFoundException;
 import com.dailycodework.beautifulcare.mapper.FeedbackMapper;
 import com.dailycodework.beautifulcare.repository.BookingRepository;
 import com.dailycodework.beautifulcare.repository.FeedbackRepository;
+import com.dailycodework.beautifulcare.repository.SpecialistRepository;
 import com.dailycodework.beautifulcare.repository.UserRepository;
 import com.dailycodework.beautifulcare.security.SecurityUtils;
 import com.dailycodework.beautifulcare.service.FeedbackService;
+import com.dailycodework.beautifulcare.service.SpecialistService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -34,6 +36,8 @@ public class FeedbackServiceImpl implements FeedbackService {
     private final FeedbackMapper feedbackMapper;
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
+    private final SpecialistRepository specialistRepository;
+    private final SpecialistService specialistService;
     private final SecurityUtils securityUtils;
 
     @Override
@@ -99,7 +103,12 @@ public class FeedbackServiceImpl implements FeedbackService {
         feedback.setBooking(booking);
         feedback.setCustomer(customer);
 
-        return feedbackMapper.toFeedbackResponse(feedbackRepository.save(feedback));
+        Feedback savedFeedback = feedbackRepository.save(feedback);
+        
+        // Cập nhật đánh giá cho chuyên gia nếu booking liên quan đến một chuyên gia
+        updateSpecialistRating(booking);
+        
+        return feedbackMapper.toFeedbackResponse(savedFeedback);
     }
 
     @Override
@@ -129,7 +138,12 @@ public class FeedbackServiceImpl implements FeedbackService {
         // Update feedback attributes
         feedbackMapper.updateFeedback(feedback, request);
 
-        return feedbackMapper.toFeedbackResponse(feedbackRepository.save(feedback));
+        Feedback updatedFeedback = feedbackRepository.save(feedback);
+        
+        // Cập nhật đánh giá cho chuyên gia nếu booking liên quan đến một chuyên gia
+        updateSpecialistRating(feedback.getBooking());
+        
+        return feedbackMapper.toFeedbackResponse(updatedFeedback);
     }
 
     @Override
@@ -138,11 +152,16 @@ public class FeedbackServiceImpl implements FeedbackService {
         log.info("Deleting feedback with ID: {}", id);
 
         // Admin access is checked at controller level with @PreAuthorize
-        if (!feedbackRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Feedback not found with id: " + id);
-        }
-
+        Feedback feedback = feedbackRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Feedback not found with id: " + id));
+        
+        // Lưu booking để cập nhật rating sau khi xóa
+        Booking booking = feedback.getBooking();
+        
         feedbackRepository.deleteById(id);
+        
+        // Cập nhật đánh giá cho chuyên gia sau khi xóa feedback
+        updateSpecialistRating(booking);
     }
 
     @Override
@@ -173,5 +192,33 @@ public class FeedbackServiceImpl implements FeedbackService {
         return feedbackRepository.findByCustomerId(customerId).stream()
                 .map(feedbackMapper::toFeedbackResponse)
                 .collect(Collectors.toList());
+    }
+    
+    /**
+     * Cập nhật đánh giá cho chuyên gia dựa trên feedback của một booking
+     * @param booking Booking liên quan đến feedback
+     */
+    private void updateSpecialistRating(Booking booking) {
+        if (booking == null || booking.getStaff() == null) {
+            return;
+        }
+        
+        // Kiểm tra xem staff có phải là chuyên gia không
+        User staff = booking.getStaff();
+        specialistRepository.findByUser(staff).ifPresent(specialist -> {
+            try {
+                // Tính toán lại rating trung bình từ các feedback
+                Double averageRating = feedbackRepository.calculateAverageRatingForStaff(staff.getId());
+                
+                // Cập nhật rating cho chuyên gia
+                if (averageRating != null) {
+                    specialist.setRating(averageRating.floatValue());
+                    specialistRepository.save(specialist);
+                    log.info("Đã cập nhật rating cho chuyên gia ID {}: {}", specialist.getId(), averageRating);
+                }
+            } catch (Exception e) {
+                log.error("Lỗi khi cập nhật rating cho chuyên gia từ feedback: {}", e.getMessage());
+            }
+        });
     }
 }

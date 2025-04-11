@@ -609,9 +609,14 @@ const getServices = async (categoryId = null) => {
  */
 const getStaff = async () => {
   try {
+    // Lấy token từ localStorage để thêm vào header cho request
+    const tokenString = localStorage.getItem("access_token");
+    const token = tokenString ? JSON.parse(tokenString) : null;
+    
     const response = await axios.get(`/api/v1/users/staff`, {
       headers: {
         "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` })
       },
       withCredentials: true,
     });
