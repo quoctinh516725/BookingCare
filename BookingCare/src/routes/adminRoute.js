@@ -7,7 +7,6 @@ import ServiceList from "../pages/admin/service/ServiceList";
 import ServiceCategories from "../pages/admin/service/ServiceCategories";
 import SpecialistList from "../pages/admin/specialist/SpecialistList";
 import SpecialistForm from "../pages/admin/specialist/SpecialistForm";
-import SpecialistDetail from "../pages/admin/specialist/SpecialistDetail";
 import BlogPosts from "../pages/admin/blog/BlogPosts";
 import BlogCategories from "../pages/admin/blog/BlogCategories";
 import Appointments from "../pages/admin/Appointments";
@@ -75,18 +74,6 @@ const routes = [
   {
     path: "/admin/specialists/create",
     page: SpecialistForm,
-    layout: AdminLayout,
-    isDefaultPage: true,
-  },
-  {
-    path: "/admin/specialists/edit/:id",
-    page: SpecialistForm,
-    layout: AdminLayout,
-    isDefaultPage: true,
-  },
-  {
-    path: "/admin/specialists/view/:id",
-    page: SpecialistDetail,
     layout: AdminLayout,
     isDefaultPage: true,
   },

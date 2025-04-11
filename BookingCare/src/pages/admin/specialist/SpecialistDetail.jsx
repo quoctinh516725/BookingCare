@@ -211,6 +211,28 @@ const SpecialistDetail = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Ảnh bổ sung */}
+              {specialist.images && specialist.images.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Thư viện ảnh</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {specialist.images.map((image, index) => (
+                      <div key={index} className="relative h-40 rounded-lg overflow-hidden bg-gray-100">
+                        <img 
+                          src={image} 
+                          alt={`Ảnh ${index + 1} của ${fullName}`} 
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "https://via.placeholder.com/300?text=Error+Loading";
+                          }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Các nút tác vụ */}
