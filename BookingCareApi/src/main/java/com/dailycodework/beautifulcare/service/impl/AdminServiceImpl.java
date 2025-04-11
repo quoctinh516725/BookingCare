@@ -83,14 +83,13 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    @Cacheable(value = "recentBookings", key = "#limit", unless = "#result.isEmpty()")
     @Transactional(readOnly = true)
     public List<BookingResponse> getRecentBookings(int limit) {
         try {
             log.info("Fetching recent bookings with limit: {}", limit);
             
-            PageRequest pageRequest = PageRequest.of(0, limit);
-            // Sử dụng phương thức đã tối ưu hóa để lấy tất cả dữ liệu cần thiết trong 1 truy vấn
+            // Add explicit sorting by created_at DESC
+            PageRequest pageRequest = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "createdAt"));
             List<Booking> bookings = bookingRepository.findRecentBookingsWithFullDetails(pageRequest);
             
             List<BookingResponse> result = bookings.stream()
@@ -182,6 +181,12 @@ public class AdminServiceImpl implements AdminService {
                 .collect(Collectors.toSet());
         }
         
+        // Ensure status is not null and handle legacy statuses
+        BookingStatus status = booking.getStatus();
+        if (status == null) {
+            status = BookingStatus.PENDING;
+        }
+        
         // Build response
         return BookingResponse.builder()
             .id(booking.getId())
@@ -191,7 +196,7 @@ public class AdminServiceImpl implements AdminService {
             .customerPhone(booking.getCustomer() != null ? booking.getCustomer().getPhone() : null)
             .staffId(booking.getStaff() != null ? booking.getStaff().getId() : null)
             .staffName(staffName)
-            .status(booking.getStatus())
+            .status(status)
             .bookingDate(booking.getAppointmentTime() != null ? booking.getAppointmentTime().toLocalDate() : null)
             .startTime(booking.getAppointmentTime() != null ? booking.getAppointmentTime().toLocalTime() : null)
             .formattedDateTime(formattedDateTime)

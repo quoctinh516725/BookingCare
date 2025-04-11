@@ -150,7 +150,7 @@ function Home() {
   );
 
   return (
-    <div className="flex flex-col mt-[60px]">
+    <div className="flex flex-col ">
       <div className="w-full h-[600px] relative">
         <img
           src={Background}

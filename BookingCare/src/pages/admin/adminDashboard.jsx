@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import AdminService from "../../../services/AdminService";
+import { Link } from "react-router-dom";
 
 const AdminDashboard = () => {
   // State để lưu trữ dữ liệu từ API
@@ -9,7 +10,7 @@ const AdminDashboard = () => {
   const [serviceDistribution, setServiceDistribution] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
-
+  console.log("appointments", appointments);
   useEffect(() => {
     // Hàm fetchData được tách ra để dễ quản lý
     const fetchData = async () => {
@@ -99,7 +100,7 @@ const AdminDashboard = () => {
   const fetchRecentBookings = async () => {
     try {
       console.log("Fetching recent bookings...");
-      const bookingsData = await AdminService.getRecentBookings(5);
+      const bookingsData = await AdminService.getRecentBookings(6);
       console.log("Recent bookings data:", bookingsData);
 
       const formattedAppointments = bookingsData.map((booking) => {
@@ -301,9 +302,9 @@ const AdminDashboard = () => {
             <div className="lg:col-span-3 bg-white rounded-md shadow p-4">
               <div className="flex justify-between items-center mb-1">
                 <h2 className="font-semibold text-lg">Lịch đặt gần đây</h2>
-                <button className="text-blue-600 hover:underline text-sm">
-                  Xem tất cả
-                </button>
+                <span className="text-[var(--primary-color)] font-medium text-sm">
+                  <Link to="/admin/appointments">Xem tất cả</Link>
+                </span>
               </div>
               <p className="text-gray-500 text-sm mb-4">
                 Danh sách các lịch đặt mới nhất
@@ -371,9 +372,9 @@ const AdminDashboard = () => {
             <div className="lg:col-span-2 bg-white rounded-md shadow p-4">
               <div className="flex justify-between items-center mb-1">
                 <h2 className="font-semibold text-lg">Dịch vụ phổ biến</h2>
-                <button className="text-blue-600 hover:underline text-sm">
-                  Quản lý dịch vụ
-                </button>
+                <span className="text-[var(--primary-color)] font-medium text-sm">
+                  <Link to="/admin/services">Quản lý dịch vụ</Link>
+                </span>
               </div>
               <p className="text-gray-500 text-sm mb-4">
                 Dịch vụ được đặt nhiều nhất

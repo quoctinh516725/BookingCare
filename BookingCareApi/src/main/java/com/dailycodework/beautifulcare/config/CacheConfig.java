@@ -25,7 +25,6 @@ public class CacheConfig {
             "allUsers",        // For getAllUsers
             "usersByRole",     // For getUsersByRole
             "popularServices", // For popular services
-            "recentBookings",  // For recent bookings
             "adminStats"       // For admin dashboard statistics
         );
         

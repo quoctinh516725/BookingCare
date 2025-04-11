@@ -58,12 +58,12 @@ function AdminSidebar() {
             BeautyCare
           </span>
         </div>
-        <div className="flex flex-col mt-5 cursor-pointer">
+        <div className="flex flex-col mt-5 cursor-pointer list-none">
           {/* Tổng quan - luôn hiển thị */}
           <div
             className={`flex items-center space-x-2 p-3 ${
               location.pathname === "/admin" ? "bg-gray-200" : ""
-            } hover:text-[var(--primary-color)]`}
+            } `}
             onClick={() => handleNavigate("/admin")}
           >
             <i className="fas fa-chart-pie text-2xl min-w-[30px] text-gray-500"></i>
@@ -88,11 +88,12 @@ function AdminSidebar() {
                 ></i>
               </div>
               {openMenus["users"] && (
-                <div className="flex flex-col">
+                <div className="flex flex-col list-none">
                   <PermissionMenuItem
                     permission="user:view"
                     to="/admin/list"
                     icon="fas fa-user"
+                    location={location}
                   >
                     Danh sách người dùng
                   </PermissionMenuItem>
@@ -100,6 +101,7 @@ function AdminSidebar() {
                     permission="role:view"
                     to="/admin/users/roles"
                     icon="fas fa-user-tag"
+                    location={location}
                   >
                     Vai trò người dùng
                   </PermissionMenuItem>
@@ -126,11 +128,12 @@ function AdminSidebar() {
                 ></i>
               </div>
               {openMenus["permissions"] && (
-                <div className="flex flex-col">
+                <div className="flex flex-col list-none">
                   <PermissionMenuItem
                     permission="permission_group:view"
                     to="/admin/permissions/groups"
                     icon="fas fa-layer-group"
+                    location={location}
                   >
                     Nhóm quyền
                   </PermissionMenuItem>
@@ -138,6 +141,7 @@ function AdminSidebar() {
                     permission="user_permission:view"
                     to="/admin/permissions/users"
                     icon="fas fa-user-shield"
+                    location={location}
                   >
                     Phân quyền người dùng
                   </PermissionMenuItem>
@@ -164,11 +168,12 @@ function AdminSidebar() {
                 ></i>
               </div>
               {openMenus["services"] && (
-                <div className="flex flex-col">
+                <div className="flex flex-col list-none">
                   <PermissionMenuItem
                     permission="service:view"
                     to="/admin/services"
                     icon="fas fa-list"
+                    location={location}
                   >
                     Danh sách dịch vụ
                   </PermissionMenuItem>
@@ -176,6 +181,7 @@ function AdminSidebar() {
                     permission="service:manage"
                     to="/admin/services/categories"
                     icon="fas fa-tags"
+                    location={location}
                   >
                     Danh mục
                   </PermissionMenuItem>
@@ -202,11 +208,12 @@ function AdminSidebar() {
                 ></i>
               </div>
               {openMenus["specialists"] && (
-                <div className="flex flex-col">
+                <div className="flex flex-col list-none">
                   <PermissionMenuItem
                     permission="specialist:view"
                     to="/admin/specialists"
                     icon="fas fa-id-badge"
+                    location={location}
                   >
                     Danh sách chuyên viên
                   </PermissionMenuItem>
@@ -233,11 +240,12 @@ function AdminSidebar() {
                 ></i>
               </div>
               {openMenus["blog"] && (
-                <div className="flex flex-col">
+                <div className="flex flex-col list-none">
                   <PermissionMenuItem
                     permission="blog:view"
                     to="/admin/blog/posts"
                     icon="fas fa-file-alt"
+                    location={location}
                   >
                     Danh sách bài viết
                   </PermissionMenuItem>
@@ -245,6 +253,7 @@ function AdminSidebar() {
                     permission="blog:manage"
                     to="/admin/blog/categories"
                     icon="fas fa-folder-open"
+                    location={location}
                   >
                     Danh mục
                   </PermissionMenuItem>
@@ -258,6 +267,7 @@ function AdminSidebar() {
             permission="booking:view"
             to="/admin/appointments"
             icon="fas fa-calendar-alt"
+            location={location}
           >
             Lịch đặt
           </PermissionMenuItem>
@@ -267,6 +277,7 @@ function AdminSidebar() {
             permission="report:view"
             to="/admin/reports"
             icon="fas fa-chart-line"
+            location={location}
           >
             Báo cáo & Thống kê
           </PermissionMenuItem>
@@ -276,6 +287,7 @@ function AdminSidebar() {
             permission="transaction:view"
             to="/admin/transactions"
             icon="fas fa-pager"
+            location={location}
           >
             Giao dịch
           </PermissionMenuItem>
@@ -285,7 +297,7 @@ function AdminSidebar() {
             <div
               className={`flex items-center space-x-2 p-3 ${
                 location.pathname === "/admin/settings" ? "bg-gray-200" : ""
-              } hover:text-[var(--primary-color)]`}
+              }`}
               onClick={() => handleNavigate("/admin/settings")}
             >
               <i className="fas fa-cog text-2xl min-w-[30px] text-gray-500"></i>

@@ -238,7 +238,7 @@ const ServiceList = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-xl font-bold">Quản lý dịch vụ</h1>
+        <h1 className="text-xl font-bold mb-6">Quản lý dịch vụ</h1>
         <span
           onClick={() => {
             setIsEditMode(false);
@@ -363,7 +363,7 @@ const ServiceList = () => {
         )}
       </div>
       <Modal isOpen={isOpen} onRequestClose={handleClose} style={customStyles}>
-        <div className="bg-white rounded-lg p-6 w-[500px] max-h-[90vh] overflow-y-auto">
+        <div className="bg-white rounded-lg p-6 w-[500px] max-h-[90vh] overflow-y-auto scrollbar-hidden">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">
               {isEditMode ? "Cập nhật dịch vụ" : "Thêm dịch vụ mới"}
@@ -496,16 +496,16 @@ const ServiceList = () => {
                       className="max-h-[150px] mx-auto rounded-lg object-contain"
                     />
                     <div className="absolute inset-0 bg-gray-500/30 bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                      <button
+                      <span
                         onClick={(e) => {
                           e.stopPropagation();
                           setPreviewUrl("");
                           setImageUrl("");
                         }}
-                        className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600"
+                        className=" text-white p-2 rounded-full cursor-pointer"
                       >
                         <i className="fas fa-trash"></i>
-                      </button>
+                      </span>
                     </div>
                   </div>
                 ) : (
@@ -524,13 +524,13 @@ const ServiceList = () => {
             <div className="flex justify-end gap-3 mt-6 sticky bottom-0 bg-white pt-3 pb-1">
               <span
                 onClick={handleClose}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
               >
                 Hủy
               </span>
               <span
                 onClick={handleSubmit}
-                className="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-md"
+                className="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-md cursor-pointer"
               >
                 {isEditMode ? "Cập nhật" : "Thêm dịch vụ"}
               </span>

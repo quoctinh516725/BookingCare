@@ -389,7 +389,7 @@ const SpecialistList = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-xl font-bold">Quản lý chuyên gia</h1>
+        <h1 className="text-xl font-bold mb-6">Quản lý chuyên gia</h1>
         <span
           onClick={openAddModal}
           className="flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-md cursor-pointer"
@@ -515,24 +515,24 @@ const SpecialistList = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-1">
-                        <button 
+                        <span 
                           onClick={() => handleViewSpecialist(specialist)}
                           className="text-cyan-500 hover:text-cyan-700 bg-cyan-100 hover:bg-cyan-200 p-1.5 rounded"
                         >
                           <i className="fas fa-eye"></i>
-                        </button>
-                        <button 
+                        </span>
+                        <span 
                           onClick={() => handleEditSpecialist(specialist)}
                           className="text-blue-500 hover:text-blue-700 bg-blue-100 hover:bg-blue-200 p-1.5 rounded"
                         >
                           <i className="fas fa-edit"></i>
-                        </button>
-                        <button 
+                        </span>
+                        <span 
                           onClick={() => handleDeleteSpecialist(specialist.id)}
                           className="text-red-500 hover:text-red-700 bg-red-100 hover:bg-red-200 p-1.5 rounded"
                         >
                           <i className="fas fa-trash-alt"></i>
-                        </button>
+                        </span>
                       </div>
                     </td>
                   </tr>
@@ -544,15 +544,15 @@ const SpecialistList = () => {
       </div>
 
       <Modal isOpen={isOpen} onRequestClose={closeAddModal} style={customStyles}>
-        <div className="p-4 max-h-[90vh] overflow-y-auto">
+        <div className="p-4 max-h-[90vh] overflow-y-auto scrollbar-hidden">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">Thêm chuyên gia mới</h2>
-            <button 
+            <span 
               onClick={closeAddModal}
               className="text-gray-500 hover:text-gray-700"
             >
               <i className="fas fa-times"></i>
-            </button>
+            </span>
           </div>
           
           <form className="space-y-4" onSubmit={handleSubmit}>
@@ -693,13 +693,13 @@ const SpecialistList = () => {
                       ref={fileInputRef}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
-                    <button
-                      type="button"
+                    <span
+                      type="span"
                       className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md text-gray-700"
                       onClick={() => fileInputRef.current?.click()}
                     >
                       Tải lên
-                    </button>
+                    </span>
                   </span>
                 </div>
                 
@@ -718,8 +718,8 @@ const SpecialistList = () => {
                         e.target.src = "https://via.placeholder.com/300?text=Error+Loading+Image";
                       }}
                     />
-                    <button
-                      type="button"
+                    <span
+                      type="span"
                       onClick={() => {
                         setImagePreview("");
                         setImageFile(null);
@@ -728,7 +728,7 @@ const SpecialistList = () => {
                       className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 focus:outline-none"
                     >
                       <i className="fas fa-times text-sm"></i>
-                    </button>
+                    </span>
                   </div>
                 )}
               </div>
@@ -771,17 +771,17 @@ const SpecialistList = () => {
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
+              <span
+                type="span"
                 onClick={closeAddModal}
-                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
                 disabled={isSubmitting}
               >
                 Hủy
-              </button>
+              </span>
               <button
                 type="submit"
-                className="px-4 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 transition-colors"
+                className="px-4 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 transition-colors cursor-pointer"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
@@ -799,15 +799,15 @@ const SpecialistList = () => {
       {/* View Specialist Modal */}
       <Modal isOpen={isViewOpen} onRequestClose={closeViewModal} style={customStyles}>
         {currentSpecialist && (
-          <div className="p-4 max-h-[90vh] overflow-y-auto">
+          <div className="p-4 max-h-[90vh] overflow-y-auto scrollbar-hidden">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Chi tiết chuyên gia</h2>
-              <button 
+              <span 
                 onClick={closeViewModal}
                 className="text-gray-500 hover:text-gray-700"
               >
                 <i className="fas fa-times"></i>
-              </button>
+              </span>
             </div>
 
             <div className="space-y-6">
@@ -931,22 +931,22 @@ const SpecialistList = () => {
 
               {/* Các nút tác vụ */}
               <div className="pt-4 border-t border-gray-200 flex justify-end space-x-3">
-                <button
+                <span
                   onClick={() => {
                     closeViewModal();
                     handleEditSpecialist(currentSpecialist);
                   }}
-                  className="px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 transition-colors"
+                  className="px-4 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 transition-colors"
                 >
                   <i className="fas fa-edit mr-2"></i>
                   Chỉnh sửa
-                </button>
-                <button
+                </span>
+                <span
                   onClick={closeViewModal}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
                 >
                   Đóng
-                </button>
+                </span>
               </div>
             </div>
           </div>
@@ -956,15 +956,15 @@ const SpecialistList = () => {
       {/* Edit Specialist Modal */}
       <Modal isOpen={isEditOpen} onRequestClose={closeEditModal} style={customStyles}>
         {currentSpecialist && (
-          <div className="p-4 max-h-[90vh] overflow-y-auto">
+          <div className="p-4 max-h-[90vh] overflow-y-auto scrollbar-hidden ">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Chỉnh sửa chuyên gia</h2>
-              <button 
+              <span 
                 onClick={closeEditModal}
                 className="text-gray-500 hover:text-gray-700"
               >
                 <i className="fas fa-times"></i>
-              </button>
+              </span>
             </div>
             
             <form className="space-y-4" onSubmit={handleEditSubmit}>
@@ -1079,13 +1079,13 @@ const SpecialistList = () => {
                         ref={fileInputRef}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                       />
-                      <button
-                        type="button"
+                      <span
+                        type="span"
                         className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded-md text-gray-700"
                         onClick={() => fileInputRef.current?.click()}
                       >
                         Tải lên
-                      </button>
+                      </span>
                     </span>
                   </div>
                   
@@ -1104,8 +1104,8 @@ const SpecialistList = () => {
                           e.target.src = "https://via.placeholder.com/300?text=Error+Loading+Image";
                         }}
                       />
-                      <button
-                        type="button"
+                      <span
+                        type="span"
                         onClick={() => {
                           setImagePreview("");
                           setImageFile(null);
@@ -1114,7 +1114,7 @@ const SpecialistList = () => {
                         className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 focus:outline-none"
                       >
                         <i className="fas fa-times text-sm"></i>
-                      </button>
+                      </span>
                     </div>
                   )}
                 </div>
@@ -1157,14 +1157,14 @@ const SpecialistList = () => {
               </div>
 
               <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
+                <span
+                  type="span"
                   onClick={closeEditModal}
-                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                  className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
                   disabled={isSubmitting}
                 >
                   Hủy
-                </button>
+                </span>
                 <button
                   type="submit"
                   className="px-4 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 transition-colors"

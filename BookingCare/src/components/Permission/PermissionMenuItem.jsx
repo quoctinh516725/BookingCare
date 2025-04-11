@@ -1,7 +1,7 @@
-import React from 'react';
-import PropTypes from 'prop-types';
-import { Link } from 'react-router-dom';
-import PermissionGuard from './PermissionGuard';
+import React from "react";
+import PropTypes from "prop-types";
+import { Link } from "react-router-dom";
+import PermissionGuard from "./PermissionGuard";
 
 /**
  * Component tạo menu item với kiểm tra quyền
@@ -19,34 +19,26 @@ const PermissionMenuItem = ({
   requireAll = false,
   to,
   icon,
-  className = '',
+  className = "",
   onClick,
   children,
+  location,
   ...rest
 }) => {
   // Render icon based on type (string or node)
-  const renderIcon = () => {
-    if (!icon) return null;
-    
-    if (typeof icon === 'string') {
-      // If icon is a string, render as Font Awesome icon
-      return <i className={`${icon} menu-item-icon mr-2`}></i>;
-    }
-    
-    // If icon is a React node, render as is
-    return <span className="menu-item-icon mr-2">{icon}</span>;
-  };
+ 
 
   return (
     <PermissionGuard permission={permission} requireAll={requireAll}>
-      <li className="menu-item">
+      <li
+        className={`menu-item ${location?.pathname === to ? "bg-gray-200 rounded-md" : ""} ml-[26px]`}
+      >
         <Link
           to={to}
           className={`flex items-center py-2 px-3 hover:bg-gray-100 rounded ${className}`}
           onClick={onClick}
           {...rest}
         >
-          {renderIcon()}
           <span className="menu-item-text">{children}</span>
         </Link>
       </li>
@@ -57,17 +49,14 @@ const PermissionMenuItem = ({
 PermissionMenuItem.propTypes = {
   permission: PropTypes.oneOfType([
     PropTypes.string,
-    PropTypes.arrayOf(PropTypes.string)
+    PropTypes.arrayOf(PropTypes.string),
   ]).isRequired,
   requireAll: PropTypes.bool,
   to: PropTypes.string.isRequired,
-  icon: PropTypes.oneOfType([
-    PropTypes.string,
-    PropTypes.node
-  ]),
+  icon: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
   className: PropTypes.string,
   onClick: PropTypes.func,
-  children: PropTypes.node.isRequired
+  children: PropTypes.node.isRequired,
 };
 
-export default PermissionMenuItem; 
+export default PermissionMenuItem;

@@ -40,26 +40,34 @@ const PermissionGroups = () => {
   const [formError, setFormError] = useState({
     hasError: false,
     message: "",
-    details: []
+    details: [],
   });
 
   // Fetch permission groups and permissions data
-  const { data: permissionGroups = [], isLoading: isLoadingGroups, refetch: refetchGroups } = useQuery({
+  const {
+    data: permissionGroups = [],
+    isLoading: isLoadingGroups,
+    refetch: refetchGroups,
+  } = useQuery({
     queryKey: ["permissionGroups"],
     queryFn: AdminService.getAllPermissionGroups,
     onError: (error) => {
       console.error("Error fetching permission groups:", error);
       toast.error("Không thể tải danh sách nhóm quyền. Vui lòng thử lại sau.");
-    }
+    },
   });
 
-  const { data: permissions = [], isLoading: isLoadingPermissions, refetch: refetchPermissions } = useQuery({
+  const {
+    data: permissions = [],
+    isLoading: isLoadingPermissions,
+    refetch: refetchPermissions,
+  } = useQuery({
     queryKey: ["permissions"],
     queryFn: AdminService.getAllPermissions,
     onError: (error) => {
       console.error("Error fetching permissions:", error);
       toast.error("Không thể tải danh sách quyền. Vui lòng thử lại sau.");
-    }
+    },
   });
 
   // Create permission group mutation
@@ -72,17 +80,17 @@ const PermissionGroups = () => {
       setFormError({
         hasError: false,
         message: "",
-        details: []
+        details: [],
       });
       closeModal();
     },
     onError: (error) => {
       console.error("Error creating permission group:", error);
-      
+
       // Xử lý thông báo lỗi chi tiết
       let errorMessage = "Không thể tạo nhóm quyền. Vui lòng thử lại.";
       let errorDetails = [];
-      
+
       if (error.response) {
         // Lấy thông tin lỗi từ response
         if (error.response.data) {
@@ -90,30 +98,34 @@ const PermissionGroups = () => {
             errorMessage = error.response.data.message;
           } else if (error.response.data.error) {
             errorMessage = error.response.data.error;
-          } else if (typeof error.response.data === 'string') {
+          } else if (typeof error.response.data === "string") {
             errorMessage = error.response.data;
           }
-          
+
           // Lấy chi tiết lỗi nếu có
           if (error.response.data.details) {
-            errorDetails = Array.isArray(error.response.data.details) 
-              ? error.response.data.details 
+            errorDetails = Array.isArray(error.response.data.details)
+              ? error.response.data.details
               : [error.response.data.details];
           }
-          
+
           // Lấy thông tin vi phạm hợp lệ nếu có
           if (error.response.data.violations) {
-            errorDetails = error.response.data.violations.map(v => `${v.field}: ${v.message}`);
+            errorDetails = error.response.data.violations.map(
+              (v) => `${v.field}: ${v.message}`
+            );
           }
         }
-        
+
         // Thêm mã lỗi HTTP vào thông báo
         const statusCode = error.response.status;
         errorMessage = `[${statusCode}] ${errorMessage}`;
-        
+
         // Trường hợp lỗi xung đột (tên đã tồn tại)
-        if (statusCode === 409 && errorMessage.toLowerCase().includes('name')) {
-          errorDetails.push("Tên nhóm quyền đã tồn tại, vui lòng chọn tên khác");
+        if (statusCode === 409 && errorMessage.toLowerCase().includes("name")) {
+          errorDetails.push(
+            "Tên nhóm quyền đã tồn tại, vui lòng chọn tên khác"
+          );
         }
       } else if (error.detail) {
         // Sử dụng chi tiết lỗi từ enhancedError
@@ -122,15 +134,15 @@ const PermissionGroups = () => {
         // Nếu chỉ có message
         errorMessage = error.message;
       }
-      
+
       // Hiển thị thông báo lỗi
       toast.error(`Lỗi: ${errorMessage}`);
-      
+
       // Cập nhật state lỗi để hiển thị trong form
       setFormError({
         hasError: true,
         message: errorMessage,
-        details: errorDetails
+        details: errorDetails,
       });
     },
   });
@@ -145,17 +157,17 @@ const PermissionGroups = () => {
       setFormError({
         hasError: false,
         message: "",
-        details: []
+        details: [],
       });
       closeModal();
     },
     onError: (error) => {
       console.error("Error updating permission group:", error);
-      
+
       // Xử lý thông báo lỗi chi tiết
       let errorMessage = "Không thể cập nhật nhóm quyền. Vui lòng thử lại.";
       let errorDetails = [];
-      
+
       if (error.response) {
         // Lấy thông tin lỗi từ response
         if (error.response.data) {
@@ -163,23 +175,25 @@ const PermissionGroups = () => {
             errorMessage = error.response.data.message;
           } else if (error.response.data.error) {
             errorMessage = error.response.data.error;
-          } else if (typeof error.response.data === 'string') {
+          } else if (typeof error.response.data === "string") {
             errorMessage = error.response.data;
           }
-          
+
           // Lấy chi tiết lỗi nếu có
           if (error.response.data.details) {
-            errorDetails = Array.isArray(error.response.data.details) 
-              ? error.response.data.details 
+            errorDetails = Array.isArray(error.response.data.details)
+              ? error.response.data.details
               : [error.response.data.details];
           }
-          
+
           // Lấy thông tin vi phạm hợp lệ nếu có
           if (error.response.data.violations) {
-            errorDetails = error.response.data.violations.map(v => `${v.field}: ${v.message}`);
+            errorDetails = error.response.data.violations.map(
+              (v) => `${v.field}: ${v.message}`
+            );
           }
         }
-        
+
         // Thêm mã lỗi HTTP vào thông báo
         const statusCode = error.response.status;
         errorMessage = `[${statusCode}] ${errorMessage}`;
@@ -190,15 +204,15 @@ const PermissionGroups = () => {
         // Nếu chỉ có message
         errorMessage = error.message;
       }
-      
+
       // Hiển thị thông báo lỗi
       toast.error(`Lỗi: ${errorMessage}`);
-      
+
       // Cập nhật state lỗi để hiển thị trong form
       setFormError({
         hasError: true,
         message: errorMessage,
-        details: errorDetails
+        details: errorDetails,
       });
     },
   });
@@ -212,10 +226,10 @@ const PermissionGroups = () => {
     },
     onError: (error) => {
       console.error("Error deleting permission group:", error);
-      
+
       // Xử lý thông báo lỗi chi tiết
       let errorMessage = "Không thể xóa nhóm quyền. Vui lòng thử lại.";
-      
+
       if (error.response) {
         // Lấy thông tin lỗi từ response
         if (error.response.data) {
@@ -223,18 +237,19 @@ const PermissionGroups = () => {
             errorMessage = error.response.data.message;
           } else if (error.response.data.error) {
             errorMessage = error.response.data.error;
-          } else if (typeof error.response.data === 'string') {
+          } else if (typeof error.response.data === "string") {
             errorMessage = error.response.data;
           }
         }
-        
+
         // Thêm mã lỗi HTTP vào thông báo
         const statusCode = error.response.status;
         errorMessage = `[${statusCode}] ${errorMessage}`;
-        
+
         // Thông báo đặc biệt khi nhóm quyền đang được sử dụng
         if (statusCode === 409) {
-          errorMessage = "Không thể xóa nhóm quyền đang được sử dụng. Vui lòng xóa liên kết với người dùng trước.";
+          errorMessage =
+            "Không thể xóa nhóm quyền đang được sử dụng. Vui lòng xóa liên kết với người dùng trước.";
         }
       } else if (error.detail) {
         // Sử dụng chi tiết lỗi từ enhancedError
@@ -243,33 +258,26 @@ const PermissionGroups = () => {
         // Nếu chỉ có message
         errorMessage = error.message;
       }
-      
+
       // Hiển thị thông báo lỗi
       toast.error(`Lỗi: ${errorMessage}`);
     },
   });
 
-  // Refresh data
-  const refreshData = () => {
-    refetchGroups();
-    refetchPermissions();
-    toast.info("Đang làm mới dữ liệu...");
-  };
-
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
-    
+
     // Reset thông báo lỗi khi người dùng thay đổi thông tin
     setFormError({
       hasError: false,
       message: "",
-      details: []
+      details: [],
     });
-    
+
     if (type === "checkbox") {
       const permissionId = value;
       let updatedPermissionIds = [...formData.permissionIds];
-      
+
       if (checked) {
         // Add permission if not already included
         if (!updatedPermissionIds.includes(permissionId)) {
@@ -277,9 +285,11 @@ const PermissionGroups = () => {
         }
       } else {
         // Remove permission
-        updatedPermissionIds = updatedPermissionIds.filter(id => id !== permissionId);
+        updatedPermissionIds = updatedPermissionIds.filter(
+          (id) => id !== permissionId
+        );
       }
-      
+
       setFormData({
         ...formData,
         permissionIds: updatedPermissionIds,
@@ -294,11 +304,11 @@ const PermissionGroups = () => {
 
   const handleFormSubmit = (e) => {
     e.preventDefault();
-    
+
     if (isEditMode && selectedGroup) {
-      updatePermissionGroupMutation.mutate({ 
-        id: selectedGroup.id, 
-        data: formData 
+      updatePermissionGroupMutation.mutate({
+        id: selectedGroup.id,
+        data: formData,
       });
     } else {
       createPermissionGroupMutation.mutate(formData);
@@ -307,22 +317,26 @@ const PermissionGroups = () => {
 
   const handleEditGroup = (group) => {
     setSelectedGroup(group);
-    
+
     // Extract permission IDs from group
-    const permissionIds = group.permissions.map(p => p.id);
-    
+    const permissionIds = group.permissions.map((p) => p.id);
+
     setFormData({
       name: group.name || "",
       description: group.description || "",
       permissionIds: permissionIds,
     });
-    
+
     setIsEditMode(true);
     setIsOpen(true);
   };
 
   const handleDeleteGroup = (groupId) => {
-    if (window.confirm("Bạn có chắc chắn muốn xóa nhóm quyền này không? Điều này có thể ảnh hưởng đến quyền của người dùng.")) {
+    if (
+      window.confirm(
+        "Bạn có chắc chắn muốn xóa nhóm quyền này không? Điều này có thể ảnh hưởng đến quyền của người dùng."
+      )
+    ) {
       deletePermissionGroupMutation.mutate(groupId);
     }
   };
@@ -347,63 +361,62 @@ const PermissionGroups = () => {
   // Group permissions by category for better organization
   const groupPermissionsByCategory = () => {
     const groupedPermissions = {};
-    
-    permissions.forEach(permission => {
+
+    permissions.forEach((permission) => {
       // Extract category from permission code (e.g., "user:view" => "user")
-      const category = permission.code.split(':')[0];
-      
+      const category = permission.code.split(":")[0];
+
       if (!groupedPermissions[category]) {
         groupedPermissions[category] = [];
       }
-      
+
       groupedPermissions[category].push(permission);
     });
-    
+
     return groupedPermissions;
   };
 
   // Hàm hiển thị tên nhóm quyền dễ đọc hơn
   const getReadableCategoryName = (category) => {
     const categoryMap = {
-      'user': 'Người dùng',
-      'service': 'Dịch vụ',
-      'booking': 'Đặt lịch',
-      'feedback': 'Đánh giá',
-      'payment': 'Thanh toán',
-      'report': 'Báo cáo',
-      'data': 'Dữ liệu',
-      'stats': 'Thống kê',
-      'staff': 'Nhân viên',
-      'permission': 'Quyền hạn',
-      'settings': 'Cài đặt',
-      'logs': 'Nhật ký',
-      'system': 'Hệ thống',
-      'dashboard': 'Bảng điều khiển'
+      user: "Người dùng",
+      service: "Dịch vụ",
+      booking: "Đặt lịch",
+      feedback: "Đánh giá",
+      payment: "Thanh toán",
+      report: "Báo cáo",
+      data: "Dữ liệu",
+      stats: "Thống kê",
+      staff: "Nhân viên",
+      permission: "Quyền hạn",
+      settings: "Cài đặt",
+      logs: "Nhật ký",
+      system: "Hệ thống",
+      dashboard: "Bảng điều khiển",
     };
-    return categoryMap[category] || category.charAt(0).toUpperCase() + category.slice(1);
+    return (
+      categoryMap[category] ||
+      category.charAt(0).toUpperCase() + category.slice(1)
+    );
   };
 
   // Filter groups based on search term
-  const filteredGroups = permissionGroups.filter(group => 
-    (group.name && group.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (group.description && group.description.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredGroups = permissionGroups.filter(
+    (group) =>
+      (group.name &&
+        group.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (group.description &&
+        group.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-xl font-bold">Quản lý nhóm quyền</h1>
+        <h1 className="text-xl font-bold mb-6">Quản lý nhóm quyền</h1>
         <div className="flex gap-2">
-          <button
-            onClick={refreshData}
-            className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md cursor-pointer"
-          >
-            <i className="fas fa-sync-alt"></i>
-            <span>Làm mới</span>
-          </button>
           <span
             onClick={openAddModal}
-            className="flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-md cursor-pointer"
+            className="flex items-center gap-2 bg-[var(--primary-color)] hover:bg-[var(--primary-color)] text-white px-4 py-2 rounded-md cursor-pointer"
           >
             <i className="fas fa-plus-circle"></i>
             <span>Thêm nhóm quyền</span>
@@ -467,13 +480,13 @@ const PermissionGroups = () => {
                       {group.userCount}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-                      <span 
+                      <span
                         className="text-blue-500 hover:text-blue-700 bg-blue-100 hover:bg-blue-200 p-1 rounded mr-2 cursor-pointer"
                         onClick={() => handleEditGroup(group)}
                       >
                         <i className="fas fa-edit"></i>
                       </span>
-                      <span 
+                      <span
                         className="text-red-500 hover:text-red-700 bg-red-100 hover:bg-red-200 p-1 rounded cursor-pointer"
                         onClick={() => handleDeleteGroup(group.id)}
                       >
@@ -484,8 +497,13 @@ const PermissionGroups = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500">
-                    {searchTerm ? "Không tìm thấy nhóm quyền phù hợp" : "Không có nhóm quyền nào"}
+                  <td
+                    colSpan="5"
+                    className="px-6 py-4 text-center text-sm text-gray-500"
+                  >
+                    {searchTerm
+                      ? "Không tìm thấy nhóm quyền phù hợp"
+                      : "Không có nhóm quyền nào"}
                   </td>
                 </tr>
               )}
@@ -499,7 +517,9 @@ const PermissionGroups = () => {
         isOpen={isOpen}
         onRequestClose={closeModal}
         style={customStyles}
-        contentLabel={isEditMode ? "Cập nhật nhóm quyền" : "Thêm nhóm quyền mới"}
+        contentLabel={
+          isEditMode ? "Cập nhật nhóm quyền" : "Thêm nhóm quyền mới"
+        }
         ariaHideApp={false}
       >
         <div className="relative">
@@ -509,9 +529,11 @@ const PermissionGroups = () => {
           >
             <i className="fas fa-times text-xl"></i>
           </button>
-          
-          <h2 className="text-xl font-bold mb-4">{isEditMode ? "Cập nhật nhóm quyền" : "Thêm nhóm quyền mới"}</h2>
-          
+
+          <h2 className="text-xl font-bold mb-4">
+            {isEditMode ? "Cập nhật nhóm quyền" : "Thêm nhóm quyền mới"}
+          </h2>
+
           <form onSubmit={handleFormSubmit} className="space-y-4">
             {/* Hiển thị thông báo lỗi */}
             {formError.hasError && (
@@ -526,7 +548,7 @@ const PermissionGroups = () => {
                 )}
               </div>
             )}
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Tên nhóm quyền <span className="text-red-500">*</span>
@@ -553,47 +575,63 @@ const PermissionGroups = () => {
                 rows="3"
               />
             </div>
-            
+
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Quyền hạn
               </label>
-              
+
               {isLoadingPermissions ? (
                 <div className="flex justify-center items-center py-4">
                   <div className="w-6 h-6 border-2 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
                 </div>
               ) : (
                 <div className="border border-gray-300 rounded-md p-4 max-h-60 overflow-y-auto">
-                  {Object.entries(groupPermissionsByCategory()).map(([category, categoryPermissions]) => (
-                    <div key={category} className="mb-4">
-                      <h3 className="text-md font-medium text-gray-800 capitalize mb-2">{getReadableCategoryName(category)}</h3>
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                        {categoryPermissions.map((permission) => (
-                          <div key={permission.id} className="flex items-start">
-                            <input
-                              type="checkbox"
-                              id={`permission-${permission.id}`}
-                              name="permissionIds"
-                              value={permission.id}
-                              checked={formData.permissionIds.includes(permission.id)}
-                              onChange={handleInputChange}
-                              className="mt-1 mr-2"
-                            />
-                            <label htmlFor={`permission-${permission.id}`} className="text-sm text-gray-700">
-                              <div>{permission.name}</div>
-                              <div className="text-xs text-gray-500">{permission.description}</div>
-                              <div className="text-xs text-gray-400">{permission.code}</div>
-                            </label>
-                          </div>
-                        ))}
+                  {Object.entries(groupPermissionsByCategory()).map(
+                    ([category, categoryPermissions]) => (
+                      <div key={category} className="mb-4">
+                        <h3 className="text-md font-medium text-gray-800 capitalize mb-2">
+                          {getReadableCategoryName(category)}
+                        </h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                          {categoryPermissions.map((permission) => (
+                            <div
+                              key={permission.id}
+                              className="flex items-start"
+                            >
+                              <input
+                                type="checkbox"
+                                id={`permission-${permission.id}`}
+                                name="permissionIds"
+                                value={permission.id}
+                                checked={formData.permissionIds.includes(
+                                  permission.id
+                                )}
+                                onChange={handleInputChange}
+                                className="mt-1 mr-2"
+                              />
+                              <label
+                                htmlFor={`permission-${permission.id}`}
+                                className="text-sm text-gray-700"
+                              >
+                                <div>{permission.name}</div>
+                                <div className="text-xs text-gray-500">
+                                  {permission.description}
+                                </div>
+                                <div className="text-xs text-gray-400">
+                                  {permission.code}
+                                </div>
+                              </label>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  )}
                 </div>
               )}
             </div>
-            
+
             <div className="flex justify-end gap-3 mt-6">
               <span
                 onClick={closeModal}
@@ -603,18 +641,42 @@ const PermissionGroups = () => {
               </span>
               <button
                 type="submit"
-                disabled={createPermissionGroupMutation.isPending || updatePermissionGroupMutation.isPending}
+                disabled={
+                  createPermissionGroupMutation.isPending ||
+                  updatePermissionGroupMutation.isPending
+                }
                 className="px-4 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {createPermissionGroupMutation.isPending || updatePermissionGroupMutation.isPending ? (
+                {createPermissionGroupMutation.isPending ||
+                updatePermissionGroupMutation.isPending ? (
                   <span className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Đang xử lý...
                   </span>
-                ) : isEditMode ? "Cập nhật" : "Tạo mới"}
+                ) : isEditMode ? (
+                  "Cập nhật"
+                ) : (
+                  "Tạo mới"
+                )}
               </button>
             </div>
           </form>
@@ -624,4 +686,4 @@ const PermissionGroups = () => {
   );
 };
 
-export default PermissionGroups; 
+export default PermissionGroups;

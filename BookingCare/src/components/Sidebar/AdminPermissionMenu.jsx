@@ -17,7 +17,7 @@ const AdminPermissionMenu = () => {
       </div>
 
       <nav className="sidebar-nav mt-6">
-        <ul className="menu-list">
+        <ul className="menu-list list-none">
           {/* Trang tổng quan luôn hiển thị */}
           <li className="menu-item">
             <Link to="/admin" className="menu-link">

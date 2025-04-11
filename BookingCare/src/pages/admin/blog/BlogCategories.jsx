@@ -204,10 +204,10 @@ const BlogCategories = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto px-4 py-8">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-6">
+      <div className="mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-800">
+          <h1 className="text-xl font-bold mb-6">
             Quản lý danh mục blog
           </h1>
           <button 

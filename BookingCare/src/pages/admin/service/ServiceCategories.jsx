@@ -148,7 +148,7 @@ const ServiceCategories = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-xl font-bold">Quản lý danh mục dịch vụ</h1>
+        <h1 className="text-xl font-bold mb-6">Quản lý danh mục dịch vụ</h1>
         <span
           onClick={handleOpenModal}
           className="flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-md cursor-pointer"

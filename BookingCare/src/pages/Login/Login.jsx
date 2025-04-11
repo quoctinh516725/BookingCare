@@ -39,13 +39,15 @@ function Login() {
       } catch (error) {
         // Xử lý lỗi 403 Forbidden
         if (error.response && error.response.status === 403) {
-          console.log("Permission error when accessing user details, trying profile API");
-          
+          console.log(
+            "Permission error when accessing user details, trying profile API"
+          );
+
           // Thử lấy profile từ API /auth/profile
           try {
             const profileResponse = await UserService.getUserProfile(token);
             console.log("User profile retrieved:", profileResponse);
-            
+
             if (profileResponse && profileResponse.id === id) {
               dispatch(setUser({ ...profileResponse, access_token: token }));
               return profileResponse;
@@ -55,7 +57,7 @@ function Login() {
             }
           } catch (profileError) {
             console.error("Failed to fetch user profile:", profileError);
-            
+
             // Nếu cả hai cách đều thất bại, thử lấy từ JWT token
             const decoded = jwtDecode(token);
             if (decoded) {
@@ -64,21 +66,26 @@ function Login() {
                 id: decoded.userId || id,
                 username: decoded.sub || "user",
                 email: decoded.email || "",
-                role: decoded.role || localStorage.getItem("user_role") || "CUSTOMER",
+                role:
+                  decoded.role ||
+                  localStorage.getItem("user_role") ||
+                  "CUSTOMER",
                 // Các trường khác sẽ được cập nhật sau khi refresh
               };
-              
+
               console.log("Using minimal user data from JWT:", minimalUserData);
               dispatch(setUser({ ...minimalUserData, access_token: token }));
-              
+
               // Lập lịch thử lại sau 1 giây
               setTimeout(() => {
-                UserService.refreshToken().catch(e => console.error("Failed to refresh token:", e));
+                UserService.refreshToken().catch((e) =>
+                  console.error("Failed to refresh token:", e)
+                );
               }, 1000);
-              
+
               return minimalUserData;
             }
-            
+
             throw profileError;
           }
         } else {
@@ -105,7 +112,7 @@ function Login() {
             try {
               // Đợi lấy chi tiết người dùng thành công
               await handleGetDetailsUser(decoded?.userId, token);
-              
+
               // Chỉ hiển thị thông báo và chuyển hướng sau khi đã lấy dữ liệu thành công
               message.success("Đăng nhập thành công");
               navigate("/");
@@ -117,9 +124,12 @@ function Login() {
         }
       }
     }
-    
+
     if (isError) {
-      message.error(error?.response?.data?.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.");
+      message.error(
+        error?.response?.data?.message ||
+          "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin."
+      );
     }
   }, [isSuccess, isError, error]);
 
@@ -129,21 +139,30 @@ function Login() {
         <div className="bg-white rounded-xl shadow-sm p-6 md:p-8">
           <div className="flex flex-col items-center">
             <div className="flex items-center space-x-2">
-              <img className="h-[40px] rounded-xl" src={logo} alt="BeautyCare Logo" />
+              <img
+                className="h-[40px] rounded-xl"
+                src={logo}
+                alt="BeautyCare Logo"
+              />
               <span className="text-[var(--primary-color)] font-semibold text-xl md:text-2xl">
                 BeautyCare
               </span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold mt-5 mb-2">Đăng nhập</h1>
+            <h1 className="text-2xl md:text-3xl font-bold mt-5 mb-2">
+              Đăng nhập
+            </h1>
             <p className="text-base md:text-lg text-gray-600">
               Nhập thông tin tài khoản của bạn
             </p>
           </div>
-          
+
           <div className="mt-8">
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
-                <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="username"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Tên tài khoản
                 </label>
                 <input
@@ -156,9 +175,12 @@ function Login() {
                   className="w-full h-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[var(--primary-color)] text-sm"
                 />
               </div>
-              
+
               <div className="mb-6">
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Mật khẩu
                 </label>
                 <div className="relative">
@@ -172,43 +194,64 @@ function Login() {
                     className="w-full h-10 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:border-[var(--primary-color)] text-sm"
                   />
                   <div
-                   
                     onClick={() => setIsShowPassword(!isShowPassword)}
                     className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500"
                   >
-                    <i className={`fa-solid ${isShowPassword ? "fa-eye" : "fa-eye-slash"}`}></i>
+                    <i
+                      className={`fa-solid ${
+                        isShowPassword ? "fa-eye" : "fa-eye-slash"
+                      }`}
+                    ></i>
                   </div>
                 </div>
               </div>
-              
-              <button 
-                type="submit" 
+
+              <button
+                type="submit"
                 className="w-full h-10 bg-[var(--primary-color)] hover:opacity-90 text-white rounded-md font-medium flex items-center justify-center transition-colors"
                 disabled={isLoading}
               >
                 {isLoading ? (
                   <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Đang xử lý...
                   </>
-                ) : "Đăng nhập"}
+                ) : (
+                  "Đăng nhập"
+                )}
               </button>
             </form>
-            
+
             <div className="text-center mt-6">
               <p className="text-sm text-gray-600">
                 Chưa có tài khoản?
                 <Link
                   to="/sign-up"
-                  className="text-[var(--primary-color)] font-medium ml-1 hover:underline"
+                  className="text-[var(--primary-color)] font-medium ml-1  "
                 >
                   Đăng ký
                 </Link>
               </p>
-              
+
               <div className="mt-3 border-t pt-3">
                 <Link
                   to="/admin/login"

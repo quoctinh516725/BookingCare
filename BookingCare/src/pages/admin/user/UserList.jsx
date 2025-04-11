@@ -40,11 +40,17 @@ const UserList = () => {
   const [formError, setFormError] = useState({
     hasError: false,
     message: "",
-    details: []
+    details: [],
   });
 
   // Fetch users data
-  const { data: users = [], isLoading, isError, error, refetch } = useQuery({
+  const {
+    data: users = [],
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ["users"],
     queryFn: async () => {
       try {
@@ -54,13 +60,15 @@ const UserList = () => {
         return data;
       } catch (error) {
         console.error("Error in UserList query function:", error);
-        
+
         // Check for specific error types
         if (error.response && error.response.status === 403) {
           toast.error("Bạn không có quyền xem danh sách người dùng");
-          throw new Error("Không có quyền truy cập: Bạn không có quyền xem danh sách người dùng");
+          throw new Error(
+            "Không có quyền truy cập: Bạn không có quyền xem danh sách người dùng"
+          );
         }
-        
+
         throw error;
       }
     },
@@ -70,7 +78,7 @@ const UserList = () => {
     onError: (err) => {
       console.error("Query error in UserList:", err);
       toast.error(`Không thể tải danh sách người dùng: ${err.message}`);
-    }
+    },
   });
 
   // Làm mới dữ liệu
@@ -89,43 +97,45 @@ const UserList = () => {
       setFormError({
         hasError: false,
         message: "",
-        details: []
+        details: [],
       });
       closeModal();
     },
     onError: (error) => {
       console.error("Error creating user:", error);
-      
+
       toast.dismiss("creating-user");
-      
+
       let errorMessage = "Không thể tạo người dùng. Vui lòng thử lại.";
       let errorDetails = [];
-      
+
       if (error.response) {
         if (error.response.data) {
           if (error.response.data.message) {
             errorMessage = error.response.data.message;
           } else if (error.response.data.error) {
             errorMessage = error.response.data.error;
-          } else if (typeof error.response.data === 'string') {
+          } else if (typeof error.response.data === "string") {
             errorMessage = error.response.data;
           }
-          
+
           if (error.response.data.details) {
-            errorDetails = Array.isArray(error.response.data.details) 
-              ? error.response.data.details 
+            errorDetails = Array.isArray(error.response.data.details)
+              ? error.response.data.details
               : [error.response.data.details];
           }
-          
+
           if (error.response.data.violations) {
-            errorDetails = error.response.data.violations.map(v => `${v.field}: ${v.message}`);
+            errorDetails = error.response.data.violations.map(
+              (v) => `${v.field}: ${v.message}`
+            );
           }
         }
-        
+
         const statusCode = error.response.status;
         if (statusCode) {
           errorMessage = `[${statusCode}] ${errorMessage}`;
-          
+
           switch (statusCode) {
             case 400:
               errorMessage = `Dữ liệu không hợp lệ: ${errorMessage}`;
@@ -138,11 +148,15 @@ const UserList = () => {
               break;
             case 409:
               errorMessage = `Xung đột dữ liệu: ${errorMessage}`;
-              if (errorMessage.toLowerCase().includes('email')) {
-                errorDetails.push("Email đã được sử dụng, vui lòng chọn email khác");
+              if (errorMessage.toLowerCase().includes("email")) {
+                errorDetails.push(
+                  "Email đã được sử dụng, vui lòng chọn email khác"
+                );
               }
-              if (errorMessage.toLowerCase().includes('username')) {
-                errorDetails.push("Tên đăng nhập đã tồn tại, vui lòng chọn tên đăng nhập khác");
+              if (errorMessage.toLowerCase().includes("username")) {
+                errorDetails.push(
+                  "Tên đăng nhập đã tồn tại, vui lòng chọn tên đăng nhập khác"
+                );
               }
               break;
             case 500:
@@ -151,28 +165,31 @@ const UserList = () => {
           }
         }
       } else if (error.request) {
-        errorMessage = "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.";
+        errorMessage =
+          "Không thể kết nối đến máy chủ. Vui lòng kiểm tra kết nối mạng.";
       } else if (error.message) {
         errorMessage = error.message;
-        
+
         if (error.detail) {
-          errorDetails.push(error.detail.message || "Không có thông tin chi tiết");
+          errorDetails.push(
+            error.detail.message || "Không có thông tin chi tiết"
+          );
         }
       }
-      
+
       toast.error(`Lỗi: ${errorMessage}`);
-      
+
       setFormError({
         hasError: true,
         message: errorMessage,
-        details: errorDetails
+        details: errorDetails,
       });
-      
+
       console.error("Detailed error info:", {
         status: error.response?.status,
         statusText: error.response?.statusText,
         data: error.response?.data,
-        message: error.message
+        message: error.message,
       });
     },
   });
@@ -187,7 +204,10 @@ const UserList = () => {
     },
     onError: (error) => {
       console.error("Error updating user:", error);
-      toast.error(error.response?.data?.message || "Không thể cập nhật người dùng. Vui lòng thử lại.");
+      toast.error(
+        error.response?.data?.message ||
+          "Không thể cập nhật người dùng. Vui lòng thử lại."
+      );
     },
   });
 
@@ -200,24 +220,27 @@ const UserList = () => {
     },
     onError: (error) => {
       console.error("Error deleting user:", error);
-      toast.error(error.response?.data?.message || "Không thể xóa người dùng. Vui lòng thử lại.");
+      toast.error(
+        error.response?.data?.message ||
+          "Không thể xóa người dùng. Vui lòng thử lại."
+      );
     },
   });
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    
-    if (name === 'username') {
-      const sanitizedValue = value.replace(/\s+/g, '');
+
+    if (name === "username") {
+      const sanitizedValue = value.replace(/\s+/g, "");
       setFormData((prev) => ({
         ...prev,
         [name]: sanitizedValue,
       }));
-      
+
       if (value !== sanitizedValue) {
         toast.info("Tên đăng nhập không được chứa khoảng trắng", {
           id: "username-whitespace",
-          duration: 3000
+          duration: 3000,
         });
       }
     } else {
@@ -226,41 +249,41 @@ const UserList = () => {
         [name]: value,
       }));
     }
-    
+
     setFormError({
       hasError: false,
       message: "",
-      details: []
+      details: [],
     });
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
+
     const userData = { ...formData };
-    
+
     const validationErrors = [];
-    
-    if (!userData.firstName || userData.firstName.trim() === '') {
+
+    if (!userData.firstName || userData.firstName.trim() === "") {
       validationErrors.push("Họ không được để trống");
     }
-    
-    if (!userData.lastName || userData.lastName.trim() === '') {
+
+    if (!userData.lastName || userData.lastName.trim() === "") {
       validationErrors.push("Tên không được để trống");
     }
-    
-    if (!userData.email || userData.email.trim() === '') {
+
+    if (!userData.email || userData.email.trim() === "") {
       validationErrors.push("Email không được để trống");
     } else if (!/^\S+@\S+\.\S+$/.test(userData.email)) {
       validationErrors.push("Email không hợp lệ");
     }
-    
-    if (!userData.username || userData.username.trim() === '') {
+
+    if (!userData.username || userData.username.trim() === "") {
       validationErrors.push("Tên đăng nhập không được để trống");
     } else if (userData.username.length < 3) {
       validationErrors.push("Tên đăng nhập phải có ít nhất 3 ký tự");
     }
-    
+
     if (userData.phone) {
       userData.phone = userData.phone.trim();
       if (!/^\d{10}$/.test(userData.phone)) {
@@ -269,54 +292,60 @@ const UserList = () => {
     } else {
       validationErrors.push("Số điện thoại không được để trống");
     }
-    
+
     // Kiểm tra mật khẩu (chỉ khi tạo mới hoặc có nhập mật khẩu khi cập nhật)
     if (!isEditMode) {
-      if (!userData.password || userData.password.trim() === '') {
+      if (!userData.password || userData.password.trim() === "") {
         validationErrors.push("Mật khẩu không được để trống");
       } else if (userData.password.length < 6) {
         validationErrors.push("Mật khẩu phải có ít nhất 6 ký tự");
       }
-    } else if (userData.password && userData.password.length < 6 && userData.password.trim() !== '') {
+    } else if (
+      userData.password &&
+      userData.password.length < 6 &&
+      userData.password.trim() !== ""
+    ) {
       validationErrors.push("Mật khẩu phải có ít nhất 6 ký tự");
     }
-    
+
     if (validationErrors.length > 0) {
       // Cập nhật: hiển thị tất cả các lỗi validation trong form thay vì chỉ lỗi đầu tiên
-      toast.error(`Đã xảy ra ${validationErrors.length} lỗi khi kiểm tra dữ liệu nhập vào`);
-      
+      toast.error(
+        `Đã xảy ra ${validationErrors.length} lỗi khi kiểm tra dữ liệu nhập vào`
+      );
+
       // Cập nhật state formError để hiển thị tất cả các lỗi
       setFormError({
         hasError: true,
         message: "Vui lòng kiểm tra và sửa các lỗi sau:",
-        details: validationErrors
+        details: validationErrors,
       });
-      
+
       console.error("Validation errors:", validationErrors);
       return;
     }
-    
+
     console.log("Submitting user data:", userData);
-    
+
     if (isEditMode && selectedUser) {
-      if (!userData.password || userData.password.trim() === '') {
+      if (!userData.password || userData.password.trim() === "") {
         delete userData.password;
       }
-      
+
       if (!userData.role) {
         userData.role = selectedUser.role;
       }
-      
+
       updateUserMutation.mutate({
         id: selectedUser.id,
-        data: userData
+        data: userData,
       });
     } else {
       createUserMutation.mutate(userData);
-      
+
       toast.info("Đang tạo người dùng mới...", {
         id: "creating-user",
-        duration: 5000
+        duration: 5000,
       });
     }
   };
@@ -363,26 +392,25 @@ const UserList = () => {
     setSelectedUser(null);
   };
 
-  const filteredUsers = users.filter(user => 
-    (user.firstName && user.firstName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (user.lastName && user.lastName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (user.username && user.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (user.fullName && user.fullName.toLowerCase().includes(searchTerm.toLowerCase()))
+  const filteredUsers = users.filter(
+    (user) =>
+      (user.firstName &&
+        user.firstName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.lastName &&
+        user.lastName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.email &&
+        user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.username &&
+        user.username.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.fullName &&
+        user.fullName.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-xl font-bold">Quản lý người dùng</h1>
+        <h1 className="text-xl font-bold mb-6">Quản lý người dùng</h1>
         <div className="flex gap-2">
-          <button
-            onClick={refreshData}
-            className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md cursor-pointer"
-          >
-            <i className="fas fa-sync-alt"></i>
-            <span>Làm mới</span>
-          </button>
           <span
             onClick={openAddModal}
             className="flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-md cursor-pointer"
@@ -413,19 +441,23 @@ const UserList = () => {
       ) : isError ? (
         <div className="bg-red-50 text-red-500 p-4 rounded-md mb-6">
           <h3 className="text-lg font-medium mb-2">Lỗi khi tải dữ liệu</h3>
-          <p className="mb-2">{error?.message || "Không thể tải danh sách người dùng"}</p>
+          <p className="mb-2">
+            {error?.message || "Không thể tải danh sách người dùng"}
+          </p>
           {error?.response?.status === 403 && (
             <div className="mt-2 text-sm bg-red-100 p-3 rounded">
               <p className="font-medium">Lỗi quyền truy cập:</p>
               <ul className="list-disc list-inside mt-1">
-                <li>Tài khoản của bạn không có quyền xem danh sách người dùng</li>
+                <li>
+                  Tài khoản của bạn không có quyền xem danh sách người dùng
+                </li>
                 <li>Vui lòng đăng nhập với tài khoản có quyền quản trị</li>
                 <li>Hoặc liên hệ quản trị viên để được cấp quyền</li>
               </ul>
             </div>
           )}
           <div className="mt-4">
-            <button 
+            <button
               onClick={refreshData}
               className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md"
             >
@@ -461,17 +493,24 @@ const UserList = () => {
                 filteredUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {user.fullName || (user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.username)}
+                      {user.fullName ||
+                        (user.firstName && user.lastName
+                          ? `${user.firstName} ${user.lastName}`
+                          : user.username)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {user.email}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      <span className={`px-2 py-1 rounded-full text-xs ${
-                        user.role === 'ADMIN' ? 'bg-red-100 text-red-800' :
-                        user.role === 'STAFF' ? 'bg-blue-100 text-blue-800' :
-                        'bg-green-100 text-green-800'
-                      }`}>
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs ${
+                          user.role === "ADMIN"
+                            ? "bg-red-100 text-red-800"
+                            : user.role === "STAFF"
+                            ? "bg-blue-100 text-blue-800"
+                            : "bg-green-100 text-green-800"
+                        }`}
+                      >
                         {user.role}
                       </span>
                     </td>
@@ -479,13 +518,13 @@ const UserList = () => {
                       {user.phoneNumber || "Chưa cập nhật"}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-right">
-                      <span 
+                      <span
                         className="text-blue-500 hover:text-blue-700 bg-blue-100 hover:bg-blue-200 p-1 rounded mr-2 cursor-pointer"
                         onClick={() => handleEditUser(user)}
                       >
                         <i className="fas fa-edit"></i>
                       </span>
-                      <span 
+                      <span
                         className="text-red-500 hover:text-red-700 bg-red-100 hover:bg-red-200 p-1 rounded cursor-pointer"
                         onClick={() => handleDeleteUser(user.id)}
                       >
@@ -496,8 +535,13 @@ const UserList = () => {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="5" className="px-6 py-4 text-center text-sm text-gray-500">
-                    {searchTerm ? "Không tìm thấy người dùng phù hợp" : "Không có người dùng nào"}
+                  <td
+                    colSpan="5"
+                    className="px-6 py-4 text-center text-sm text-gray-500"
+                  >
+                    {searchTerm
+                      ? "Không tìm thấy người dùng phù hợp"
+                      : "Không có người dùng nào"}
                   </td>
                 </tr>
               )}
@@ -525,8 +569,8 @@ const UserList = () => {
             </span>
           </div>
           <p className="text-sm text-gray-500 mb-4">
-            {isEditMode 
-              ? "Cập nhật thông tin người dùng" 
+            {isEditMode
+              ? "Cập nhật thông tin người dùng"
               : "Nhập thông tin để tạo tài khoản người dùng mới"}
           </p>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -543,7 +587,7 @@ const UserList = () => {
                 )}
               </div>
             )}
-            
+
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -653,18 +697,41 @@ const UserList = () => {
               </span>
               <button
                 type="submit"
-                disabled={createUserMutation.isPending || updateUserMutation.isPending}
+                disabled={
+                  createUserMutation.isPending || updateUserMutation.isPending
+                }
                 className="px-4 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {createUserMutation.isPending || updateUserMutation.isPending ? (
+                {createUserMutation.isPending ||
+                updateUserMutation.isPending ? (
                   <span className="flex items-center">
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
                     </svg>
                     Đang xử lý...
                   </span>
-                ) : isEditMode ? "Cập nhật" : "Tạo mới"}
+                ) : isEditMode ? (
+                  "Cập nhật"
+                ) : (
+                  "Tạo mới"
+                )}
               </button>
             </div>
           </form>
