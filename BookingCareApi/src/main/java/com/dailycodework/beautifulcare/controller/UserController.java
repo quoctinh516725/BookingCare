@@ -8,6 +8,7 @@ import com.dailycodework.beautifulcare.entity.User;
 import com.dailycodework.beautifulcare.entity.UserRole;
 import com.dailycodework.beautifulcare.exception.ResourceNotFoundException;
 import com.dailycodework.beautifulcare.exception.BadRequestException;
+import com.dailycodework.beautifulcare.exception.NoSpecialistFoundException;
 import com.dailycodework.beautifulcare.security.HasPermission;
 import com.dailycodework.beautifulcare.security.SecurityUtils;
 import com.dailycodework.beautifulcare.service.UserService;
@@ -19,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 import java.util.UUID;
@@ -46,9 +48,26 @@ public class UserController {
     }
 
     @GetMapping("/staff")
-    @Operation(summary = "Get all staff members")
+    @Operation(summary = "Get all staff members who are specialists")
     @HasPermission("user:view")
     public ResponseEntity<List<UserResponse>> getAllStaff() {
+        log.info("GET /api/v1/users/staff: Fetching all staff members who are specialists");
+        List<UserResponse> specialists = userService.getStaffWithSpecialistProfile();
+        
+        if (specialists.isEmpty()) {
+            log.warn("No staff with specialist profile found in the system");
+            // Có thể trả về danh sách rỗng hoặc throw exception tùy vào yêu cầu
+            // throw new NoSpecialistFoundException("No specialist staff available for booking");
+        }
+        
+        return ResponseEntity.ok(specialists);
+    }
+
+    @GetMapping("/all-staff")
+    @Operation(summary = "Get all staff members (for admin)")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<UserResponse>> getAllStaffForAdmin() {
+        log.info("GET /api/v1/users/all-staff: Fetching all staff members (admin only)");
         return ResponseEntity.ok(userService.getUsersByRole(UserRole.STAFF));
     }
 

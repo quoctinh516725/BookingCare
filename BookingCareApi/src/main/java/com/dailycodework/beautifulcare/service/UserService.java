@@ -25,4 +25,10 @@ public interface UserService {
     void deleteUser(UUID id);
     
     void changePassword(UUID id, PasswordChangeRequest request);
+    
+    /**
+     * Lấy danh sách staff đồng thời là specialist
+     * @return Danh sách staff có profile specialist active
+     */
+    List<UserResponse> getStaffWithSpecialistProfile();
 }

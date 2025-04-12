@@ -118,6 +118,26 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(NoSpecialistFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoSpecialistFoundException(NoSpecialistFoundException ex) {
+        log.error("No specialist found: {}", ex.getMessage());
+        ErrorResponse response = new ErrorResponse(
+                HttpStatus.NOT_FOUND.value(),
+                ex.getMessage(),
+                LocalDateTime.now());
+        return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
+    }
+    
+    @ExceptionHandler(InvalidBookingException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidBookingException(InvalidBookingException ex) {
+        log.error("Invalid booking request: {}", ex.getMessage());
+        ErrorResponse response = new ErrorResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage(),
+                LocalDateTime.now());
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(FileStorageException.class)
     public ResponseEntity<?> handleFileStorageException(FileStorageException ex) {
         log.error("File storage error: {}", ex.getMessage());

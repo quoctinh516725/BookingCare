@@ -25,7 +25,8 @@ public class CacheConfig {
             "allUsers",        // For getAllUsers
             "usersByRole",     // For getUsersByRole
             "popularServices", // For popular services
-            "adminStats"       // For admin dashboard statistics
+            "adminStats",      // For admin dashboard statistics
+            "staffSpecialists" // For staff with specialist profiles
         );
         
         return cacheManager;

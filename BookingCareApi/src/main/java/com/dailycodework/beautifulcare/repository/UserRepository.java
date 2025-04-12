@@ -108,4 +108,13 @@ public interface UserRepository extends JpaRepository<User, UUID> {
            "LEFT JOIN FETCH pg.permissions p " +
            "WHERE u.username = :username")
     Optional<User> findByUsernameWithPermissionGroups(@Param("username") String username);
+
+    /**
+     * Lấy danh sách User với vai trò STAFF và có hồ sơ Specialist đang hoạt động
+     * @return Danh sách người dùng là STAFF và có profile specialist với trạng thái ACTIVE
+     */
+    @Query("SELECT DISTINCT u FROM User u " +
+           "JOIN Specialist s ON u.id = s.user.id " +
+           "WHERE u.role = 'STAFF' AND s.status = 'ACTIVE'")
+    List<User> findStaffWithActiveSpecialist();
 }

@@ -18,6 +18,7 @@ import com.dailycodework.beautifulcare.exception.ResourceNotFoundException;
 import com.dailycodework.beautifulcare.mapper.BookingMapper;
 import com.dailycodework.beautifulcare.repository.BookingRepository;
 import com.dailycodework.beautifulcare.repository.ServiceRepository;
+import com.dailycodework.beautifulcare.repository.SpecialistRepository;
 import com.dailycodework.beautifulcare.security.SecurityUtils;
 import com.dailycodework.beautifulcare.service.BookingService;
 import lombok.RequiredArgsConstructor;
@@ -50,6 +51,7 @@ public class BookingServiceImpl implements BookingService {
     private final BookingMapper bookingMapper;
     private final ServiceRepository serviceRepository;
     private final SecurityUtils securityUtils;
+    private final SpecialistRepository specialistRepository;
 
     @Override
     public List<BookingResponse> getAllBookings() {
@@ -86,6 +88,22 @@ public class BookingServiceImpl implements BookingService {
         // Kiểm tra thời gian đặt lịch
         if (request.getBookingDate().isBefore(LocalDate.now())) {
             throw new InvalidBookingException("Cannot create booking for past dates");
+        }
+        
+        // Kiểm tra staff phải là specialist
+        if (request.getStaffId() != null) {
+            try {
+                boolean isSpecialist = specialistRepository.findByUserId(request.getStaffId()).isPresent();
+                if (!isSpecialist) {
+                    log.warn("Attempted to book with non-specialist staff ID: {}", request.getStaffId());
+                    throw new InvalidBookingException("Selected staff is not a specialist");
+                }
+            } catch (Exception e) {
+                log.error("Error validating staff specialist status: {}", e.getMessage(), e);
+                throw new InvalidBookingException("Error validating staff status: " + e.getMessage());
+            }
+        } else {
+            log.warn("Booking request without staffId");
         }
 
         // Chuyển đổi ngày và giờ thành LocalDateTime

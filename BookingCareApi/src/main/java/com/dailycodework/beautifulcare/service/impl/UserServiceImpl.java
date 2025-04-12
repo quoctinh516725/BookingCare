@@ -8,6 +8,7 @@ import com.dailycodework.beautifulcare.entity.UserRole;
 import com.dailycodework.beautifulcare.exception.ResourceNotFoundException;
 import com.dailycodework.beautifulcare.mapper.UserMapper;
 import com.dailycodework.beautifulcare.repository.UserRepository;
+import com.dailycodework.beautifulcare.repository.SpecialistRepository;
 import com.dailycodework.beautifulcare.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,7 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final SpecialistRepository specialistRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -192,5 +194,55 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
         log.info("Password changed successfully for user ID: {}", id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserResponse> getStaffWithSpecialistProfile() {
+        log.info("Getting all staff members who are specialists");
+        
+        try {
+            List<User> staffWithSpecialist = userRepository.findStaffWithActiveSpecialist();
+            
+            if (staffWithSpecialist.isEmpty()) {
+                log.warn("No staff with active specialist profile found in database");
+            }
+            
+            return staffWithSpecialist.stream()
+                .map(user -> {
+                    UserResponse response = userMapper.toUserResponse(user);
+                    
+                    // Tìm thông tin specialist tương ứng
+                    specialistRepository.findByUser(user).ifPresent(specialist -> {
+                        // Bổ sung thông tin specialist
+                        StringBuilder info = new StringBuilder();
+                        
+                        if (specialist.getSpecialty() != null && !specialist.getSpecialty().isEmpty()) {
+                            info.append(specialist.getSpecialty());
+                        }
+                        
+                        if (specialist.getExperience() != null && !specialist.getExperience().isEmpty()) {
+                            if (info.length() > 0) {
+                                info.append(" - ");
+                            }
+                            info.append(specialist.getExperience());
+                        }
+                        
+                        if (info.length() > 0) {
+                            response.setDescription(info.toString());
+                        } else {
+                            response.setDescription("Chuyên gia");
+                        }
+                        
+                        log.debug("Enhanced staff {} with specialist info", user.getId());
+                    });
+                    
+                    return response;
+                })
+                .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error getting staff with specialist profiles: {}", e.getMessage(), e);
+            throw e;
+        }
     }
 }
