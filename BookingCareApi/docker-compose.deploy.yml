@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  bookingcare-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${RENDER_IMAGE_NAME}
+    container_name: bookingcare-api
+    ports:
+      - "${PORT:-8080}:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL:-jdbc:mysql://turntable.proxy.rlwy.net:43838/railway}
+      - SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME:-root}
+      - SPRING_DATASOURCE_PASSWORD=${SPRING_DATASOURCE_PASSWORD:-uFTsQCoEcvOYPLfRRanvGDzVRzqDPvsb}
+      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=com.mysql.cj.jdbc.Driver
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+      - SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.MySQLDialect
+      - SPRING_JPA_SHOW_SQL=${SPRING_JPA_SHOW_SQL:-false}
+      - APPLICATION_SECURITY_JWT_SECRET_KEY=${JWT_SECRET:-404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}
+      - APPLICATION_SECURITY_JWT_EXPIRATION=86400000
+      - APPLICATION_SECURITY_JWT_REFRESH_TOKEN_EXPIRATION=604800000
+      - FILE_UPLOADDIR=/data/uploads/images
+    volumes:
+      - render_data:/data
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  render_data:
+    driver: local 

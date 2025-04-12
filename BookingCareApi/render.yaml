@@ -1,0 +1,33 @@
+services:
+  # Định nghĩa dịch vụ web API
+  - type: web
+    name: bookingcare-api
+    runtime: docker
+    repo: https://github.com/quoctinh516725/BookingCare.git
+    branch: main
+    dockerfilePath: ./BookingCareApi/Dockerfile
+    dockerContext: ./BookingCareApi
+    plan: free
+    envVars:
+      - key: SPRING_DATASOURCE_URL
+        value: jdbc:mysql://turntable.proxy.rlwy.net:43838/railway
+      - key: SPRING_DATASOURCE_USERNAME
+        value: root
+      - key: SPRING_DATASOURCE_PASSWORD
+        value: uFTsQCoEcvOYPLfRRanvGDzVRzqDPvsb
+      - key: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+        value: com.mysql.cj.jdbc.Driver
+      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: update
+      - key: SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT
+        value: org.hibernate.dialect.MySQLDialect
+      - key: SPRING_JPA_SHOW_SQL
+        value: "false"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PORT
+        value: 8080
+    disk:
+      name: bookingcare-data
+      mountPath: /data
+      sizeGB: 1 
