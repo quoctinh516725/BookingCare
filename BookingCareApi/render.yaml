@@ -5,8 +5,7 @@ services:
     runtime: docker
     repo: https://github.com/quoctinh516725/BookingCare.git
     branch: main
-    dockerfilePath: ./BookingCareApi/Dockerfile
-    dockerContext: ./BookingCareApi
+    rootDir: BookingCareApi
     plan: free
     envVars:
       - key: SPRING_DATASOURCE_URL
