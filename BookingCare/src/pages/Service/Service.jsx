@@ -18,7 +18,7 @@ function Service() {
           <Filter
             serviceType={serviceType}
             title="Dịch Vụ Của Chúng Tôi "
-            desc="Khám phá các dịch vụ chăm sóc da chuyên nghiệp được thiết kế riêng cho làn da của bạn"
+            desc="Khám phá dịch vụ chăm sóc da chuyên nghiệp được thiết kế riêng cho làn da của bạn"
           />
           <div className="flex justify-between flex-wrap my-10">
             <CardService />
