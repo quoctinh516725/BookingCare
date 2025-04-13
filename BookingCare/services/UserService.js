@@ -628,67 +628,33 @@ const getStaff = async () => {
     const tokenString = localStorage.getItem("access_token");
     const token = tokenString ? JSON.parse(tokenString) : null;
 
-    // Thử gọi API staff-with-specialist-profile trước
-    try {
-      const response = await axios.get(`/api/v1/users/staff-with-specialist-profile`, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        withCredentials: true,
-      });
+    // Gọi trực tiếp API staff thông thường
+    const response = await axios.get(`/api/v1/users/staff`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      withCredentials: true,
+    });
 
-      // Kiểm tra và xử lý dữ liệu trả về
-      if (!response.data) {
-        console.error("No data returned from staff-with-specialist-profile API");
-        return [];
-      }
-
-      // Kiểm tra các trường dữ liệu quan trọng
-      const validatedStaff = Array.isArray(response.data)
-        ? response.data.map((staff) => ({
-            ...staff,
-            id: staff.id || null,
-            firstName: staff.firstName || "",
-            lastName: staff.lastName || "",
-            description: staff.description || staff.expertise || "Chuyên gia",
-            specialties: staff.specialties || [],
-          }))
-        : [];
-
-      console.log("Successfully fetched staff with specialist profiles:", validatedStaff.length);
-      return validatedStaff;
-    } catch (specialistError) {
-      // Nếu API specialist không tồn tại hoặc lỗi, thử API staff thông thường
-      console.warn("Could not fetch from specialist API, falling back to standard staff API:", specialistError.message);
-      
-      const response = await axios.get(`/api/v1/users/staff`, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` }),
-        },
-        withCredentials: true,
-      });
-
-      // Kiểm tra và xử lý dữ liệu trả về
-      if (!response.data) {
-        console.error("No data returned from standard staff API");
-        return [];
-      }
-
-      // Kiểm tra các trường dữ liệu quan trọng
-      const validatedStaff = Array.isArray(response.data)
-        ? response.data.map((staff) => ({
-            ...staff,
-            id: staff.id || null,
-            firstName: staff.firstName || "",
-            lastName: staff.lastName || "",
-            description: staff.description || staff.expertise || "Chuyên gia",
-          }))
-        : [];
-
-      return validatedStaff;
+    // Kiểm tra và xử lý dữ liệu trả về
+    if (!response.data) {
+      console.error("No data returned from staff API");
+      return [];
     }
+
+    // Kiểm tra các trường dữ liệu quan trọng
+    const validatedStaff = Array.isArray(response.data)
+      ? response.data.map((staff) => ({
+          ...staff,
+          id: staff.id || null,
+          firstName: staff.firstName || "",
+          lastName: staff.lastName || "",
+          description: staff.description || staff.expertise || "Chuyên gia",
+        }))
+      : [];
+
+    return validatedStaff;
   } catch (error) {
     console.error("Error in getStaff:", error);
     
