@@ -4,6 +4,28 @@ import Cookies from "js-cookie";
 // Get the API URL from environment variables
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080";
 
+// Helper for logging API errors with timestamps
+const logApiError = (context, error) => {
+  const timestamp = new Date().toISOString();
+  
+  let errorDetails = {
+    message: error.message,
+    timestamp: timestamp,
+    context: context
+  };
+  
+  if (error.response) {
+    errorDetails.status = error.response.status;
+    errorDetails.statusText = error.response.statusText;
+    errorDetails.data = error.response.data;
+  } else if (error.request) {
+    errorDetails.requestInfo = "Request made but no response received";
+  }
+  
+  console.error(`[${timestamp}] API Error in ${context}:`, errorDetails);
+  return errorDetails;
+};
+
 // Cấu hình mặc định cho axios
 axios.defaults.withCredentials = true;
 axios.defaults.baseURL = API_URL;
@@ -577,46 +599,65 @@ const getUserBookings = async () => {
 };
 
 /**
- * Lấy danh sách dịch vụ
- * @param {string} categoryId ID của danh mục (tùy chọn) để lọc theo danh mục
- * @returns {Promise<Array>} Danh sách dịch vụ
+ * Lấy danh sách nhân viên theo dịch vụ
+ * @param {string} serviceId ID của dịch vụ
+ * @returns {Promise<Array>} Danh sách nhân viên thuộc dịch vụ
  */
-const getServices = async (categoryId = null) => {
+const getStaffByServiceId = async (serviceId) => {
   try {
-    const url = categoryId
-      ? `/api/v1/services?categoryId=${categoryId}`
-      : `/api/v1/services`;
-
-    const response = await axios.get(url, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-      withCredentials: true,
-    });
-
-    // Kiểm tra và xử lý dữ liệu trả về
-    if (!response.data) {
-      console.error("No data returned from getServices API");
+    if (!serviceId) {
+      console.warn('getStaffByServiceId called without serviceId');
       return [];
     }
 
-    // Kiểm tra các trường dữ liệu quan trọng
-    const validatedServices = Array.isArray(response.data)
-      ? response.data.map((service) => ({
-          ...service,
-          id: service.id || null,
-          name: service.name || "Dịch vụ chưa đặt tên",
-          price: service.price || 0,
-          duration: service.duration || 0,
+    console.log(`Fetching staff for service ID: ${serviceId}`);
+    const tokenString = localStorage.getItem("access_token");
+    const token = tokenString ? JSON.parse(tokenString) : null;
+
+    // API endpoint to get staff by service ID
+    const response = await axios.get(`/api/v1/services/${serviceId}/staff`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      withCredentials: true,
+      timeout: 8000,
+    });
+
+    if (!response.data) {
+      console.warn(`No staff found for service ID ${serviceId}`);
+      return [];
+    }
+
+    console.log(`Received ${response.data.length} staff for service ID ${serviceId}`);
+
+    // Validate and normalize the data
+    const validatedStaff = Array.isArray(response.data)
+      ? response.data.map((staff) => ({
+          ...staff,
+          id: staff.id || null,
+          firstName: staff.firstName || "",
+          lastName: staff.lastName || "",
+          fullName: staff.fullName || `${staff.firstName || ""} ${staff.lastName || ""}`.trim(),
+          description: staff.description || staff.expertise || "Chuyên gia",
+          experience: staff.experience || staff.yearsOfExperience 
+            ? `${staff.yearsOfExperience} năm kinh nghiệm` 
+            : "Chuyên viên có kinh nghiệm",
+          rating: staff.rating || 4.5,
+          reviewCount: staff.reviewCount || 0,
         }))
       : [];
 
-    return validatedServices;
+    return validatedStaff;
   } catch (error) {
-    console.error("Error in getServices:", error);
+    logApiError(`getStaffByServiceId for service ${serviceId}`, error);
+    console.error(`Error fetching staff for service ID ${serviceId}:`, error);
     return [];
   }
 };
+
+// Add an alias for getStaffByServiceId to maintain compatibility with any code using getStaffByService
+const getStaffByService = getStaffByServiceId;
 
 /**
  * Lấy danh sách chuyên viên
@@ -681,48 +722,61 @@ const getStaff = async () => {
  * Lấy tất cả nhân viên (bao gồm cả những người chưa phải chuyên gia)
  * @returns {Promise<Array>} Danh sách tất cả nhân viên
  */
-const getAllStaff = async () => {
+const getAllStaff = async (params = {}) => {
   try {
-    // Lấy token từ localStorage để thêm vào header cho request
+    console.log("Fetching all staff with params:", params);
     const tokenString = localStorage.getItem("access_token");
     const token = tokenString ? JSON.parse(tokenString) : null;
-
-    // Gọi API all-staff (yêu cầu quyền admin)
-    const response = await axios.get(`/api/v1/users/all-staff`, {
+    
+    // Build query string from params
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        queryParams.append(key, value);
+      }
+    });
+    
+    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    
+    const response = await axios.get(`/api/v1/users/staff${queryString}`, {
       headers: {
         "Content-Type": "application/json",
         ...(token && { Authorization: `Bearer ${token}` }),
       },
       withCredentials: true,
+      timeout: 8000,
     });
-
-    // Kiểm tra và xử lý dữ liệu trả về
+    
     if (!response.data) {
-      console.error("No data returned from all-staff API");
+      console.warn("No staff data returned from API");
       return [];
     }
-
-    // Kiểm tra các trường dữ liệu quan trọng
+    
+    console.log(`Received ${response.data.length} staff from API`);
+    
+    // Validate and normalize the data
     const validatedStaff = Array.isArray(response.data)
       ? response.data.map((staff) => ({
           ...staff,
           id: staff.id || null,
           firstName: staff.firstName || "",
           lastName: staff.lastName || "",
-          description: staff.description || "Nhân viên",
+          fullName: staff.fullName || `${staff.firstName || ""} ${staff.lastName || ""}`.trim(),
+          description: staff.description || staff.expertise || "Chuyên gia",
+          experience: staff.experience || staff.yearsOfExperience 
+            ? `${staff.yearsOfExperience} năm kinh nghiệm` 
+            : "Chuyên viên có kinh nghiệm",
+          rating: staff.rating || 4.5,
+          reviewCount: staff.reviewCount || 0,
         }))
       : [];
-
+    
     return validatedStaff;
   } catch (error) {
-    console.error("Error in getAllStaff:", error);
+    logApiError('getAllStaff', error);
+    console.error("Error fetching all staff:", error);
     
-    // Xử lý trường hợp lỗi phân quyền
-    if (error.response && error.response.status === 403) {
-      console.warn("Permission denied when fetching all staff data");
-      return [];
-    }
-    
+    // Return empty array instead of sample data
     return [];
   }
 };
@@ -756,20 +810,6 @@ const getRecentBookings = async (limit = 5) => {
       withCredentials: true,
     }
   );
-  return response.data;
-};
-
-const getPopularServices = async () => {
-  const tokenString = localStorage.getItem("access_token");
-  const token = tokenString ? JSON.parse(tokenString) : null;
-
-  const response = await axiosJWT.get(`/api/v1/services/popular`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-    withCredentials: true,
-  });
   return response.data;
 };
 
@@ -1030,48 +1070,6 @@ const getBlogPostById = async (id) => {
 };
 
 /**
- * Lấy chi tiết một dịch vụ
- * @param {string|number} id ID của dịch vụ
- * @returns {Promise<Object>} Chi tiết dịch vụ
- */
-const getServiceById = async (id) => {
-  // Validate ID
-  if (id === undefined || id === null || id === "" || id === "undefined") {
-    console.error("Invalid service ID:", id);
-    throw new Error("ID dịch vụ không hợp lệ");
-  }
-
-  try {
-    const response = await axios.get(`/api/v1/services/${id}`, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-      withCredentials: true,
-    });
-
-    // Validate response data
-    if (!response.data) {
-      throw new Error("Không tìm thấy dữ liệu dịch vụ");
-    }
-
-    // Ensure all necessary fields are present
-    const serviceData = {
-      ...response.data,
-      id: response.data.id || id,
-      name: response.data.name || "Dịch vụ chưa có tên",
-      description: response.data.description || "Chưa có mô tả",
-      price: response.data.price || 0,
-      duration: response.data.duration || 0,
-    };
-
-    return serviceData;
-  } catch (error) {
-    console.error(`Error fetching service with ID ${id}:`, error);
-    throw error;
-  }
-};
-
-/**
  * Lấy chi tiết thông tin của một chuyên viên
  * @param {string|number} id ID của chuyên viên
  * @returns {Promise<Object>} Chi tiết thông tin chuyên viên
@@ -1110,80 +1108,6 @@ const getStaffById = async (id) => {
     return staffData;
   } catch (error) {
     console.error(`Error fetching staff with ID ${id}:`, error);
-    throw error;
-  }
-};
-
-/**
- * Tạo dịch vụ mới
- * @param {Object} serviceData Dữ liệu dịch vụ cần tạo
- * @returns {Promise<Object>} Thông tin dịch vụ đã tạo
- */
-const createService = async (serviceData) => {
-  const tokenString = localStorage.getItem("access_token");
-  const token = tokenString ? JSON.parse(tokenString) : null;
-
-  try {
-    const response = await axiosJWT.post(`/api/v1/services`, serviceData, {
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
-      withCredentials: true,
-    });
-
-    return response.data;
-  } catch (error) {
-    console.error("Error creating service:", error);
-    throw error;
-  }
-};
-
-/**
- * Cập nhật thông tin dịch vụ
- * @param {string} id ID của dịch vụ
- * @param {Object} serviceData Dữ liệu dịch vụ cần cập nhật
- * @returns {Promise<Object>} Thông tin dịch vụ đã cập nhật
- */
-const updateService = async (id, serviceData) => {
-  const tokenString = localStorage.getItem("access_token");
-  const token = tokenString ? JSON.parse(tokenString) : null;
-
-  try {
-    const response = await axiosJWT.put(`/api/v1/services/${id}`, serviceData, {
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
-      withCredentials: true,
-    });
-
-    return response.data;
-  } catch (error) {
-    console.error(`Error updating service with ID ${id}:`, error);
-    throw error;
-  }
-};
-
-/**
- * Xóa dịch vụ
- * @param {string} id ID của dịch vụ cần xóa
- * @returns {Promise<void>}
- */
-const deleteService = async (id) => {
-  const tokenString = localStorage.getItem("access_token");
-  const token = tokenString ? JSON.parse(tokenString) : null;
-
-  try {
-    await axiosJWT.delete(`/api/v1/services/${id}`, {
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
-      withCredentials: true,
-    });
-  } catch (error) {
-    console.error(`Error deleting service with ID ${id}:`, error);
     throw error;
   }
 };
@@ -1336,11 +1260,12 @@ export default {
   logoutUser,
   updateUserInfo,
   changePassword,
-  getServices,
   getStaff,
+  getStaffByServiceId,
+  getStaffByService,
+  getAllStaff,
   getAdminStats,
   getRecentBookings,
-  getPopularServices,
   axiosJWT,
   checkTimeSlotAvailability,
   getBookedTimeSlots,
@@ -1349,13 +1274,8 @@ export default {
   clearBookingCache,
   getBlogPosts,
   getBlogPostById,
-  getServiceById,
-  getStaffById,
-  createService,
-  updateService,
-  deleteService,
   uploadImage,
   getUserProfile,
   checkUserPermissions,
-  getAllStaff,
+  getStaffById,
 };

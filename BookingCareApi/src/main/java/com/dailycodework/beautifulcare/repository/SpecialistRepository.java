@@ -60,4 +60,11 @@ public interface SpecialistRepository extends JpaRepository<Specialist, UUID> {
      * Kiểm tra user có phải là chuyên gia không
      */
     boolean existsByUser(User user);
+    
+    /**
+     * Tìm chuyên gia theo ID hoặc theo ID của user
+     * Sử dụng cho việc xác thực trong booking
+     */
+    @Query("SELECT s FROM Specialist s WHERE s.id = :id OR s.user.id = :id")
+    Optional<Specialist> findByIdOrUserId(@Param("id") UUID id);
 } 

@@ -1,39 +1,40 @@
 import React, { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
-import UserService from "../../../services/UserService";
+import { useParams, Link } from "react-router-dom";
+import ServiceService from "../../../services/ServiceService";
 
 function ServiceDetail() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const [service, setService] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Validate ID before making the API call
-    if (!id || id === "undefined") {
-      setError(
-        "ID dịch vụ không hợp lệ. Vui lòng chọn một dịch vụ từ danh sách."
-      );
-      setLoading(false);
-      return;
-    }
-
     const fetchServiceDetail = async () => {
+      if (!id) {
+        setError('ID dịch vụ không hợp lệ');
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const data = await UserService.getServiceById(id);
+        const data = await ServiceService.getServiceById(id);
+        if (!data) {
+          setError('Không tìm thấy thông tin dịch vụ');
+          setLoading(false);
+          return;
+        }
         setService(data);
         setLoading(false);
       } catch (err) {
-        console.error("Error fetching service details:", err);
-        setError("Không thể tải thông tin dịch vụ. Vui lòng thử lại sau.");
+        console.error('Error fetching service details:', err);
+        setError('Không thể tải thông tin dịch vụ. Vui lòng thử lại sau.');
         setLoading(false);
       }
     };
 
     fetchServiceDetail();
-  }, [id, navigate]);
+  }, [id]);
 
   // Hiển thị skeleton khi đang tải dữ liệu
   if (loading) {

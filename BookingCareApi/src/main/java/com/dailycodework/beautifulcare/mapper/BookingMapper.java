@@ -136,9 +136,15 @@ public abstract class BookingMapper {
     @Named("getFullName")
     protected String getFullName(User user) {
         if (user == null) {
-            return null;
+            return "Khách hàng không xác định";
         }
-        return user.getFirstName() + " " + user.getLastName();
+        // Đảm bảo không bị null khi nối chuỗi
+        String firstName = user.getFirstName() != null ? user.getFirstName() : "";
+        String lastName = user.getLastName() != null ? user.getLastName() : "";
+        
+        // Trả về tên đầy đủ hoặc giá trị mặc định nếu cả hai đều trống
+        String fullName = (firstName + " " + lastName).trim();
+        return fullName.isEmpty() ? (user.getUsername() != null ? user.getUsername() : "Khách hàng") : fullName;
     }
 
     @Named("getStatusDescription")

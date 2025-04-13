@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useContext } from "react";
 import Modal from "react-modal";
 import UserService from "../../../../services/UserService";
+import ServiceService from "../../../../services/ServiceService";
 import ServiceCategoryService from "../../../../services/ServiceCategoryService";
 import { MessageContext } from "../../../contexts/MessageProvider.jsx";
 
@@ -54,7 +55,7 @@ const ServiceList = () => {
   const fetchServices = async () => {
     try {
       setLoading(true);
-      const data = await UserService.getServices();
+      const data = await ServiceService.getAllServices();
       setServices(data);
     } catch (error) {
       console.error("Error fetching services:", error);
@@ -112,7 +113,7 @@ const ServiceList = () => {
         let imageUrlToSave = imageUrl;
         if (fileToUpload) {
           try {
-            imageUrlToSave = await UserService.uploadImage(fileToUpload);
+            imageUrlToSave = await ServiceService.uploadServiceImage(fileToUpload);
           } catch (error) {
             console.error("Error uploading image:", error);
             message.error("Không thể tải ảnh lên, vui lòng thử lại");
@@ -131,10 +132,10 @@ const ServiceList = () => {
         };
         
         if (isEditMode) {
-          await UserService.updateService(currentServiceId, serviceData);
+          await ServiceService.updateService(currentServiceId, serviceData);
           message.success("Cập nhật dịch vụ thành công");
         } else {
-          await UserService.createService(serviceData);
+          await ServiceService.createService(serviceData);
           message.success("Thêm dịch vụ thành công");
         }
         
@@ -171,7 +172,7 @@ const ServiceList = () => {
   const handleDelete = async (id) => {
     if (window.confirm("Bạn có chắc chắn muốn xóa dịch vụ này không?")) {
       try {
-        await UserService.deleteService(id);
+        await ServiceService.deleteService(id);
         message.success("Xóa dịch vụ thành công");
         // Tải lại danh sách dịch vụ
         fetchServices();
@@ -268,7 +269,7 @@ const ServiceList = () => {
             onChange={(e) => {
               const catId = e.target.value;
               if (catId) {
-                UserService.getServices(catId).then(data => setServices(data));
+                ServiceService.getServicesByCategory(catId).then(data => setServices(data));
               } else {
                 fetchServices();
               }

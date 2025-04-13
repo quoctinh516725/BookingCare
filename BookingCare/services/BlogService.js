@@ -26,72 +26,112 @@ const getAllBlogs = async (params = {}) => {
     
     console.log("URL gọi API bài viết:", url);
     
-    const response = await axiosJWT.get(url, {
-      headers: {
-        "Content-Type": "application/json",
-        ...(token && { Authorization: `Bearer ${token}` })
-      },
-      withCredentials: true,
-    });
-    
-    console.log("Kết quả API bài viết blog:", response.data);
-    return response.data || [];
-  } catch (error) {
-    console.error("Error fetching blog posts:", error);
-    
-    // In thêm thông tin lỗi chi tiết
-    if (error.response) {
-      console.error("Response status:", error.response.status);
-      console.error("Response data:", error.response.data);
+    // Thử gọi API với token nếu có
+    try {
+      const response = await axiosJWT.get(url, {
+        headers: {
+          "Content-Type": "application/json",
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        withCredentials: true,
+      });
+      
+      console.log("Kết quả API bài viết blog:", response.data);
+      return response.data || [];
+    } catch (apiError) {
+      console.error("Lỗi khi gọi API bài viết:", apiError);
+      
+      // Nếu lỗi 401 hoặc 403, thử refresh token và gọi lại API
+      if (apiError.response && (apiError.response.status === 401 || apiError.response.status === 403)) {
+        try {
+          console.log("Thử refresh token và gọi lại API bài viết...");
+          await UserService.refreshToken();
+          
+          // Lấy token mới nếu refresh thành công
+          const newTokenString = localStorage.getItem("access_token");
+          const newToken = newTokenString ? JSON.parse(newTokenString) : null;
+          
+          // Gọi lại API với token mới
+          if (newToken) {
+            const retryResponse = await axiosJWT.get(url, {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${newToken}`
+              },
+              withCredentials: true,
+            });
+            
+            console.log("Kết quả API bài viết blog (sau khi refresh):", retryResponse.data);
+            return retryResponse.data || [];
+          }
+        } catch (refreshError) {
+          console.error("Không thể refresh token:", refreshError);
+          // Tiếp tục sử dụng dữ liệu mẫu
+        }
+      }
+      
+      // Trả về dữ liệu mẫu nếu có lỗi
+      console.warn("Sử dụng dữ liệu mẫu cho bài viết blog do API lỗi");
+      return generateSampleBlogs();
     }
+  } catch (error) {
+    console.error("Error in BlogService.getAllBlogs:", error);
     
     // Trả về dữ liệu mẫu khi API gặp lỗi
-    console.warn("Sử dụng dữ liệu mẫu cho bài viết blog do API lỗi");
-    return [
-      {
-        id: '1',
-        title: 'Các phương pháp chăm sóc da hiệu quả',
-        content: '<p>Nội dung bài viết về chăm sóc da. Da đẹp không chỉ đến từ gen tốt mà còn phụ thuộc nhiều vào cách bạn chăm sóc hàng ngày...</p>',
-        excerpt: 'Tổng hợp các phương pháp chăm sóc da hiệu quả nhất hiện nay',
-        author: 'Dr. Nguyễn Thị An',
-        category: 'Chăm sóc da',
-        categoryId: '1',
-        createdAt: '2023-04-15T08:30:00Z',
-        updatedAt: '2023-04-16T10:15:00Z',
-        status: 'ACTIVE',
-        thumbnailUrl: 'https://via.placeholder.com/800x400?text=Skincare',
-        slug: 'cac-phuong-phap-cham-soc-da-hieu-qua'
-      },
-      {
-        id: '2',
-        title: 'Top 5 dịch vụ spa được ưa chuộng nhất',
-        content: '<p>Trong thời đại hiện nay, việc chăm sóc bản thân không chỉ là nhu cầu mà còn là cách để cân bằng cuộc sống. Các dịch vụ spa cao cấp đang trở thành lựa chọn hàng đầu của nhiều người...</p>',
-        excerpt: 'Những dịch vụ spa được khách hàng yêu thích nhất tại Booking Care',
-        author: 'Chuyên gia Trần Văn Minh',
-        category: 'Dịch vụ spa',
-        categoryId: '2',
-        createdAt: '2023-04-10T09:45:00Z',
-        updatedAt: '2023-04-12T11:20:00Z',
-        status: 'ACTIVE',
-        thumbnailUrl: 'https://via.placeholder.com/800x400?text=Spa+Services',
-        slug: 'top-5-dich-vu-spa-duoc-ua-chuong-nhat'
-      },
-      {
-        id: '3',
-        title: '10 mẹo làm đẹp tự nhiên ít tốn kém',
-        content: '<p>Làm đẹp không nhất thiết phải tốn nhiều tiền. Có rất nhiều nguyên liệu tự nhiên trong nhà bếp có thể giúp bạn chăm sóc da và tóc hiệu quả...</p>',
-        excerpt: 'Khám phá các bí quyết làm đẹp từ thiên nhiên không tốn kém',
-        author: 'Chuyên gia Linh Nguyễn',
-        category: 'Mẹo làm đẹp',
-        categoryId: '3',
-        createdAt: '2023-03-22T14:30:00Z',
-        updatedAt: '2023-03-25T09:10:00Z',
-        status: 'ACTIVE',
-        thumbnailUrl: 'https://via.placeholder.com/800x400?text=Beauty+Tips',
-        slug: '10-meo-lam-dep-tu-nhien-it-ton-kem'
-      }
-    ];
+    console.warn("Sử dụng dữ liệu mẫu cho bài viết blog do lỗi không xác định");
+    return generateSampleBlogs();
   }
+};
+
+// Hàm tạo dữ liệu mẫu cho bài viết blog
+const generateSampleBlogs = () => {
+  return [
+    {
+      id: '1',
+      title: 'Các phương pháp chăm sóc da hiệu quả',
+      content: '<p>Nội dung bài viết về chăm sóc da. Da đẹp không chỉ đến từ gen tốt mà còn phụ thuộc nhiều vào cách bạn chăm sóc hàng ngày...</p>',
+      excerpt: 'Tổng hợp các phương pháp chăm sóc da hiệu quả nhất hiện nay',
+      author: 'Dr. Nguyễn Thị An',
+      category: 'Chăm sóc da',
+      categoryId: '1',
+      createdAt: '2023-04-15T08:30:00Z',
+      updatedAt: '2023-04-16T10:15:00Z',
+      status: 'ACTIVE',
+      thumbnailUrl: 'https://via.placeholder.com/800x400?text=Skincare',
+      slug: 'cac-phuong-phap-cham-soc-da-hieu-qua',
+      image: 'https://via.placeholder.com/800x400?text=Skincare'
+    },
+    {
+      id: '2',
+      title: 'Top 5 dịch vụ spa được ưa chuộng nhất',
+      content: '<p>Trong thời đại hiện nay, việc chăm sóc bản thân không chỉ là nhu cầu mà còn là cách để cân bằng cuộc sống. Các dịch vụ spa cao cấp đang trở thành lựa chọn hàng đầu của nhiều người...</p>',
+      excerpt: 'Những dịch vụ spa được khách hàng yêu thích nhất tại Booking Care',
+      author: 'Chuyên gia Trần Văn Minh',
+      category: 'Dịch vụ spa',
+      categoryId: '2',
+      createdAt: '2023-04-10T09:45:00Z',
+      updatedAt: '2023-04-12T11:20:00Z',
+      status: 'ACTIVE',
+      thumbnailUrl: 'https://via.placeholder.com/800x400?text=Spa+Services',
+      slug: 'top-5-dich-vu-spa-duoc-ua-chuong-nhat',
+      image: 'https://via.placeholder.com/800x400?text=Spa+Services'
+    },
+    {
+      id: '3',
+      title: '10 mẹo làm đẹp tự nhiên ít tốn kém',
+      content: '<p>Làm đẹp không nhất thiết phải tốn nhiều tiền. Có rất nhiều nguyên liệu tự nhiên trong nhà bếp có thể giúp bạn chăm sóc da và tóc hiệu quả...</p>',
+      excerpt: 'Khám phá các bí quyết làm đẹp từ thiên nhiên không tốn kém',
+      author: 'Chuyên gia Linh Nguyễn',
+      category: 'Mẹo làm đẹp',
+      categoryId: '3',
+      createdAt: '2023-03-22T14:30:00Z',
+      updatedAt: '2023-03-25T09:10:00Z',
+      status: 'ACTIVE',
+      thumbnailUrl: 'https://via.placeholder.com/800x400?text=Beauty+Tips',
+      slug: '10-meo-lam-dep-tu-nhien-it-ton-kem',
+      image: 'https://via.placeholder.com/800x400?text=Beauty+Tips'
+    }
+  ];
 };
 
 /**

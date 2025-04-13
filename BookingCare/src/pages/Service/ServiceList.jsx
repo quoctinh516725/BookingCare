@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import UserService from '../../../services/UserService';
+import ServiceService from '../../../services/ServiceService';
 import CardService from '../../components/Card/CardService';
 import { Link } from 'react-router-dom';
 
@@ -24,7 +24,18 @@ function ServiceList() {
     const fetchServices = async () => {
       try {
         setLoading(true);
-        const data = await UserService.getServices();
+        
+        // Tạo tham số tìm kiếm
+        const params = {};
+        if (selectedCategory !== 'all') {
+          params.category = selectedCategory;
+        }
+        if (searchTerm.trim()) {
+          params.search = searchTerm.trim();
+        }
+        
+        // Gọi API sử dụng service mới
+        const data = await ServiceService.getAllServices(params);
         setServices(data);
         setLoading(false);
       } catch (err) {
@@ -35,7 +46,7 @@ function ServiceList() {
     };
 
     fetchServices();
-  }, []);
+  }, [selectedCategory, searchTerm]);
 
   // Lọc dịch vụ theo tìm kiếm và danh mục
   const filteredServices = services.filter(service => {

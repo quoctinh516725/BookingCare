@@ -92,15 +92,33 @@ public class BookingServiceImpl implements BookingService {
         
         // Kiểm tra staff phải là specialist
         if (request.getStaffId() != null) {
+            log.info("Validating specialist status for staffId: {}", request.getStaffId());
             try {
-                boolean isSpecialist = specialistRepository.findByUserId(request.getStaffId()).isPresent();
+                // Tìm kiếm specialist theo cả ID trực tiếp hoặc userId
+                boolean isSpecialist = specialistRepository.findByUserId(request.getStaffId()).isPresent() 
+                                    || specialistRepository.findById(request.getStaffId()).isPresent();
+                
                 if (!isSpecialist) {
-                    log.warn("Attempted to book with non-specialist staff ID: {}", request.getStaffId());
-                    throw new InvalidBookingException("Selected staff is not a specialist");
+                    log.warn("Staff ID {} is not a specialist", request.getStaffId());
+                    throw new InvalidBookingException("Người bạn chọn không phải là chuyên viên. Vui lòng chọn một chuyên viên khác");
+                } else {
+                    log.info("Successfully validated specialist with ID: {}", request.getStaffId());
+                    
+                    // Nếu specialist được tìm thấy bằng specialist.id, lấy user.id cho booking
+                    var specialistOpt = specialistRepository.findById(request.getStaffId());
+                    if (specialistOpt.isPresent()) {
+                        UUID userId = specialistOpt.get().getUser().getId();
+                        log.info("Found specialist by ID, using their userId: {} for booking", userId);
+                        // Cập nhật staffId trong request
+                        request.setStaffId(userId);
+                    }
                 }
+            } catch (InvalidBookingException e) {
+                // Ném lại exception với message cụ thể
+                throw e;
             } catch (Exception e) {
                 log.error("Error validating staff specialist status: {}", e.getMessage(), e);
-                throw new InvalidBookingException("Error validating staff status: " + e.getMessage());
+                throw new InvalidBookingException("Lỗi xác thực chuyên viên: " + e.getMessage());
             }
         } else {
             log.warn("Booking request without staffId");
@@ -494,13 +512,33 @@ public class BookingServiceImpl implements BookingService {
         LocalDateTime startDateTime = date.atTime(startTime);
         LocalDateTime endDateTime = date.atTime(endTime);
 
+        log.info("Checking for booking conflicts: staff={}, start={}, end={}", 
+                 staffId, startDateTime, endDateTime);
+
+        // Mở rộng khoảng thời gian kiểm tra (thêm 15 phút trước và sau)
+        LocalDateTime extendedStartDateTime = startDateTime.minusMinutes(15);
+        LocalDateTime extendedEndDateTime = endDateTime.plusMinutes(15);
+
         List<Booking> conflictingBookings = bookingRepository.findByAppointmentTimeBetweenAndStaffIdAndStatusIn(
-                startDateTime,
-                endDateTime,
+                extendedStartDateTime,
+                extendedEndDateTime,
                 staffId,
                 List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED));
+        
+        boolean hasConflict = !conflictingBookings.isEmpty();
+        if (hasConflict) {
+            log.warn("Found {} conflicting bookings for staff {} at time {}", 
+                    conflictingBookings.size(), staffId, startDateTime);
+            // Log chi tiết về các lịch hẹn bị xung đột
+            conflictingBookings.forEach(booking -> 
+                log.info("Conflicting booking: ID={}, time={}, status={}", 
+                        booking.getId(), 
+                        booking.getAppointmentTime(), 
+                        booking.getStatus())
+            );
+        }
 
-        return !conflictingBookings.isEmpty();
+        return hasConflict;
     }
 
     /**
@@ -510,14 +548,34 @@ public class BookingServiceImpl implements BookingService {
         LocalDateTime startDateTime = date.atTime(startTime);
         LocalDateTime endDateTime = date.atTime(endTime);
 
+        log.info("Checking for booking conflicts (excluding current): bookingId={}, staff={}, start={}, end={}", 
+                 bookingId, staffId, startDateTime, endDateTime);
+
+        // Mở rộng khoảng thời gian kiểm tra (thêm 15 phút trước và sau)
+        LocalDateTime extendedStartDateTime = startDateTime.minusMinutes(15);
+        LocalDateTime extendedEndDateTime = endDateTime.plusMinutes(15);
+
         List<Booking> conflictingBookings = bookingRepository.findByAppointmentTimeBetweenAndStaffIdAndStatusInAndIdNot(
-                startDateTime,
-                endDateTime,
+                extendedStartDateTime,
+                extendedEndDateTime,
                 staffId,
                 List.of(BookingStatus.PENDING, BookingStatus.CONFIRMED),
                 bookingId);
+        
+        boolean hasConflict = !conflictingBookings.isEmpty();
+        if (hasConflict) {
+            log.warn("Found {} conflicting bookings for staff {} at time {} (excluding booking {})", 
+                    conflictingBookings.size(), staffId, startDateTime, bookingId);
+            // Log chi tiết về các lịch hẹn bị xung đột
+            conflictingBookings.forEach(booking -> 
+                log.info("Conflicting booking: ID={}, time={}, status={}", 
+                        booking.getId(), 
+                        booking.getAppointmentTime(), 
+                        booking.getStatus())
+            );
+        }
 
-        return !conflictingBookings.isEmpty();
+        return hasConflict;
     }
 
     /**

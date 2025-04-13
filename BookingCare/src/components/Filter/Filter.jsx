@@ -1,6 +1,24 @@
 import { useState } from "react";
 function Filter(prop) {
   const [type, setType] = useState("Tất cả");
+
+  // Xử lý thay đổi danh mục
+  const handleCategoryChange = (category) => {
+    setType(category);
+    // Gọi callback từ parent component nếu được cung cấp
+    if (prop.onCategoryChange) {
+      prop.onCategoryChange(category);
+    }
+  };
+
+  // Xử lý thay đổi thanh tìm kiếm
+  const handleSearchInputChange = (e) => {
+    // Gọi callback từ parent component nếu được cung cấp
+    if (prop.onSearchChange) {
+      prop.onSearchChange(e.target.value);
+    }
+  };
+
   return (
     <>
       <div className="text-center">
@@ -20,28 +38,35 @@ function Filter(prop) {
             id="search"
             placeholder="Tìm kiếm dịch vụ..."
             className="w-full text-xl outline-none p-4"
+            onChange={handleSearchInputChange}
           />
         </div>
       </div>
       <div className="flex justify-center my-10">
         <div className="w-[60%] bg-[#F1F5F9] p-[3px]">
-          <ul className="flex items-center text-[13px] text-black/80 font-semibold cursor-pointer">
-            {prop.serviceType.map((item, index) => {
-              return (
-                <li
-                  key={index}
-                  onClick={(e) => setType(item)}
-                  className={`text-center transition-colors duration-200   ${
-                    type === item
-                      ? "bg-white border border-black/10"
-                      : "border border-transparent"
-                  }  flex-1 `}
-                >
-                  {item}
-                </li>
-              );
-            })}
-          </ul>
+          {prop.loading ? (
+            <div className="flex justify-center items-center py-2">
+              <div className="animate-pulse bg-gray-200 h-6 w-full rounded"></div>
+            </div>
+          ) : (
+            <ul className="flex items-center text-[13px] text-black/80 font-semibold cursor-pointer">
+              {prop.serviceType.map((item, index) => {
+                return (
+                  <li
+                    key={index}
+                    onClick={() => handleCategoryChange(item)}
+                    className={`text-center transition-colors duration-200 px-2 py-1 ${
+                      type === item
+                        ? "bg-white border border-black/10"
+                        : "border border-transparent"
+                    }  flex-1 `}
+                  >
+                    {item}
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       </div>
     </>

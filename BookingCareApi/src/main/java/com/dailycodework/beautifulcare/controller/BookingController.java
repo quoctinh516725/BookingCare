@@ -80,22 +80,62 @@ public class BookingController {
 
     @PostMapping
     @Operation(summary = "Create new booking")
-    public ResponseEntity<BookingResponse> createBooking(@Valid @RequestBody BookingRequest request) {
+    public ResponseEntity<?> createBooking(@Valid @RequestBody BookingRequest request) {
         log.info("POST /api/v1/bookings: Creating new booking for customer {}", request.getCustomerId());
+        
         try {
             BookingResponse response = bookingService.createBooking(request);
-            return ResponseEntity.ok(response);
+            // Trả về thông báo thành công cùng với dữ liệu
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Đặt lịch thành công!",
+                "data", response
+            ));
         } catch (BookingConflictException e) {
             log.warn("Booking conflict detected: {}", e.getMessage());
-            // Return 409 Conflict status with detailed message
+            // Trả về 409 Conflict với thông báo chi tiết
             return ResponseEntity
                 .status(HttpStatus.CONFLICT)
-                .body(null); // Return null body to trigger frontend error handling
+                .body(Map.of(
+                    "success", false,
+                    "message", e.getMessage(),
+                    "reason", e.getReason() != null ? e.getReason() : "CONFLICT"
+                ));
         } catch (Exception e) {
             log.error("Error creating booking", e);
+            // Phân tích loại lỗi và trả về thông báo phù hợp
+            String errorMessage = "Đã xảy ra lỗi khi tạo lịch hẹn";
+            String errorReason = "SERVER_ERROR";
+            
+            if (e instanceof com.dailycodework.beautifulcare.exception.InvalidBookingException) {
+                errorMessage = e.getMessage();
+                errorReason = "INVALID_BOOKING";
+                return ResponseEntity
+                    .status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of(
+                        "success", false,
+                        "message", errorMessage,
+                        "reason", errorReason
+                    ));
+            } else if (e instanceof com.dailycodework.beautifulcare.exception.ResourceNotFoundException) {
+                errorMessage = e.getMessage();
+                errorReason = "RESOURCE_NOT_FOUND";
+                return ResponseEntity
+                    .status(HttpStatus.NOT_FOUND)
+                    .body(Map.of(
+                        "success", false,
+                        "message", errorMessage,
+                        "reason", errorReason
+                    ));
+            }
+            
             return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(null);
+                .body(Map.of(
+                    "success", false,
+                    "message", errorMessage,
+                    "reason", errorReason
+                ));
         }
     }
 

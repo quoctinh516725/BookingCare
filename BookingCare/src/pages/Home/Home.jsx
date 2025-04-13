@@ -4,7 +4,9 @@ import Background from "../../assets/home/BackgroundHome.avif";
 import CardService from "../../components/Card/CardService";
 import CardSpecialist from "../../components/Card/CardSpecialist";
 import CardBlog from "../../components/Card/CardBlog";
-import UserService from "../../../services/UserService";
+import ServiceService from "../../../services/ServiceService";
+import SpecialistService from "../../../services/SpecialistService";
+import BlogService from "../../../services/BlogService";
 
 import testImg from "../../assets/home/testImg.webp";
 
@@ -32,7 +34,7 @@ function Home() {
         setLoading(prev => ({ ...prev, services: true }));
         setError(prev => ({ ...prev, services: null }));
         try {
-          const servicesData = await UserService.getServices();
+          const servicesData = await ServiceService.getAllServices({ limit: 3 });
           console.log("Services data received:", servicesData);
           
           if (!servicesData || !Array.isArray(servicesData) || servicesData.length === 0) {
@@ -61,7 +63,7 @@ function Home() {
         setLoading(prev => ({ ...prev, specialists: true }));
         setError(prev => ({ ...prev, specialists: null }));
         try {
-          const specialistsData = await UserService.getStaff();
+          const specialistsData = await SpecialistService.getTopRatedSpecialists(3);
           console.log("Specialists data received:", specialistsData);
           
           if (!specialistsData || !Array.isArray(specialistsData) || specialistsData.length === 0) {
@@ -90,7 +92,7 @@ function Home() {
         setLoading(prev => ({ ...prev, blogs: true }));
         setError(prev => ({ ...prev, blogs: null }));
         try {
-          const blogsData = await UserService.getBlogPosts(3); // Lấy 3 bài viết mới nhất
+          const blogsData = await BlogService.getAllBlogs({ limit: 3 }); // Lấy 3 bài viết mới nhất
           console.log("Blogs data received:", blogsData);
           
           if (!blogsData || !Array.isArray(blogsData) || blogsData.length === 0) {
