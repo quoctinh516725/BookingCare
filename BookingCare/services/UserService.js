@@ -677,6 +677,56 @@ const getStaff = async () => {
   }
 };
 
+/**
+ * Lấy tất cả nhân viên (bao gồm cả những người chưa phải chuyên gia)
+ * @returns {Promise<Array>} Danh sách tất cả nhân viên
+ */
+const getAllStaff = async () => {
+  try {
+    // Lấy token từ localStorage để thêm vào header cho request
+    const tokenString = localStorage.getItem("access_token");
+    const token = tokenString ? JSON.parse(tokenString) : null;
+
+    // Gọi API all-staff (yêu cầu quyền admin)
+    const response = await axios.get(`/api/v1/users/all-staff`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
+      },
+      withCredentials: true,
+    });
+
+    // Kiểm tra và xử lý dữ liệu trả về
+    if (!response.data) {
+      console.error("No data returned from all-staff API");
+      return [];
+    }
+
+    // Kiểm tra các trường dữ liệu quan trọng
+    const validatedStaff = Array.isArray(response.data)
+      ? response.data.map((staff) => ({
+          ...staff,
+          id: staff.id || null,
+          firstName: staff.firstName || "",
+          lastName: staff.lastName || "",
+          description: staff.description || "Nhân viên",
+        }))
+      : [];
+
+    return validatedStaff;
+  } catch (error) {
+    console.error("Error in getAllStaff:", error);
+    
+    // Xử lý trường hợp lỗi phân quyền
+    if (error.response && error.response.status === 403) {
+      console.warn("Permission denied when fetching all staff data");
+      return [];
+    }
+    
+    return [];
+  }
+};
+
 // Thêm các API services cho admin dashboard
 const getAdminStats = async () => {
   const tokenString = localStorage.getItem("access_token");
@@ -1307,4 +1357,5 @@ export default {
   uploadImage,
   getUserProfile,
   checkUserPermissions,
+  getAllStaff,
 };

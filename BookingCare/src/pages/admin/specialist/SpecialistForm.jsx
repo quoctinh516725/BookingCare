@@ -86,7 +86,7 @@ const SpecialistForm = () => {
     const fetchStaffUsers = async () => {
       setIsLoadingUsers(true);
       try {
-        const response = await UserService.getStaff();
+        const response = await UserService.getAllStaff();
         setStaffUsers(response);
       } catch (error) {
         message.error(`Lỗi khi tải danh sách nhân viên: ${error.message}`);
