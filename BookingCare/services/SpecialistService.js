@@ -1,10 +1,29 @@
-import UserService from './UserService';
+import UserService from "./UserService";
 
 // Sử dụng axiosJWT để có khả năng tự động refresh token
 const axiosJWT = UserService.axiosJWT;
 
-// Hàm lấy JWT token từ localStorage đã có sẵn trong axiosJWT interceptor
-// nên không cần hàm getAuthHeader nữa
+// Cache để lưu trữ dữ liệu
+const cache = {
+  specialists: {
+    data: null,
+    timestamp: null,
+    expiry: 5 * 60 * 1000, // Cache hết hạn sau 5 phút
+  },
+  specialties: {
+    data: null,
+    timestamp: null,
+    expiry: 15 * 60 * 1000, // Cache hết hạn sau 15 phút
+  },
+  specialistsBySpecialty: {},
+  specialistDetails: {},
+};
+
+// Helper function kiểm tra cache có còn hạn không
+const isCacheValid = (cacheItem) => {
+  if (!cacheItem.data || !cacheItem.timestamp) return false;
+  return Date.now() - cacheItem.timestamp < cacheItem.expiry;
+};
 
 /**
  * Service quản lý các chuyên gia (specialists)
@@ -15,16 +34,27 @@ const SpecialistService = {
    */
   getAllSpecialists: async () => {
     try {
+      // Kiểm tra cache
+      if (isCacheValid(cache.specialists)) {
+        console.log("Using cached specialists data");
+        return cache.specialists.data;
+      }
+
       const tokenString = localStorage.getItem("access_token");
       const token = tokenString ? JSON.parse(tokenString) : null;
-      
+
       const response = await axiosJWT.get(`/api/v1/specialists`, {
         headers: {
           "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` })
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         withCredentials: true,
       });
+
+      // Lưu vào cache
+      cache.specialists.data = response.data || [];
+      cache.specialists.timestamp = Date.now();
+
       return response.data;
     } catch (error) {
       console.error("Lỗi khi lấy danh sách chuyên gia:", error);
@@ -37,16 +67,37 @@ const SpecialistService = {
    */
   getSpecialistById: async (id) => {
     try {
+      // Kiểm tra cache cho specialist cụ thể
+      if (
+        cache.specialistDetails[id] &&
+        isCacheValid(cache.specialistDetails[id])
+      ) {
+        console.log(`Using cached data for specialist ${id}`);
+        return cache.specialistDetails[id].data;
+      }
+
       const tokenString = localStorage.getItem("access_token");
       const token = tokenString ? JSON.parse(tokenString) : null;
-      
+
       const response = await axiosJWT.get(`/api/v1/specialists/${id}`, {
         headers: {
           "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` })
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         withCredentials: true,
       });
+
+      // Lưu cache
+      if (!cache.specialistDetails[id]) {
+        cache.specialistDetails[id] = {
+          data: null,
+          timestamp: null,
+          expiry: 10 * 60 * 1000, // 10 phút
+        };
+      }
+      cache.specialistDetails[id].data = response.data;
+      cache.specialistDetails[id].timestamp = Date.now();
+
       return response.data;
     } catch (error) {
       console.error(`Lỗi khi lấy thông tin chuyên gia ID ${id}:`, error);
@@ -61,17 +112,23 @@ const SpecialistService = {
     try {
       const tokenString = localStorage.getItem("access_token");
       const token = tokenString ? JSON.parse(tokenString) : null;
-      
-      const response = await axiosJWT.get(`/api/v1/specialists/user/${userId}`, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` })
-        },
-        withCredentials: true,
-      });
+
+      const response = await axiosJWT.get(
+        `/api/v1/specialists/user/${userId}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+          withCredentials: true,
+        }
+      );
       return response.data;
     } catch (error) {
-      console.error(`Lỗi khi lấy thông tin chuyên gia theo userId ${userId}:`, error);
+      console.error(
+        `Lỗi khi lấy thông tin chuyên gia theo userId ${userId}:`,
+        error
+      );
       throw error;
     }
   },
@@ -85,17 +142,21 @@ const SpecialistService = {
       if (!specialistData.userId) {
         throw new Error("Dữ liệu chuyên gia phải chứa userId");
       }
-      
+
       const tokenString = localStorage.getItem("access_token");
       const token = tokenString ? JSON.parse(tokenString) : null;
-      
-      const response = await axiosJWT.post(`/api/v1/specialists`, specialistData, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` })
-        },
-        withCredentials: true,
-      });
+
+      const response = await axiosJWT.post(
+        `/api/v1/specialists`,
+        specialistData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+          withCredentials: true,
+        }
+      );
       return response.data;
     } catch (error) {
       console.error("Lỗi khi tạo chuyên gia mới:", error);
@@ -107,17 +168,22 @@ const SpecialistService = {
    * Cập nhật thông tin chuyên gia
    */
   updateSpecialist: async (id, specialistData) => {
+    console.log("specialistData", specialistData);
     try {
       const tokenString = localStorage.getItem("access_token");
       const token = tokenString ? JSON.parse(tokenString) : null;
-      
-      const response = await axiosJWT.put(`/api/v1/specialists/${id}`, specialistData, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` })
-        },
-        withCredentials: true,
-      });
+
+      const response = await axiosJWT.put(
+        `/api/v1/specialists/${id}`,
+        specialistData,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+          withCredentials: true,
+        }
+      );
       return response.data;
     } catch (error) {
       console.error(`Lỗi khi cập nhật thông tin chuyên gia ID ${id}:`, error);
@@ -132,11 +198,11 @@ const SpecialistService = {
     try {
       const tokenString = localStorage.getItem("access_token");
       const token = tokenString ? JSON.parse(tokenString) : null;
-      
+
       const response = await axiosJWT.delete(`/api/v1/specialists/${id}`, {
         headers: {
           "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` })
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         withCredentials: true,
       });
@@ -154,14 +220,14 @@ const SpecialistService = {
     try {
       const tokenString = localStorage.getItem("access_token");
       const token = tokenString ? JSON.parse(tokenString) : null;
-      
+
       const response = await axiosJWT.get(`/api/v1/specialists/search`, {
         headers: {
           "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` })
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         withCredentials: true,
-        params: { query }
+        params: { query },
       });
       return response.data;
     } catch (error) {
@@ -175,19 +241,47 @@ const SpecialistService = {
    */
   getSpecialistsBySpecialty: async (specialty) => {
     try {
+      // Kiểm tra cache cho specialty cụ thể
+      const cacheKey = typeof specialty === "object" ? specialty.id : specialty;
+      if (
+        cache.specialistsBySpecialty[cacheKey] &&
+        isCacheValid(cache.specialistsBySpecialty[cacheKey])
+      ) {
+        console.log(`Using cached data for specialty ${cacheKey}`);
+        return cache.specialistsBySpecialty[cacheKey].data;
+      }
+
       const tokenString = localStorage.getItem("access_token");
       const token = tokenString ? JSON.parse(tokenString) : null;
-      
-      const response = await axiosJWT.get(`/api/v1/specialists/specialty/${specialty}`, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` })
-        },
-        withCredentials: true,
-      });
+
+      const response = await axiosJWT.get(
+        `/api/v1/specialists/specialty/${specialty}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+          withCredentials: true,
+        }
+      );
+
+      // Lưu cache
+      if (!cache.specialistsBySpecialty[cacheKey]) {
+        cache.specialistsBySpecialty[cacheKey] = {
+          data: null,
+          timestamp: null,
+          expiry: 5 * 60 * 1000, // 5 phút
+        };
+      }
+      cache.specialistsBySpecialty[cacheKey].data = response.data || [];
+      cache.specialistsBySpecialty[cacheKey].timestamp = Date.now();
+
       return response.data;
     } catch (error) {
-      console.error(`Lỗi khi lấy chuyên gia theo chuyên môn ${specialty}:`, error);
+      console.error(
+        `Lỗi khi lấy chuyên gia theo chuyên môn ${specialty}:`,
+        error
+      );
       throw error;
     }
   },
@@ -199,14 +293,17 @@ const SpecialistService = {
     try {
       const tokenString = localStorage.getItem("access_token");
       const token = tokenString ? JSON.parse(tokenString) : null;
-      
-      const response = await axiosJWT.get(`/api/v1/specialists/status/${status}`, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` })
-        },
-        withCredentials: true,
-      });
+
+      const response = await axiosJWT.get(
+        `/api/v1/specialists/status/${status}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+          withCredentials: true,
+        }
+      );
       return response.data;
     } catch (error) {
       console.error(`Lỗi khi lấy chuyên gia theo trạng thái ${status}:`, error);
@@ -221,14 +318,14 @@ const SpecialistService = {
     try {
       const tokenString = localStorage.getItem("access_token");
       const token = tokenString ? JSON.parse(tokenString) : null;
-      
+
       const response = await axiosJWT.get(`/api/v1/specialists/top-rated`, {
         headers: {
           "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` })
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
         withCredentials: true,
-        params: { limit }
+        params: { limit },
       });
       return response.data;
     } catch (error) {
@@ -244,17 +341,23 @@ const SpecialistService = {
     try {
       const tokenString = localStorage.getItem("access_token");
       const token = tokenString ? JSON.parse(tokenString) : null;
-      
-      const response = await axiosJWT.get(`/api/v1/specialists/check/${userId}`, {
-        headers: {
-          "Content-Type": "application/json",
-          ...(token && { Authorization: `Bearer ${token}` })
-        },
-        withCredentials: true,
-      });
+
+      const response = await axiosJWT.get(
+        `/api/v1/specialists/check/${userId}`,
+        {
+          headers: {
+            "Content-Type": "application/json",
+            ...(token && { Authorization: `Bearer ${token}` }),
+          },
+          withCredentials: true,
+        }
+      );
       return response.data;
     } catch (error) {
-      console.error(`Lỗi khi kiểm tra user ${userId} có phải là chuyên gia không:`, error);
+      console.error(
+        `Lỗi khi kiểm tra user ${userId} có phải là chuyên gia không:`,
+        error
+      );
       throw error;
     }
   },
@@ -266,10 +369,10 @@ const SpecialistService = {
     try {
       const tokenString = localStorage.getItem("access_token");
       const token = tokenString ? JSON.parse(tokenString) : null;
-      
+
       const formData = new FormData();
       formData.append("file", file);
-      
+
       if (specialistId) {
         formData.append("specialistId", specialistId);
       }
@@ -280,7 +383,7 @@ const SpecialistService = {
         {
           headers: {
             ...(token && { Authorization: `Bearer ${token}` }),
-            "Content-Type": "multipart/form-data"
+            "Content-Type": "multipart/form-data",
           },
           withCredentials: true,
         }
@@ -300,7 +403,7 @@ const SpecialistService = {
     try {
       const tokenString = localStorage.getItem("access_token");
       const token = tokenString ? JSON.parse(tokenString) : null;
-      
+
       const formData = new FormData();
       formData.append("file", file);
       formData.append("specialistId", specialistId);
@@ -311,7 +414,7 @@ const SpecialistService = {
         {
           headers: {
             ...(token && { Authorization: `Bearer ${token}` }),
-            "Content-Type": "multipart/form-data"
+            "Content-Type": "multipart/form-data",
           },
           withCredentials: true,
         }
@@ -331,16 +434,16 @@ const SpecialistService = {
     try {
       const tokenString = localStorage.getItem("access_token");
       const token = tokenString ? JSON.parse(tokenString) : null;
-      
+
       const response = await axiosJWT.delete(
         `/api/v1/specialists/images/${specialistId}`,
         {
           headers: {
             "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` })
+            ...(token && { Authorization: `Bearer ${token}` }),
           },
           withCredentials: true,
-          params: { imageUrl }
+          params: { imageUrl },
         }
       );
 
@@ -357,37 +460,109 @@ const SpecialistService = {
    */
   getSpecialistSpecialties: async () => {
     try {
+      // Kiểm tra cache cho specialties
+      if (isCacheValid(cache.specialties)) {
+        console.log("Using cached specialties data");
+        return cache.specialties.data;
+      }
+
       const tokenString = localStorage.getItem("access_token");
       const token = tokenString ? JSON.parse(tokenString) : null;
-      
+
       // Thử gọi API để lấy danh sách chuyên môn
       try {
         const response = await axiosJWT.get(`/api/v1/specialists/specialties`, {
           headers: {
             "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` })
+            ...(token && { Authorization: `Bearer ${token}` }),
           },
           withCredentials: true,
         });
+
+        // Lưu cache
+        cache.specialties.data = response.data || [];
+        cache.specialties.timestamp = Date.now();
+
         return response.data || [];
       } catch (apiError) {
         console.error("Lỗi khi gọi API danh sách chuyên môn:", apiError);
-        
+
         // Nếu API không tồn tại hoặc có lỗi, trả về danh sách mẫu
         console.warn("Sử dụng danh sách chuyên môn mẫu");
-        return [
+        const fallbackData = [
           { id: 1, name: "Bác sĩ da liễu" },
           { id: 2, name: "Chuyên gia điều trị mụn" },
           { id: 3, name: "Chuyên gia trị liệu" },
           { id: 4, name: "Chuyên gia chăm sóc da" },
-          { id: 5, name: "Chuyên gia trẻ hóa da" }
+          { id: 5, name: "Chuyên gia trẻ hóa da" },
         ];
+
+        // Lưu cache cho dữ liệu fallback
+        cache.specialties.data = fallbackData;
+        cache.specialties.timestamp = Date.now();
+
+        return fallbackData;
       }
     } catch (error) {
       console.error("Lỗi khi lấy danh sách chuyên môn:", error);
       return [];
     }
-  }
+  },
+
+  /**
+   * Xóa cache khi có thay đổi dữ liệu
+   */
+  clearCache: (cacheKey = null) => {
+    if (cacheKey === "specialists") {
+      cache.specialists.data = null;
+      cache.specialists.timestamp = null;
+    } else if (cacheKey === "specialties") {
+      cache.specialties.data = null;
+      cache.specialties.timestamp = null;
+    } else if (cacheKey === "all") {
+      cache.specialists.data = null;
+      cache.specialists.timestamp = null;
+      cache.specialties.data = null;
+      cache.specialties.timestamp = null;
+      cache.specialistsBySpecialty = {};
+      cache.specialistDetails = {};
+    } else {
+      // Xóa cache cho một specialty cụ thể
+      if (cacheKey && cache.specialistsBySpecialty[cacheKey]) {
+        cache.specialistsBySpecialty[cacheKey].data = null;
+        cache.specialistsBySpecialty[cacheKey].timestamp = null;
+      }
+      // Xóa cache cho một specialist cụ thể
+      if (cacheKey && cache.specialistDetails[cacheKey]) {
+        cache.specialistDetails[cacheKey].data = null;
+        cache.specialistDetails[cacheKey].timestamp = null;
+      }
+    }
+  },
 };
 
-export default SpecialistService; 
+// Thêm clearCache vào các hàm thay đổi dữ liệu
+const originalCreateSpecialist = SpecialistService.createSpecialist;
+SpecialistService.createSpecialist = async (specialistData) => {
+  const result = await originalCreateSpecialist(specialistData);
+  SpecialistService.clearCache("all");
+  return result;
+};
+
+const originalUpdateSpecialist = SpecialistService.updateSpecialist;
+SpecialistService.updateSpecialist = async (id, specialistData) => {
+  const result = await originalUpdateSpecialist(id, specialistData);
+  SpecialistService.clearCache("all");
+  SpecialistService.clearCache(id);
+  return result;
+};
+
+const originalDeleteSpecialist = SpecialistService.deleteSpecialist;
+SpecialistService.deleteSpecialist = async (id) => {
+  const result = await originalDeleteSpecialist(id);
+  SpecialistService.clearCache("all");
+  SpecialistService.clearCache(id);
+  return result;
+};
+
+export default SpecialistService;

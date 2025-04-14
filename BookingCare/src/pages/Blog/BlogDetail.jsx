@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import UserService from "../../../services/UserService";
+import BlogService from "../../../services/BlogService";
 
 function BlogDetail() {
   const { id } = useParams();
@@ -23,11 +23,11 @@ function BlogDetail() {
     const fetchBlogDetail = async () => {
       try {
         setLoading(true);
-        const data = await UserService.getBlogPostById(id);
+        const data = await BlogService.getBlogById(id);
         setBlog(data);
 
         // Lấy danh sách các bài viết liên quan
-        const posts = await UserService.getBlogPosts(3);
+        const posts = await BlogService.getAllBlogs(3);
         // Lọc ra các bài viết khác không phải bài viết hiện tại
         const filtered = posts.filter((post) => post.id !== parseInt(id));
         setRelatedPosts(filtered);

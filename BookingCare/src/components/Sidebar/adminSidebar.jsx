@@ -23,17 +23,17 @@ function AdminSidebar() {
     try {
       // Call logout API
       await UserService.logoutUser();
-      
+
       // Clear user state in Redux
       dispatch(logout());
-      
+
       // Clear localStorage items
       localStorage.removeItem("access_token");
       localStorage.removeItem("isAdmin");
-      
+
       // Show success message
       message.success("Đăng xuất thành công");
-      
+
       // Navigate to login page
       navigate("/admin/login");
     } catch (error) {
@@ -53,7 +53,11 @@ function AdminSidebar() {
     <div className="w-[278px] h-full border-r border-gray-200 flex flex-col justify-between">
       <div>
         <div className="flex items-center space-x-2 border-b border-gray-200 p-3">
-          <img className="h-[40px] rounded-xl" src={logo} alt="BeautyCare Logo" />
+          <img
+            className="h-[40px] rounded-xl"
+            src={logo}
+            alt="BeautyCare Logo"
+          />
           <span className="text-[var(--primary-color)] font-semibold text-2xl">
             BeautyCare
           </span>
@@ -111,7 +115,9 @@ function AdminSidebar() {
           </PermissionGuard>
 
           {/* Phân quyền hệ thống */}
-          <PermissionGuard permission={["permission:view", "permission_group:view"]}>
+          <PermissionGuard
+            permission={["permission:view", "permission_group:view"]}
+          >
             <div className="flex flex-col space-y-2 p-3">
               <div
                 className="flex space-x-2 items-center"
@@ -263,34 +269,43 @@ function AdminSidebar() {
           </PermissionGuard>
 
           {/* Lịch đặt */}
-          <PermissionMenuItem
-            permission="booking:view"
-            to="/admin/appointments"
-            icon="fas fa-calendar-alt"
-            location={location}
-          >
-            Lịch đặt
-          </PermissionMenuItem>
+          <PermissionGuard permission="booking:view">
+            <div
+              className={`flex items-center space-x-2 p-3 ${
+                location.pathname === "/admin/appointments" ? "bg-gray-200" : ""
+              }`}
+              onClick={() => handleNavigate("/admin/appointments")}
+            >
+              <i className="fas fa-calendar-alt text-2xl min-w-[30px] text-gray-500"></i>
+              <span>Lịch đặt</span>
+            </div>
+          </PermissionGuard>
 
           {/* Báo cáo & Thống kê */}
-          <PermissionMenuItem
-            permission="report:view"
-            to="/admin/reports"
-            icon="fas fa-chart-line"
-            location={location}
-          >
-            Báo cáo & Thống kê
-          </PermissionMenuItem>
+          <PermissionGuard permission="report:view">
+            <div
+              className={`flex items-center space-x-2 p-3 ${
+                location.pathname === "/admin/reports" ? "bg-gray-200" : ""
+              }`}
+              onClick={() => handleNavigate("/admin/reports")}
+            >
+              <i className="fas fa-chart-line text-2xl min-w-[30px] text-gray-500"></i>
+              <span>Báo cáo & Thống kê</span>
+            </div>
+          </PermissionGuard>
 
           {/* Giao dịch */}
-          <PermissionMenuItem
-            permission="transaction:view"
-            to="/admin/transactions"
-            icon="fas fa-pager"
-            location={location}
-          >
-            Giao dịch
-          </PermissionMenuItem>
+          <PermissionGuard permission="transaction:view">
+            <div
+              className={`flex items-center space-x-2 p-3 ${
+                location.pathname === "/admin/transactions" ? "bg-gray-200" : ""
+              }`}
+              onClick={() => handleNavigate("/admin/transactions")}
+            >
+              <i className="fas fa-pager text-2xl min-w-[30px] text-gray-500"></i>
+              <span>Giao dịch</span>
+            </div>
+          </PermissionGuard>
 
           {/* Cài đặt */}
           <PermissionGuard permission="admin:access">
@@ -306,9 +321,9 @@ function AdminSidebar() {
           </PermissionGuard>
         </div>
       </div>
-      
+
       {/* Logout button */}
-      <div 
+      <div
         className="flex items-center space-x-2 p-4 border-t border-gray-200 text-red-500 hover:bg-gray-100 cursor-pointer mt-auto mb-5"
         onClick={handleLogout}
       >

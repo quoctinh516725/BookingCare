@@ -210,13 +210,13 @@ const BlogCategories = () => {
           <h1 className="text-xl font-bold mb-6">
             Quản lý danh mục blog
           </h1>
-          <button 
+          <span 
             onClick={openAddModal}
             className="mt-4 md:mt-0 flex items-center px-4 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 transition-colors"
           >
             <i className="fas fa-plus mr-2"></i>
             Thêm danh mục
-          </button>
+          </span>
         </div>
 
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
@@ -314,20 +314,20 @@ const BlogCategories = () => {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex space-x-2">
-                              <button
+                              <span
                                 onClick={() => openEditModal(category)}
                                 className="text-blue-500 hover:text-blue-700 bg-blue-100 hover:bg-blue-200 p-1.5 rounded"
                                 title="Chỉnh sửa"
                               >
                                 <i className="fas fa-edit"></i>
-                              </button>
-                              <button
+                              </span>
+                              <span
                                 onClick={() => openDeleteModal(category)}
                                 className="text-red-500 hover:text-red-700 bg-red-100 hover:bg-red-200 p-1.5 rounded"
                                 title="Xóa"
                               >
                                 <i className="fas fa-trash-alt"></i>
-                              </button>
+                              </span>
                             </div>
                           </td>
                         </tr>
@@ -348,12 +348,12 @@ const BlogCategories = () => {
             <h2 className="text-xl font-bold">
               {isEditing ? "Chỉnh sửa danh mục" : "Thêm danh mục mới"}
             </h2>
-            <button
+            <span
               onClick={closeModal}
               className="text-gray-500 hover:text-gray-700"
             >
               <i className="fas fa-times"></i>
-            </button>
+            </span>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -428,16 +428,16 @@ const BlogCategories = () => {
               </select>
             </div>
 
-            {/* Submit Buttons */}
+            {/* Submit spans */}
             <div className="flex justify-end space-x-3 pt-4">
-              <button
-                type="button"
+              <span
+                type="span"
                 onClick={closeModal}
                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
                 disabled={isSubmitting}
               >
                 Hủy
-              </button>
+              </span>
               <button
                 type="submit"
                 className="px-4 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 transition-colors"
@@ -481,14 +481,14 @@ const BlogCategories = () => {
               </p>
             </div>
             <div className="flex justify-center space-x-3 mt-6">
-              <button
+              <span
                 onClick={closeModal}
                 className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
                 disabled={isSubmitting}
               >
                 Hủy
-              </button>
-              <button
+              </span>
+              <span
                 onClick={handleDelete}
                 className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
                 disabled={isSubmitting}
@@ -499,7 +499,7 @@ const BlogCategories = () => {
                     Đang xử lý...
                   </div>
                 ) : "Xóa"}
-              </button>
+              </span>
             </div>
           </div>
         )}

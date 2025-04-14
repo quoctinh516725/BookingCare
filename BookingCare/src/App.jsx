@@ -10,8 +10,6 @@ import logo from "./assets/logo.png";
 import ServiceDetail from './pages/Service/ServiceDetail';
 import SpecialistDetail from './pages/Specialist/SpecialistDetail';
 import BlogDetail from './pages/Blog/BlogDetail';
-import ServiceList from './pages/Service/ServiceList';
-import SpecialistList from './pages/Specialist/SpecialistList';
 import BlogList from './pages/Blog/BlogList';
 import AdminProtectedRoute from './components/ProtectedRoute/AdminProtectedRoute';
 
@@ -252,8 +250,6 @@ function App() {
           <Route path="/service/:id" element={<ServiceDetail />} />
           <Route path="/specialist/:id" element={<SpecialistDetail />} />
           <Route path="/blog/:id" element={<BlogDetail />} />
-          <Route path="/service" element={<ServiceList />} />
-          <Route path="/specialist" element={<SpecialistList />} />
           <Route path="/blog" element={<BlogList />} />
         </Routes>
       </Router>

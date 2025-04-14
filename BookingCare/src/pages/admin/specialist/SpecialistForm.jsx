@@ -24,14 +24,14 @@ const SpecialistForm = () => {
     workingHours: "",
     biography: "",
     images: [],
-    status: "ACTIVE"
+    status: "ACTIVE",
   });
 
   // State cho danh sách staff users
   const [staffUsers, setStaffUsers] = useState([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
-  
+
   // State cho xử lý ảnh
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState("");
@@ -55,7 +55,7 @@ const SpecialistForm = () => {
         workingHours: data.workingHours || "",
         biography: data.biography || "",
         images: data.images || [],
-        status: data.status || "ACTIVE"
+        status: data.status || "ACTIVE",
       });
 
       // Thiết lập preview cho avatar
@@ -71,14 +71,14 @@ const SpecialistForm = () => {
       // Lưu thông tin user đã chọn
       setSelectedUser({
         id: data.userId,
-        name: `${data.firstName || ''} ${data.lastName || ''}`.trim(),
+        name: `${data.firstName || ""} ${data.lastName || ""}`.trim(),
         email: data.email,
-        username: data.username
+        username: data.username,
       });
     },
     onError: (error) => {
       message.error(`Lỗi khi tải thông tin chuyên gia: ${error.message}`);
-    }
+    },
   });
 
   // Lấy danh sách staff users
@@ -101,9 +101,12 @@ const SpecialistForm = () => {
   // Xử lý upload avatar
   const handleAvatarUpload = async () => {
     if (!avatarFile) return formData.avatarUrl;
-    
+
     try {
       const uploadResponse = await UserService.uploadImage(avatarFile);
+      console.log("Avatar upload response:", uploadResponse);
+
+      // Make sure we return the image URL for use in the form data
       return uploadResponse;
     } catch (error) {
       message.error("Lỗi khi tải lên ảnh đại diện");
@@ -111,19 +114,20 @@ const SpecialistForm = () => {
       return formData.avatarUrl;
     }
   };
-  
+
   // Xử lý upload các ảnh bổ sung
   const handleAdditionalImagesUpload = async () => {
     const currentImages = [...formData.images];
-    
+
     if (additionalImages.length === 0) return currentImages;
-    
+
     try {
-      const uploadPromises = additionalImages.map(file => 
+      const uploadPromises = additionalImages.map((file) =>
         UserService.uploadImage(file)
       );
-      
+
       const uploadedUrls = await Promise.all(uploadPromises);
+      console.log("Additional images uploaded:", uploadedUrls);
       return [...currentImages, ...uploadedUrls];
     } catch (error) {
       message.error("Lỗi khi tải lên một số hình ảnh bổ sung");
@@ -137,17 +141,17 @@ const SpecialistForm = () => {
     mutationFn: async (data) => {
       // Upload avatar trước nếu có
       const avatarUrl = await handleAvatarUpload();
-      
+
       // Upload các ảnh bổ sung nếu có
       const imageUrls = await handleAdditionalImagesUpload();
-      
+
       // Kết hợp dữ liệu
       const finalData = {
         ...data,
         avatarUrl,
-        images: imageUrls
+        images: imageUrls,
       };
-      
+
       return SpecialistService.createSpecialist(finalData);
     },
     onSuccess: () => {
@@ -157,7 +161,7 @@ const SpecialistForm = () => {
     },
     onError: (error) => {
       message.error(`Lỗi khi tạo chuyên gia: ${error.message}`);
-    }
+    },
   });
 
   // Mutation để cập nhật chuyên gia
@@ -165,17 +169,17 @@ const SpecialistForm = () => {
     mutationFn: async ({ id, data }) => {
       // Upload avatar trước nếu có
       const avatarUrl = await handleAvatarUpload();
-      
+
       // Upload các ảnh bổ sung nếu có
       const imageUrls = await handleAdditionalImagesUpload();
-      
+
       // Kết hợp dữ liệu
       const finalData = {
         ...data,
         avatarUrl,
-        images: imageUrls
+        images: imageUrls,
       };
-      
+
       return SpecialistService.updateSpecialist(id, finalData);
     },
     onSuccess: () => {
@@ -186,39 +190,39 @@ const SpecialistForm = () => {
     },
     onError: (error) => {
       message.error(`Lỗi khi cập nhật chuyên gia: ${error.message}`);
-    }
+    },
   });
 
   // Xử lý thay đổi input
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prevState => ({
+    setFormData((prevState) => ({
       ...prevState,
-      [name]: value
+      [name]: value,
     }));
   };
 
   // Xử lý thay đổi user
   const handleUserChange = (e) => {
     const userId = e.target.value;
-    
+
     if (!userId) {
       setSelectedUser(null);
-      setFormData(prev => ({ ...prev, userId: "" }));
+      setFormData((prev) => ({ ...prev, userId: "" }));
       return;
     }
 
-    const selected = staffUsers.find(user => user.id === userId);
-    
+    const selected = staffUsers.find((user) => user.id === userId);
+
     if (selected) {
       setSelectedUser({
         id: selected.id,
-        name: `${selected.firstName || ''} ${selected.lastName || ''}`.trim(),
+        name: `${selected.firstName || ""} ${selected.lastName || ""}`.trim(),
         email: selected.email,
-        username: selected.username
+        username: selected.username,
       });
-      
-      setFormData(prev => ({ ...prev, userId }));
+
+      setFormData((prev) => ({ ...prev, userId }));
     }
   };
 
@@ -253,6 +257,12 @@ const SpecialistForm = () => {
         setAvatarPreview(reader.result);
       };
       reader.readAsDataURL(file);
+
+      // Also clear the avatarUrl when a new file is selected
+      setFormData((prev) => ({
+        ...prev,
+        avatarUrl: "", // Clear the previous URL since we're changing the file
+      }));
     } else if (file) {
       message.error("Vui lòng chọn file hình ảnh cho avatar");
     }
@@ -282,12 +292,12 @@ const SpecialistForm = () => {
   };
 
   const handleImageFiles = (files) => {
-    const imageFiles = files.filter(file => file.type.startsWith("image/"));
-    
+    const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+
     if (imageFiles.length > 0) {
-      setAdditionalImages(prev => [...prev, ...imageFiles]);
-      
-      const newPreviews = imageFiles.map(file => {
+      setAdditionalImages((prev) => [...prev, ...imageFiles]);
+
+      const newPreviews = imageFiles.map((file) => {
         return new Promise((resolve) => {
           const reader = new FileReader();
           reader.onloadend = () => {
@@ -296,33 +306,35 @@ const SpecialistForm = () => {
           reader.readAsDataURL(file);
         });
       });
-      
-      Promise.all(newPreviews).then(results => {
-        setImagePreviews(prev => [...prev, ...results]);
+
+      Promise.all(newPreviews).then((results) => {
+        setImagePreviews((prev) => [...prev, ...results]);
       });
     }
-    
+
     if (files.length !== imageFiles.length) {
-      message.error("Chỉ chấp nhận file hình ảnh. Một số file không phải ảnh đã bị bỏ qua.");
+      message.error(
+        "Chỉ chấp nhận file hình ảnh. Một số file không phải ảnh đã bị bỏ qua."
+      );
     }
   };
 
   // Xóa ảnh bổ sung
   const handleRemoveImage = (index) => {
     const existingImages = formData.images || [];
-    
+
     // Xác định xem ảnh nằm trong dữ liệu gốc hay mới thêm
     if (index < existingImages.length) {
       // Xóa ảnh từ dữ liệu gốc
       const newImages = [...existingImages];
       newImages.splice(index, 1);
-      
-      setFormData(prev => ({
+
+      setFormData((prev) => ({
         ...prev,
-        images: newImages
+        images: newImages,
       }));
-      
-      setImagePreviews(prev => {
+
+      setImagePreviews((prev) => {
         const newPreviews = [...prev];
         newPreviews.splice(index, 1);
         return newPreviews;
@@ -330,14 +342,14 @@ const SpecialistForm = () => {
     } else {
       // Xóa ảnh từ danh sách mới thêm
       const newIndex = index - existingImages.length;
-      
-      setAdditionalImages(prev => {
+
+      setAdditionalImages((prev) => {
         const newFiles = [...prev];
         newFiles.splice(newIndex, 1);
         return newFiles;
       });
-      
-      setImagePreviews(prev => {
+
+      setImagePreviews((prev) => {
         const newPreviews = [...prev];
         newPreviews.splice(index, 1);
         return newPreviews;
@@ -399,10 +411,15 @@ const SpecialistForm = () => {
             <form onSubmit={handleSubmit}>
               <div className="p-6 sm:p-8">
                 <div className="mb-6">
-                  <h2 className="text-lg font-semibold text-gray-800 mb-4">Thông tin cơ bản</h2>
-                  
+                  <h2 className="text-lg font-semibold text-gray-800 mb-4">
+                    Thông tin cơ bản
+                  </h2>
+
                   <div className="mb-4">
-                    <label htmlFor="userId" className="block text-sm font-medium text-gray-700 mb-1 required">
+                    <label
+                      htmlFor="userId"
+                      className="block text-sm font-medium text-gray-700 mb-1 required"
+                    >
                       Chọn nhân viên
                     </label>
                     <select
@@ -415,39 +432,60 @@ const SpecialistForm = () => {
                       required
                     >
                       <option value="">Chọn nhân viên</option>
-                      {staffUsers.map(user => (
+                      {staffUsers.map((user) => (
                         <option key={user.id} value={user.id}>
-                          {`${user.firstName || ''} ${user.lastName || ''} (${user.email})`}
+                          {`${user.firstName || ""} ${user.lastName || ""} (${
+                            user.email
+                          })`}
                         </option>
                       ))}
                     </select>
                     {isLoadingUsers && (
-                      <div className="mt-1 text-sm text-gray-500">Đang tải danh sách nhân viên...</div>
+                      <div className="mt-1 text-sm text-gray-500">
+                        Đang tải danh sách nhân viên...
+                      </div>
                     )}
                   </div>
 
                   {selectedUser && (
                     <div className="bg-gray-50 p-4 rounded-md mb-4">
-                      <h3 className="text-sm font-medium text-gray-700 mb-2">Thông tin nhân viên đã chọn</h3>
+                      <h3 className="text-sm font-medium text-gray-700 mb-2">
+                        Thông tin nhân viên đã chọn
+                      </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                         <div>
-                          <span className="text-xs text-gray-500 block">Họ tên:</span>
-                          <span className="text-sm">{selectedUser.name || "Chưa có tên"}</span>
+                          <span className="text-xs text-gray-500 block">
+                            Họ tên:
+                          </span>
+                          <span className="text-sm">
+                            {selectedUser.name || "Chưa có tên"}
+                          </span>
                         </div>
                         <div>
-                          <span className="text-xs text-gray-500 block">Email:</span>
-                          <span className="text-sm">{selectedUser.email || "Chưa có email"}</span>
+                          <span className="text-xs text-gray-500 block">
+                            Email:
+                          </span>
+                          <span className="text-sm">
+                            {selectedUser.email || "Chưa có email"}
+                          </span>
                         </div>
                         <div>
-                          <span className="text-xs text-gray-500 block">Tài khoản:</span>
-                          <span className="text-sm">{selectedUser.username || "Chưa có tài khoản"}</span>
+                          <span className="text-xs text-gray-500 block">
+                            Tài khoản:
+                          </span>
+                          <span className="text-sm">
+                            {selectedUser.username || "Chưa có tài khoản"}
+                          </span>
                         </div>
                       </div>
                     </div>
                   )}
 
                   <div className="mb-4">
-                    <label htmlFor="specialty" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="specialty"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Chuyên môn
                     </label>
                     <input
@@ -463,7 +501,10 @@ const SpecialistForm = () => {
                   </div>
 
                   <div className="mb-4">
-                    <label htmlFor="qualification" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="qualification"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Bằng cấp/Chứng chỉ
                     </label>
                     <input
@@ -479,7 +520,10 @@ const SpecialistForm = () => {
                   </div>
 
                   <div className="mb-4">
-                    <label htmlFor="experience" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="experience"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Kinh nghiệm
                     </label>
                     <input
@@ -524,6 +568,10 @@ const SpecialistForm = () => {
                             src={avatarPreview}
                             alt="Avatar Preview"
                             className="max-h-[200px] mx-auto rounded-lg object-contain"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = "/default-image.png";
+                            }}
                           />
                           <div className="absolute inset-0 bg-gray-500/30 bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
                             <button
@@ -532,7 +580,10 @@ const SpecialistForm = () => {
                                 e.stopPropagation();
                                 setAvatarPreview("");
                                 setAvatarFile(null);
-                                setFormData(prev => ({...prev, avatarUrl: ""}));
+                                setFormData((prev) => ({
+                                  ...prev,
+                                  avatarUrl: "",
+                                }));
                               }}
                               className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600"
                             >
@@ -594,11 +645,18 @@ const SpecialistForm = () => {
                     {imagePreviews.length > 0 && (
                       <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-3">
                         {imagePreviews.map((preview, index) => (
-                          <div key={index} className="relative group rounded-lg overflow-hidden h-32">
+                          <div
+                            key={index}
+                            className="relative group rounded-lg overflow-hidden h-32"
+                          >
                             <img
                               src={preview}
                               alt={`Image ${index + 1}`}
                               className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = "/default-image.png";
+                              }}
                             />
                             <div className="absolute inset-0 bg-black bg-opacity-40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                               <button
@@ -616,7 +674,10 @@ const SpecialistForm = () => {
                   </div>
 
                   <div className="mb-4">
-                    <label htmlFor="workingHours" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="workingHours"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Giờ làm việc
                     </label>
                     <input
@@ -632,7 +693,10 @@ const SpecialistForm = () => {
                   </div>
 
                   <div className="mb-4">
-                    <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="status"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Trạng thái
                     </label>
                     <select
@@ -650,7 +714,10 @@ const SpecialistForm = () => {
                   </div>
 
                   <div className="mb-4">
-                    <label htmlFor="biography" className="block text-sm font-medium text-gray-700 mb-1">
+                    <label
+                      htmlFor="biography"
+                      className="block text-sm font-medium text-gray-700 mb-1"
+                    >
                       Tiểu sử
                     </label>
                     <textarea
@@ -678,14 +745,20 @@ const SpecialistForm = () => {
                 <button
                   type="submit"
                   className="px-4 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 transition-colors"
-                  disabled={createMutation.isPending || updateMutation.isPending}
+                  disabled={
+                    createMutation.isPending || updateMutation.isPending
+                  }
                 >
                   {createMutation.isPending || updateMutation.isPending ? (
                     <div className="flex items-center">
                       <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
                       Đang xử lý...
                     </div>
-                  ) : isEditMode ? "Cập nhật" : "Tạo mới"}
+                  ) : isEditMode ? (
+                    "Cập nhật"
+                  ) : (
+                    "Tạo mới"
+                  )}
                 </button>
               </div>
             </form>
@@ -696,4 +769,4 @@ const SpecialistForm = () => {
   );
 };
 
-export default SpecialistForm; 
+export default SpecialistForm;

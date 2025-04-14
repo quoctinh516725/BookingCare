@@ -74,6 +74,9 @@ public class SecurityConfig {
                     .requestMatchers("/api/v1/auth/**").permitAll()
                     .requestMatchers("/api/v1/services/**").permitAll()
                     .requestMatchers("/api/v1/service-categories/**").permitAll()
+                    .requestMatchers("/api/v1/specialists/**").permitAll() // Cho phép truy cập tất cả endpoints của specialists
+                    .requestMatchers("/api/v1/blogs/**").permitAll() // Cho phép truy cập tất cả endpoints của blogs
+                    .requestMatchers("/api/v1/blog-categories/**").permitAll() // Cho phép truy cập tất cả endpoints của blog categories
                     .requestMatchers("/api/v1/upload/files/**").permitAll() // Cho phép truy cập các file đã tải lên
                     .requestMatchers("/static/**").permitAll() // Cho phép truy cập tài nguyên tĩnh
                     .requestMatchers("/uploads/**").permitAll() // Cho phép truy cập thư mục uploads

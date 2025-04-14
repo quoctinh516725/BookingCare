@@ -6,7 +6,7 @@ import path from "path";
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   return {
-    plugins: [react(), tailwindcss()],
+    plugins: [react(), tailwindcss(), require("@tailwindcss/line-clamp")],
     server: {
       proxy:
         mode === "development"
@@ -21,8 +21,8 @@ export default defineConfig(({ mode }) => {
     },
     resolve: {
       alias: {
-        'services': path.resolve('./services'),
-        'react-modal': path.resolve('./node_modules/react-modal'),
+        services: path.resolve("./services"),
+        "react-modal": path.resolve("./node_modules/react-modal"),
       },
     },
   };

@@ -722,23 +722,11 @@ const getStaff = async () => {
  * Lấy tất cả nhân viên (bao gồm cả những người chưa phải chuyên gia)
  * @returns {Promise<Array>} Danh sách tất cả nhân viên
  */
-const getAllStaff = async (params = {}) => {
+const getAllStaff = async () => {
   try {
-    console.log("Fetching all staff with params:", params);
     const tokenString = localStorage.getItem("access_token");
     const token = tokenString ? JSON.parse(tokenString) : null;
-    
-    // Build query string from params
-    const queryParams = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value !== undefined && value !== null && value !== '') {
-        queryParams.append(key, value);
-      }
-    });
-    
-    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
-    
-    const response = await axios.get(`/api/v1/users/staff${queryString}`, {
+    const response = await axios.get(`/api/v1/users/all-staff`, {
       headers: {
         "Content-Type": "application/json",
         ...(token && { Authorization: `Bearer ${token}` }),
@@ -746,6 +734,7 @@ const getAllStaff = async (params = {}) => {
       withCredentials: true,
       timeout: 8000,
     });
+    console.log("response", response);
     
     if (!response.data) {
       console.warn("No staff data returned from API");
@@ -1124,7 +1113,7 @@ const uploadImage = async (file) => {
   // Tạo FormData để gửi file
   const formData = new FormData();
   formData.append("file", file);
-
+  console.log("formData", formData);
   try {
     const response = await axiosJWT.post("/api/v1/upload/image", formData, {
       headers: {

@@ -118,7 +118,7 @@ function Service() {
               <p>Không tìm thấy dịch vụ nào phù hợp.</p>
             </div>
           ) : (
-            <div className="flex justify-between flex-wrap my-10 gap-6">
+            <div className={`flex ${services.length > 2 ? 'justify-between' : 'justify-start'} flex-wrap my-10 gap-6`}>
               {services.map((service) => (
                 <CardService key={service.id} service={service} />
               ))}

@@ -1,6 +1,6 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { PermissionGuard, PermissionMenuItem } from '../Permission';
+import React from "react";
+import { Link } from "react-router-dom";
+import { PermissionGuard, PermissionMenuItem } from "../Permission";
 
 /**
  * Sidebar menu component cho trang admin dựa trên hệ thống phân quyền
@@ -37,7 +37,7 @@ const AdminPermissionMenu = () => {
 
           {/* Quản lý nhân viên - Yêu cầu quyền user:view và staff:view */}
           <PermissionMenuItem
-            permission={['user:view', 'staff:view']}
+            permission={["user:view", "staff:view"]}
             requireAll={true}
             to="/admin/staff"
             icon="fas fa-user-tie"
@@ -55,13 +55,14 @@ const AdminPermissionMenu = () => {
           </PermissionMenuItem>
 
           {/* Quản lý lịch hẹn - Yêu cầu quyền booking:view */}
-          <PermissionMenuItem
-            permission="booking:view"
-            to="/admin/bookings"
-            icon="fas fa-calendar-alt"
-          >
-            Quản lý lịch hẹn
-          </PermissionMenuItem>
+          <PermissionGuard permission="booking:view">
+            <li className="menu-item">
+              <Link to="/admin/bookings" className="menu-link">
+                <i className="fas fa-calendar-alt menu-icon mr-2"></i>
+                <span className="menu-text">Quản lý lịch hẹn</span>
+              </Link>
+            </li>
+          </PermissionGuard>
 
           {/* Quản lý chuyên khoa - Yêu cầu quyền specialist:view */}
           <PermissionMenuItem
@@ -82,7 +83,9 @@ const AdminPermissionMenu = () => {
           </PermissionMenuItem>
 
           {/* Phần quản lý phân quyền - Chỉ dành cho Admin */}
-          <PermissionGuard permission={['permission:view', 'permission_group:view']}>
+          <PermissionGuard
+            permission={["permission:view", "permission_group:view"]}
+          >
             <li className="menu-section">
               <span className="section-title">Quản lý phân quyền</span>
             </li>
@@ -140,4 +143,4 @@ const AdminPermissionMenu = () => {
   );
 };
 
-export default AdminPermissionMenu; 
+export default AdminPermissionMenu;

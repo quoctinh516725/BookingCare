@@ -24,7 +24,7 @@ const customStyles = {
 
 const SpecialistList = () => {
   const message = useContext(MessageContext);
-  
+
   // State cho dữ liệu từ API
   const [specialists, setSpecialists] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,7 +39,7 @@ const SpecialistList = () => {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
   const fileInputRef = useRef(null);
-  
+
   // State cho form thêm chuyên gia
   const [formData, setFormData] = useState({
     userId: "",
@@ -49,7 +49,7 @@ const SpecialistList = () => {
     workingHours: "",
     biography: "",
     status: "ACTIVE",
-    avatarUrl: ""
+    avatarUrl: "",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -92,42 +92,57 @@ const SpecialistList = () => {
     const stars = [];
     const fullStars = Math.floor(rating || 0);
     const hasHalfStar = rating % 1 >= 0.5;
-    
+
     // Add full stars
     for (let i = 0; i < fullStars; i++) {
-      stars.push(<i key={`full-${i}`} className="fas fa-star text-yellow-400"></i>);
+      stars.push(
+        <i key={`full-${i}`} className="fas fa-star text-yellow-400"></i>
+      );
     }
-    
+
     // Add half star if needed
     if (hasHalfStar) {
-      stars.push(<i key="half" className="fas fa-star-half-alt text-yellow-400"></i>);
+      stars.push(
+        <i key="half" className="fas fa-star-half-alt text-yellow-400"></i>
+      );
     }
-    
+
     // Add empty stars
     const emptyStars = 5 - stars.length;
     for (let i = 0; i < emptyStars; i++) {
-      stars.push(<i key={`empty-${i}`} className="far fa-star text-yellow-400"></i>);
+      stars.push(
+        <i key={`empty-${i}`} className="far fa-star text-yellow-400"></i>
+      );
     }
-    
+
     return (
       <div className="flex items-center">
         {stars}
-        <span className="ml-1 text-sm text-gray-600">({rating ? rating.toFixed(1) : "0.0"})</span>
+        <span className="ml-1 text-sm text-gray-600">
+          ({rating ? rating.toFixed(1) : "0.0"})
+        </span>
       </div>
     );
   };
 
   // Lọc chuyên gia theo từ khóa tìm kiếm và trạng thái
-  const filteredSpecialists = specialists.filter(specialist => {
-    const matchesSearch = searchTerm === "" || 
-      (specialist.firstName + " " + specialist.lastName).toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredSpecialists = specialists.filter((specialist) => {
+    const matchesSearch =
+      searchTerm === "" ||
+      (specialist.firstName + " " + specialist.lastName)
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
       specialist.specialty?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      specialist.qualification?.toLowerCase().includes(searchTerm.toLowerCase());
-      
-    const matchesStatus = statusFilter === "" || specialist.status === statusFilter;
-    
+      specialist.qualification
+        ?.toLowerCase()
+        .includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === "" || specialist.status === statusFilter;
+
     return matchesSearch && matchesStatus;
   });
+  console.log("specialists", specialists);
 
   // Xử lý thay đổi ô tìm kiếm
   const handleSearchChange = (e) => {
@@ -146,6 +161,7 @@ const SpecialistList = () => {
     setIsLoadingUsers(true);
     try {
       const response = await UserService.getAllStaff();
+      console.log("response", response);
       setStaffUsers(response);
     } catch (error) {
       message.error(`Lỗi khi tải danh sách nhân viên: ${error.message}`);
@@ -153,40 +169,40 @@ const SpecialistList = () => {
       setIsLoadingUsers(false);
     }
   };
-  
+
   // Xử lý thay đổi input trong form
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
-  
+
   // Xử lý thay đổi user trong dropdown
   const handleUserChange = (e) => {
     const userId = e.target.value;
-    
+
     if (!userId) {
       setSelectedUser(null);
-      setFormData(prev => ({ ...prev, userId: "" }));
+      setFormData((prev) => ({ ...prev, userId: "" }));
       return;
     }
 
-    const selected = staffUsers.find(user => user.id === userId);
-    
+    const selected = staffUsers.find((user) => user.id === userId);
+
     if (selected) {
       setSelectedUser({
         id: selected.id,
-        name: `${selected.firstName || ''} ${selected.lastName || ''}`.trim(),
+        name: `${selected.firstName || ""} ${selected.lastName || ""}`.trim(),
         email: selected.email,
-        username: selected.username
+        username: selected.username,
       });
-      
-      setFormData(prev => ({ ...prev, userId }));
+
+      setFormData((prev) => ({ ...prev, userId }));
     }
   };
-  
+
   // Reset form khi mở modal
   useEffect(() => {
     if (isOpen) {
@@ -199,36 +215,45 @@ const SpecialistList = () => {
         workingHours: "",
         biography: "",
         status: "ACTIVE",
-        avatarUrl: ""
+        avatarUrl: "",
       });
       setSelectedUser(null);
     }
   }, [isOpen]);
-  
+
   // Xử lý submit form tạo chuyên gia
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate
     if (!formData.userId) {
       message.error("Vui lòng chọn nhân viên");
       return;
     }
-    
+
     try {
       setIsSubmitting(true);
-      
+
       // Upload image if exists
       if (imageFile) {
         const uploadResponse = await UserService.uploadImage(imageFile);
         if (uploadResponse) {
-          setFormData(prev => ({
-            ...prev,
-            avatarUrl: uploadResponse
-          }));
+          console.log("Avatar image uploaded:", uploadResponse);
+          // Create a copy of formData with the new avatarUrl
+          const updatedFormData = {
+            ...formData,
+            avatarUrl: uploadResponse,
+          };
+
+          await SpecialistService.createSpecialist(updatedFormData);
+          message.success("Tạo chuyên gia thành công");
+          closeAddModal();
+          fetchSpecialists();
+          return; // Exit early as we've already created the specialist
         }
       }
-      
+
+      // If no image was uploaded, create specialist with current formData
       await SpecialistService.createSpecialist(formData);
       message.success("Tạo chuyên gia thành công");
       closeAddModal();
@@ -258,21 +283,23 @@ const SpecialistList = () => {
       workingHours: specialist.workingHours || "",
       biography: specialist.biography || "",
       status: specialist.status || "ACTIVE",
-      avatarUrl: specialist.avatarUrl || ""
+      avatarUrl: specialist.avatarUrl || "",
     });
     setImagePreview(specialist.avatarUrl || "");
-    
+
     // Tìm thông tin user từ userId
     if (specialist.userId) {
       const user = {
         id: specialist.userId,
-        name: `${specialist.firstName || ''} ${specialist.lastName || ''}`.trim(),
+        name: `${specialist.firstName || ""} ${
+          specialist.lastName || ""
+        }`.trim(),
         email: specialist.email,
-        username: specialist.username
+        username: specialist.username,
       };
       setSelectedUser(user);
     }
-    
+
     setIsEditOpen(true);
     fetchStaffUsers();
   };
@@ -280,27 +307,36 @@ const SpecialistList = () => {
   // Xử lý submit form chỉnh sửa
   const handleEditSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!currentSpecialist || !currentSpecialist.id) {
       message.error("Không tìm thấy thông tin chuyên gia để cập nhật");
       return;
     }
-    
+
     try {
       setIsSubmitting(true);
-      
+
+      let updatedData = { ...formData };
+
       // Upload image if exists
       if (imageFile) {
         const uploadResponse = await UserService.uploadImage(imageFile);
         if (uploadResponse) {
-          setFormData(prev => ({
-            ...prev,
-            avatarUrl: uploadResponse
-          }));
+          console.log("Avatar image uploaded:", uploadResponse);
+          // Create a new object with updated avatar URL instead of using state
+          updatedData = {
+            ...formData,
+            avatarUrl: uploadResponse,
+          };
         }
       }
-      
-      await SpecialistService.updateSpecialist(currentSpecialist.id, formData);
+
+      console.log("Specialist data to update:", updatedData);
+
+      await SpecialistService.updateSpecialist(
+        currentSpecialist.id,
+        updatedData
+      );
       message.success("Cập nhật chuyên gia thành công");
       closeEditModal();
       fetchSpecialists();
@@ -335,7 +371,7 @@ const SpecialistList = () => {
       workingHours: "",
       biography: "",
       status: "ACTIVE",
-      avatarUrl: ""
+      avatarUrl: "",
     });
     setImagePreview("");
     setImageFile(null);
@@ -355,7 +391,7 @@ const SpecialistList = () => {
       workingHours: "",
       biography: "",
       status: "ACTIVE",
-      avatarUrl: ""
+      avatarUrl: "",
     });
     setImagePreview("");
     setImageFile(null);
@@ -373,7 +409,7 @@ const SpecialistList = () => {
       workingHours: "",
       biography: "",
       status: "ACTIVE",
-      avatarUrl: ""
+      avatarUrl: "",
     });
     setCurrentSpecialist(null);
     setImagePreview("");
@@ -412,7 +448,7 @@ const SpecialistList = () => {
           />
         </div>
         <div className="relative min-w-[200px]">
-          <select 
+          <select
             className="w-full appearance-none border border-gray-300 rounded-md px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -461,7 +497,10 @@ const SpecialistList = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredSpecialists.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                  <td
+                    colSpan="6"
+                    className="px-6 py-4 text-center text-gray-500"
+                  >
                     Không tìm thấy chuyên gia nào
                   </td>
                 </tr>
@@ -471,10 +510,14 @@ const SpecialistList = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="h-12 w-12 rounded-full overflow-hidden bg-gray-100">
                         {specialist.avatarUrl ? (
-                          <img 
-                            src={specialist.avatarUrl} 
+                          <img
+                            src={specialist.avatarUrl}
                             alt={`${specialist.firstName} ${specialist.lastName}`}
                             className="h-full w-full object-cover"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = "/default-image.png";
+                            }}
                           />
                         ) : (
                           <div className="h-full w-full flex items-center justify-center text-gray-400">
@@ -487,7 +530,9 @@ const SpecialistList = () => {
                       <div className="font-medium text-gray-900">
                         {specialist.firstName} {specialist.lastName}
                       </div>
-                      <div className="text-sm text-gray-500">{specialist.email}</div>
+                      <div className="text-sm text-gray-500">
+                        {specialist.email}
+                      </div>
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900 max-w-xs truncate">
@@ -501,33 +546,51 @@ const SpecialistList = () => {
                       {renderStars(specialist.rating)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${specialist.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : ''}
-                        ${specialist.status === 'INACTIVE' ? 'bg-gray-100 text-gray-800' : ''}
-                        ${specialist.status === 'ON_LEAVE' ? 'bg-yellow-100 text-yellow-800' : ''}
-                        ${specialist.status === 'TERMINATED' ? 'bg-red-100 text-red-800' : ''}
-                      `}>
-                        {specialist.status === 'ACTIVE' && 'Đang hoạt động'}
-                        {specialist.status === 'INACTIVE' && 'Tạm ngưng'}
-                        {specialist.status === 'ON_LEAVE' && 'Đang nghỉ'}
-                        {specialist.status === 'TERMINATED' && 'Đã chấm dứt'}
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
+                        ${
+                          specialist.status === "ACTIVE"
+                            ? "bg-green-100 text-green-800"
+                            : ""
+                        }
+                        ${
+                          specialist.status === "INACTIVE"
+                            ? "bg-gray-100 text-gray-800"
+                            : ""
+                        }
+                        ${
+                          specialist.status === "ON_LEAVE"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : ""
+                        }
+                        ${
+                          specialist.status === "TERMINATED"
+                            ? "bg-red-100 text-red-800"
+                            : ""
+                        }
+                      `}
+                      >
+                        {specialist.status === "ACTIVE" && "Đang hoạt động"}
+                        {specialist.status === "INACTIVE" && "Tạm ngưng"}
+                        {specialist.status === "ON_LEAVE" && "Đang nghỉ"}
+                        {specialist.status === "TERMINATED" && "Đã chấm dứt"}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-1">
-                        <span 
+                        <span
                           onClick={() => handleViewSpecialist(specialist)}
                           className="text-cyan-500 hover:text-cyan-700 bg-cyan-100 hover:bg-cyan-200 p-1.5 rounded"
                         >
                           <i className="fas fa-eye"></i>
                         </span>
-                        <span 
+                        <span
                           onClick={() => handleEditSpecialist(specialist)}
                           className="text-blue-500 hover:text-blue-700 bg-blue-100 hover:bg-blue-200 p-1.5 rounded"
                         >
                           <i className="fas fa-edit"></i>
                         </span>
-                        <span 
+                        <span
                           onClick={() => handleDeleteSpecialist(specialist.id)}
                           className="text-red-500 hover:text-red-700 bg-red-100 hover:bg-red-200 p-1.5 rounded"
                         >
@@ -543,22 +606,29 @@ const SpecialistList = () => {
         )}
       </div>
 
-      <Modal isOpen={isOpen} onRequestClose={closeAddModal} style={customStyles}>
+      <Modal
+        isOpen={isOpen}
+        onRequestClose={closeAddModal}
+        style={customStyles}
+      >
         <div className="p-4 max-h-[90vh] overflow-y-auto scrollbar-hidden">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-xl font-bold">Thêm chuyên gia mới</h2>
-            <span 
+            <span
               onClick={closeAddModal}
               className="text-gray-500 hover:text-gray-700"
             >
               <i className="fas fa-times"></i>
             </span>
           </div>
-          
+
           <form className="space-y-4" onSubmit={handleSubmit}>
             {/* Chọn nhân viên */}
             <div>
-              <label htmlFor="userId" className="block text-sm font-medium text-gray-700 mb-1 required">
+              <label
+                htmlFor="userId"
+                className="block text-sm font-medium text-gray-700 mb-1 required"
+              >
                 Chọn nhân viên
               </label>
               <select
@@ -571,21 +641,27 @@ const SpecialistList = () => {
                 onChange={handleUserChange}
               >
                 <option value="">Chọn nhân viên</option>
-                {staffUsers.map(user => (
+                {staffUsers.map((user) => (
                   <option key={user.id} value={user.id}>
-                    {`${user.firstName || ''} ${user.lastName || ''} (${user.email})`}
+                    {`${user.firstName || ""} ${user.lastName || ""} (${
+                      user.email
+                    })`}
                   </option>
                 ))}
               </select>
               {isLoadingUsers && (
-                <div className="mt-1 text-sm text-gray-500">Đang tải danh sách nhân viên...</div>
+                <div className="mt-1 text-sm text-gray-500">
+                  Đang tải danh sách nhân viên...
+                </div>
               )}
             </div>
 
             {/* Display selected user info if any */}
             {selectedUser && (
               <div className="bg-gray-50 p-3 rounded-md">
-                <h3 className="text-sm font-medium text-gray-700 mb-2">Thông tin nhân viên đã chọn</h3>
+                <h3 className="text-sm font-medium text-gray-700 mb-2">
+                  Thông tin nhân viên đã chọn
+                </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                   <div>
                     <span className="text-xs text-gray-500 block">Họ tên:</span>
@@ -602,7 +678,10 @@ const SpecialistList = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Chuyên môn */}
               <div>
-                <label htmlFor="specialty" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="specialty"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Chuyên môn
                 </label>
                 <input
@@ -619,7 +698,10 @@ const SpecialistList = () => {
 
               {/* Bằng cấp/Chứng chỉ */}
               <div>
-                <label htmlFor="qualification" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="qualification"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Bằng cấp/Chứng chỉ
                 </label>
                 <input
@@ -636,7 +718,10 @@ const SpecialistList = () => {
 
               {/* Kinh nghiệm */}
               <div>
-                <label htmlFor="experience" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="experience"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Kinh nghiệm
                 </label>
                 <input
@@ -653,7 +738,10 @@ const SpecialistList = () => {
 
               {/* Giờ làm việc */}
               <div>
-                <label htmlFor="workingHours" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="workingHours"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Giờ làm việc
                 </label>
                 <input
@@ -671,7 +759,10 @@ const SpecialistList = () => {
 
             {/* Avatar URL */}
             <div>
-              <label htmlFor="avatarUrl" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="avatarUrl"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Ảnh đại diện
               </label>
               <div className="border-2 border-dashed border-gray-300 rounded-md p-4 text-center hover:border-pink-500 transition-colors">
@@ -702,20 +793,20 @@ const SpecialistList = () => {
                     </span>
                   </span>
                 </div>
-                
+
                 <div className="text-sm text-gray-500 mt-2">
                   <p>Nhập URL ảnh hoặc tải lên ảnh từ máy tính</p>
                 </div>
-                
+
                 {imagePreview && (
                   <div className="mt-2 relative w-32 h-32 mx-auto">
-                    <img 
-                      src={imagePreview} 
-                      alt="Avatar Preview" 
+                    <img
+                      src={imagePreview}
+                      alt="Avatar Preview"
                       className="w-full h-full object-cover rounded-md"
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.src = "https://via.placeholder.com/300?text=Error+Loading+Image";
+                        e.target.src = "/default-image.png";
                       }}
                     />
                     <span
@@ -723,7 +814,7 @@ const SpecialistList = () => {
                       onClick={() => {
                         setImagePreview("");
                         setImageFile(null);
-                        setFormData({...formData, avatarUrl: ""});
+                        setFormData({ ...formData, avatarUrl: "" });
                       }}
                       className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 focus:outline-none"
                     >
@@ -736,7 +827,10 @@ const SpecialistList = () => {
 
             {/* Trạng thái */}
             <div>
-              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="status"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Trạng thái
               </label>
               <select
@@ -755,7 +849,10 @@ const SpecialistList = () => {
 
             {/* Tiểu sử */}
             <div>
-              <label htmlFor="biography" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="biography"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Tiểu sử
               </label>
               <textarea
@@ -789,7 +886,9 @@ const SpecialistList = () => {
                     <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
                     Đang xử lý...
                   </div>
-                ) : "Tạo mới"}
+                ) : (
+                  "Tạo mới"
+                )}
               </button>
             </div>
           </form>
@@ -797,12 +896,16 @@ const SpecialistList = () => {
       </Modal>
 
       {/* View Specialist Modal */}
-      <Modal isOpen={isViewOpen} onRequestClose={closeViewModal} style={customStyles}>
+      <Modal
+        isOpen={isViewOpen}
+        onRequestClose={closeViewModal}
+        style={customStyles}
+      >
         {currentSpecialist && (
           <div className="p-4 max-h-[90vh] overflow-y-auto scrollbar-hidden">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Chi tiết chuyên gia</h2>
-              <span 
+              <span
                 onClick={closeViewModal}
                 className="text-gray-500 hover:text-gray-700"
               >
@@ -814,23 +917,29 @@ const SpecialistList = () => {
               {/* Thông tin cơ bản */}
               <div className="flex flex-col sm:flex-row items-center sm:items-start border-b border-gray-200 pb-4">
                 <div className="w-32 h-32 flex-shrink-0 mb-4 sm:mb-0 sm:mr-6">
-                  <img 
-                    src={currentSpecialist.avatarUrl || "https://via.placeholder.com/150?text=No+Image"} 
-                    alt={`${currentSpecialist.firstName || ''} ${currentSpecialist.lastName || ''}`}
+                  <img
+                    src={currentSpecialist.avatarUrl || "/default-image.png"}
+                    alt={`${currentSpecialist.firstName || ""} ${
+                      currentSpecialist.lastName || ""
+                    }`}
                     className="w-full h-full object-cover rounded-full shadow"
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.src = "https://via.placeholder.com/150?text=Error";
+                      e.target.src = "/default-image.png";
                     }}
                   />
                 </div>
 
                 <div className="flex-1 text-center sm:text-left">
                   <h3 className="text-lg font-bold text-gray-800 mb-1">
-                    {`${currentSpecialist.firstName || ''} ${currentSpecialist.lastName || ''}`.trim() || "Chưa có tên"}
+                    {`${currentSpecialist.firstName || ""} ${
+                      currentSpecialist.lastName || ""
+                    }`.trim() || "Chưa có tên"}
                   </h3>
-                  <p className="text-pink-500 font-medium mb-3">{currentSpecialist.specialty || "Chưa cập nhật chuyên môn"}</p>
-                  
+                  <p className="text-pink-500 font-medium mb-3">
+                    {currentSpecialist.specialty || "Chưa cập nhật chuyên môn"}
+                  </p>
+
                   <div className="flex flex-wrap justify-center sm:justify-start gap-4 mb-4">
                     <div className="flex items-center text-gray-600">
                       <i className="fas fa-envelope mr-2"></i>
@@ -844,31 +953,41 @@ const SpecialistList = () => {
 
                   <div className="flex flex-wrap justify-center sm:justify-start gap-6">
                     <div>
-                      <span className="text-sm text-gray-500 block mb-1">Kinh nghiệm</span>
-                      <span className="font-medium">{currentSpecialist.experience || "Chưa cập nhật"}</span>
+                      <span className="text-sm text-gray-500 block mb-1">
+                        Kinh nghiệm
+                      </span>
+                      <span className="font-medium">
+                        {currentSpecialist.experience || "Chưa cập nhật"}
+                      </span>
                     </div>
                     <div>
-                      <span className="text-sm text-gray-500 block mb-1">Đánh giá</span>
+                      <span className="text-sm text-gray-500 block mb-1">
+                        Đánh giá
+                      </span>
                       {renderStars(currentSpecialist.rating)}
                     </div>
                     <div>
-                      <span className="text-sm text-gray-500 block mb-1">Trạng thái</span>
-                      <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        currentSpecialist.status === 'ACTIVE' 
-                        ? 'bg-green-100 text-green-800' 
-                        : currentSpecialist.status === 'INACTIVE'
-                        ? 'bg-gray-100 text-gray-800'
-                        : currentSpecialist.status === 'ON_LEAVE'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-red-100 text-red-800'
-                      }`}>
-                        {currentSpecialist.status === 'ACTIVE' 
-                        ? 'Đang hoạt động' 
-                        : currentSpecialist.status === 'INACTIVE'
-                        ? 'Tạm ngưng'
-                        : currentSpecialist.status === 'ON_LEAVE'
-                        ? 'Đang nghỉ'
-                        : 'Đã chấm dứt'}
+                      <span className="text-sm text-gray-500 block mb-1">
+                        Trạng thái
+                      </span>
+                      <span
+                        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          currentSpecialist.status === "ACTIVE"
+                            ? "bg-green-100 text-green-800"
+                            : currentSpecialist.status === "INACTIVE"
+                            ? "bg-gray-100 text-gray-800"
+                            : currentSpecialist.status === "ON_LEAVE"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
+                        }`}
+                      >
+                        {currentSpecialist.status === "ACTIVE"
+                          ? "Đang hoạt động"
+                          : currentSpecialist.status === "INACTIVE"
+                          ? "Tạm ngưng"
+                          : currentSpecialist.status === "ON_LEAVE"
+                          ? "Đang nghỉ"
+                          : "Đã chấm dứt"}
                       </span>
                     </div>
                   </div>
@@ -878,56 +997,84 @@ const SpecialistList = () => {
               {/* Thông tin chi tiết */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Thông tin chi tiết</h3>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                    Thông tin chi tiết
+                  </h3>
                   <div className="bg-gray-50 rounded-lg p-4">
                     <div className="mb-3">
-                      <span className="text-sm text-gray-500 block mb-1">ID người dùng</span>
-                      <span className="text-gray-700">{currentSpecialist.userId || "N/A"}</span>
+                      <span className="text-sm text-gray-500 block mb-1">
+                        ID người dùng
+                      </span>
+                      <span className="text-gray-700">
+                        {currentSpecialist.userId || "N/A"}
+                      </span>
                     </div>
                     <div className="mb-3">
-                      <span className="text-sm text-gray-500 block mb-1">Tài khoản</span>
-                      <span className="text-gray-700">{currentSpecialist.username || "N/A"}</span>
+                      <span className="text-sm text-gray-500 block mb-1">
+                        Tài khoản
+                      </span>
+                      <span className="text-gray-700">
+                        {currentSpecialist.username || "N/A"}
+                      </span>
                     </div>
                     <div className="mb-3">
-                      <span className="text-sm text-gray-500 block mb-1">Bằng cấp/Chứng chỉ</span>
-                      <span className="text-gray-700">{currentSpecialist.qualification || "Chưa cập nhật"}</span>
+                      <span className="text-sm text-gray-500 block mb-1">
+                        Bằng cấp/Chứng chỉ
+                      </span>
+                      <span className="text-gray-700">
+                        {currentSpecialist.qualification || "Chưa cập nhật"}
+                      </span>
                     </div>
                     <div>
-                      <span className="text-sm text-gray-500 block mb-1">Giờ làm việc</span>
-                      <span className="text-gray-700">{currentSpecialist.workingHours || "Chưa cập nhật"}</span>
+                      <span className="text-sm text-gray-500 block mb-1">
+                        Giờ làm việc
+                      </span>
+                      <span className="text-gray-700">
+                        {currentSpecialist.workingHours || "Chưa cập nhật"}
+                      </span>
                     </div>
                   </div>
                 </div>
-                
+
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Mô tả/Tiểu sử</h3>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                    Mô tả/Tiểu sử
+                  </h3>
                   <div className="bg-gray-50 rounded-lg p-4 text-gray-700">
-                    {currentSpecialist.biography || currentSpecialist.description || "Chưa có mô tả chi tiết về chuyên gia này."}
+                    {currentSpecialist.biography ||
+                      currentSpecialist.description ||
+                      "Chưa có mô tả chi tiết về chuyên gia này."}
                   </div>
                 </div>
               </div>
 
               {/* Ảnh bổ sung */}
-              {currentSpecialist.images && currentSpecialist.images.length > 0 && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-3">Thư viện ảnh</h3>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                    {currentSpecialist.images.map((image, index) => (
-                      <div key={index} className="relative h-40 rounded-lg overflow-hidden bg-gray-100">
-                        <img 
-                          src={image} 
-                          alt={`Ảnh ${index + 1}`} 
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = "https://via.placeholder.com/300?text=Error+Loading";
-                          }}
-                        />
-                      </div>
-                    ))}
+              {currentSpecialist.images &&
+                currentSpecialist.images.length > 0 && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                      Thư viện ảnh
+                    </h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                      {currentSpecialist.images.map((image, index) => (
+                        <div
+                          key={index}
+                          className="relative h-40 rounded-lg overflow-hidden bg-gray-100"
+                        >
+                          <img
+                            src={image}
+                            alt={`Ảnh ${index + 1}`}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = "/default-image.png";
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* Các nút tác vụ */}
               <div className="pt-4 border-t border-gray-200 flex justify-end space-x-3">
@@ -954,31 +1101,41 @@ const SpecialistList = () => {
       </Modal>
 
       {/* Edit Specialist Modal */}
-      <Modal isOpen={isEditOpen} onRequestClose={closeEditModal} style={customStyles}>
+      <Modal
+        isOpen={isEditOpen}
+        onRequestClose={closeEditModal}
+        style={customStyles}
+      >
         {currentSpecialist && (
           <div className="p-4 max-h-[90vh] overflow-y-auto scrollbar-hidden ">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold">Chỉnh sửa chuyên gia</h2>
-              <span 
+              <span
                 onClick={closeEditModal}
                 className="text-gray-500 hover:text-gray-700"
               >
                 <i className="fas fa-times"></i>
               </span>
             </div>
-            
+
             <form className="space-y-4" onSubmit={handleEditSubmit}>
               {/* Thông tin user đã chọn */}
               {selectedUser && (
                 <div className="bg-gray-50 p-3 rounded-md">
-                  <h3 className="text-sm font-medium text-gray-700 mb-2">Thông tin người dùng</h3>
+                  <h3 className="text-sm font-medium text-gray-700 mb-2">
+                    Thông tin người dùng
+                  </h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                     <div>
-                      <span className="text-xs text-gray-500 block">Họ tên:</span>
+                      <span className="text-xs text-gray-500 block">
+                        Họ tên:
+                      </span>
                       <span>{selectedUser.name || "Chưa có tên"}</span>
                     </div>
                     <div>
-                      <span className="text-xs text-gray-500 block">Email:</span>
+                      <span className="text-xs text-gray-500 block">
+                        Email:
+                      </span>
                       <span>{selectedUser.email || "Chưa có email"}</span>
                     </div>
                   </div>
@@ -988,7 +1145,10 @@ const SpecialistList = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Chuyên môn */}
                 <div>
-                  <label htmlFor="specialty-edit" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="specialty-edit"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Chuyên môn
                   </label>
                   <input
@@ -1005,7 +1165,10 @@ const SpecialistList = () => {
 
                 {/* Bằng cấp/Chứng chỉ */}
                 <div>
-                  <label htmlFor="qualification-edit" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="qualification-edit"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Bằng cấp/Chứng chỉ
                   </label>
                   <input
@@ -1022,7 +1185,10 @@ const SpecialistList = () => {
 
                 {/* Kinh nghiệm */}
                 <div>
-                  <label htmlFor="experience-edit" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="experience-edit"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Kinh nghiệm
                   </label>
                   <input
@@ -1039,7 +1205,10 @@ const SpecialistList = () => {
 
                 {/* Giờ làm việc */}
                 <div>
-                  <label htmlFor="workingHours-edit" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="workingHours-edit"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Giờ làm việc
                   </label>
                   <input
@@ -1057,7 +1226,10 @@ const SpecialistList = () => {
 
               {/* Avatar URL */}
               <div>
-                <label htmlFor="avatarUrl-edit" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="avatarUrl-edit"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Ảnh đại diện
                 </label>
                 <div className="border-2 border-dashed border-gray-300 rounded-md p-4 text-center hover:border-pink-500 transition-colors">
@@ -1088,20 +1260,20 @@ const SpecialistList = () => {
                       </span>
                     </span>
                   </div>
-                  
+
                   <div className="text-sm text-gray-500 mt-2">
                     <p>Nhập URL ảnh hoặc tải lên ảnh từ máy tính</p>
                   </div>
-                  
+
                   {imagePreview && (
                     <div className="mt-2 relative w-32 h-32 mx-auto">
-                      <img 
-                        src={imagePreview} 
-                        alt="Avatar Preview" 
+                      <img
+                        src={imagePreview}
+                        alt="Avatar Preview"
                         className="w-full h-full object-cover rounded-md"
                         onError={(e) => {
                           e.target.onerror = null;
-                          e.target.src = "https://via.placeholder.com/300?text=Error+Loading+Image";
+                          e.target.src = "/default-image.png";
                         }}
                       />
                       <span
@@ -1109,7 +1281,7 @@ const SpecialistList = () => {
                         onClick={() => {
                           setImagePreview("");
                           setImageFile(null);
-                          setFormData({...formData, avatarUrl: ""});
+                          setFormData({ ...formData, avatarUrl: "" });
                         }}
                         className="absolute -top-2 -right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 focus:outline-none"
                       >
@@ -1122,7 +1294,10 @@ const SpecialistList = () => {
 
               {/* Trạng thái */}
               <div>
-                <label htmlFor="status-edit" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="status-edit"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Trạng thái
                 </label>
                 <select
@@ -1141,7 +1316,10 @@ const SpecialistList = () => {
 
               {/* Tiểu sử */}
               <div>
-                <label htmlFor="biography-edit" className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="biography-edit"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Tiểu sử
                 </label>
                 <textarea
@@ -1175,7 +1353,9 @@ const SpecialistList = () => {
                       <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
                       Đang xử lý...
                     </div>
-                  ) : "Cập nhật"}
+                  ) : (
+                    "Cập nhật"
+                  )}
                 </button>
               </div>
             </form>
@@ -1186,4 +1366,4 @@ const SpecialistList = () => {
   );
 };
 
-export default SpecialistList; 
+export default SpecialistList;

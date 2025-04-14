@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import UserService from "../../../services/UserService";
+import SpecialistService from "../../../services/SpecialistService";
 
 function SpecialistDetail() {
   const { id } = useParams();
@@ -22,7 +22,7 @@ function SpecialistDetail() {
     const fetchSpecialistDetail = async () => {
       try {
         setLoading(true);
-        const data = await UserService.getStaffById(id);
+        const data = await SpecialistService.getSpecialistById(id);
         setSpecialist(data);
         setLoading(false);
       } catch (err) {
@@ -97,9 +97,8 @@ function SpecialistDetail() {
   return (
     <div className="container mx-auto py-10 px-4">
       <div className="mb-6">
-        <Link to="/specialist" className="text-blue-500   flex items-center">
-          <i className="fa fa-arrow-left mr-2"></i> Quay lại danh sách chuyên
-          gia
+        <Link to="/specialist" className="text-[var(--primary-color)] font-semibold flex items-center ">
+          <i className="fa fa-arrow-left mr-2"></i> <span>Quay lại danh sách chuyên gia</span>
         </Link>
       </div>
 
@@ -109,7 +108,7 @@ function SpecialistDetail() {
           <div className="bg-white rounded-lg shadow-md p-6 text-center">
             <img
               src={
-                specialist.image ||
+                specialist.avatarUrl ||
                 "https://via.placeholder.com/300x300?text=Specialist"
               }
               alt={fullName}

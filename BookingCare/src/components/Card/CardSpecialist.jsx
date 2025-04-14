@@ -1,50 +1,63 @@
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 import specialistImg1 from "../../assets/specialist/specialistImg1.avif";
-import PropTypes from 'prop-types';
+import PropTypes from "prop-types";
+import { memo, useState, useCallback } from "react";
 
-function CardSpecialist({ specialist }) {
+// Memo hóa component để tránh re-render không cần thiết
+const CardSpecialist = memo(function CardSpecialist({ specialist }) {
   const navigate = useNavigate();
-  
+  const [imageError, setImageError] = useState(false);
+
   // Kiểm tra specialist là object hợp lệ
-  if (!specialist || typeof specialist !== 'object') {
-    console.error("Invalid specialist data provided to CardSpecialist:", specialist);
+  if (!specialist || typeof specialist !== "object") {
+    console.error(
+      "Invalid specialist data provided to CardSpecialist:",
+      specialist
+    );
     return null;
   }
-  
+
   // Destructure với fallback chỉ khi cần thiết
-  const {
-    id,
-    firstName,
-    lastName,
-    description,
-    experience,
-    image
-  } = specialist;
-  
+  const { id, firstName, lastName, description, experience, avatarUrl } =
+    specialist;
+
   // Tạo tên đầy đủ
-  const fullName = firstName && lastName 
-    ? `${firstName} ${lastName}`
-    : firstName || lastName || "Chuyên viên";
-  
-  // Hàm xử lý khi nhấn nút xem chi tiết
-  const handleViewDetail = () => {
+  const fullName =
+    firstName && lastName
+      ? `${firstName} ${lastName}`
+      : firstName || lastName || "Chuyên viên";
+
+  // Sử dụng useCallback để memo hóa hàm xử lý navigation
+  const handleViewDetail = useCallback(() => {
     // Check if id exists and is valid (not undefined, null, empty string, etc.)
-    if (id !== undefined && id !== null && id !== '') {
+    if (id !== undefined && id !== null && id !== "") {
       navigate(`/specialist/${id}`);
     } else {
-      console.error("Cannot navigate to specialist detail: ID is undefined or invalid", specialist);
+      console.error(
+        "Cannot navigate to specialist detail: ID is undefined or invalid",
+        specialist
+      );
       // Improved error message
-      alert("Không thể xem chi tiết chuyên viên này. ID chuyên viên không hợp lệ hoặc chưa được tải.");
+      alert(
+        "Không thể xem chi tiết chuyên viên này. ID chuyên viên không hợp lệ hoặc chưa được tải."
+      );
     }
-  };
+  }, [id, navigate, specialist]);
+
+  // Xử lý lỗi ảnh
+  const handleImageError = useCallback(() => {
+    setImageError(true);
+  }, []);
 
   return (
     <div className="w-[470px] rounded-[10px] overflow-hidden bg-white border border-black/10 hover:shadow-xl hover:border-transparent group">
       <div className="w-full h-[350px] overflow-hidden">
         <img
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-in-out"
-          src={image || specialistImg1}
+          src={imageError ? specialistImg1 : (avatarUrl || specialistImg1)}
           alt={fullName}
+          onError={handleImageError}
+          loading="lazy" // Thêm lazy loading cho hình ảnh
         />
       </div>
       <div className="p-6">
@@ -54,14 +67,18 @@ function CardSpecialist({ specialist }) {
             {description || "Chuyên gia chăm sóc da"}
           </span>
           <span className="space-x-2 text-black/60">{experience || ""}</span>
-          <button className="mt-3 w-full" onClick={handleViewDetail} disabled={!id}>
+          <button
+            className="mt-3 w-full"
+            onClick={handleViewDetail}
+            disabled={!id}
+          >
             Xem chi tiết
           </button>
         </div>
       </div>
     </div>
   );
-}
+});
 
 CardSpecialist.propTypes = {
   specialist: PropTypes.shape({
@@ -70,8 +87,10 @@ CardSpecialist.propTypes = {
     lastName: PropTypes.string,
     description: PropTypes.string,
     experience: PropTypes.string,
-    image: PropTypes.string
-  }).isRequired
+    avatarUrl: PropTypes.string,
+  }).isRequired,
 };
+
+CardSpecialist.displayName = "CardSpecialist"; // Thêm displayName cho React DevTools
 
 export default CardSpecialist;

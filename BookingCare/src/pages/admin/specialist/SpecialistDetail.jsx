@@ -99,7 +99,8 @@ const SpecialistDetail = () => {
 
   // Format họ tên đầy đủ
   const fullName = `${specialist.firstName || ''} ${specialist.lastName || ''}`.trim();
-
+  console.log("specialist", specialist);
+  
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4">

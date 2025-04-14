@@ -11,6 +11,8 @@ function CardService({ service }) {
     return null;
   }
 
+  console.log("service", service);
+
   // Destructure với fallback chỉ khi cần thiết
   const { id, name, description, price = 0, duration = 0, image } = service;
 
