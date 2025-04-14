@@ -5,126 +5,136 @@ import ServiceService from "../../../services/ServiceService";
 import ServiceCategoryService from "../../../services/ServiceCategoryService";
 
 function Service() {
-  // Will be populated from API
   const [categories, setCategories] = useState([{ name: "Tất cả" }]);
   const [services, setServices] = useState([]);
+  const [filteredServices, setFilteredServices] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState("Tất cả");
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [categoryLoading, setCategoryLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedCategory, setSelectedCategory] = useState("Tất cả");
-  const [searchQuery, setSearchQuery] = useState("");
 
-  // Fetch categories when component mounts
+  // Fetch categories and all services
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchInitialData = async () => {
       try {
+        setLoading(true);
         setCategoryLoading(true);
-        const data = await ServiceCategoryService.getActiveCategories();
-        
-        if (data && Array.isArray(data) && data.length > 0) {
-          // Add "Tất cả" to the beginning of the categories list
-          const categoriesWithAll = [{ name: "Tất cả" }, ...data];
-          setCategories(categoriesWithAll);
+
+        const [categoryData, allServices] = await Promise.all([
+          ServiceCategoryService.getActiveCategories(),
+          ServiceService.getAllServices(),
+        ]);
+
+        if (Array.isArray(categoryData)) {
+          setCategories([{ name: "Tất cả" }, ...categoryData]);
         }
+
+        setServices(allServices || []);
+        setFilteredServices(allServices || []);
+        setError(null);
       } catch (err) {
-        console.error("Error fetching categories:", err);
-        // If categories fail to load, we still have the default "Tất cả" option
+        console.error("Error fetching data:", err);
+        setError("Không thể tải dữ liệu dịch vụ. Vui lòng thử lại sau.");
       } finally {
+        setLoading(false);
         setCategoryLoading(false);
       }
     };
 
-    fetchCategories();
+    fetchInitialData();
   }, []);
 
-  // Fetch services based on selected category and search query
+  // Filter services when category or searchQuery changes
   useEffect(() => {
-    const fetchServices = async () => {
+    const filterData = async () => {
       try {
         setLoading(true);
-        // Prepare params for API call
-        const params = {};
-        
-        // Only add category filter if not "Tất cả"
+        let result = services;
+
         if (selectedCategory !== "Tất cả") {
-          // Find the category ID by name
-          const category = categories.find(cat => cat.name === selectedCategory);
-          if (category && category.id) {
-            params.category = category.id;
+          const selected = categories.find(
+            (cat) => cat.name === selectedCategory
+          );
+          if (selected?.id) {
+            result = await ServiceService.getAllServices({
+              category: selected.id,
+            });
           }
         }
-        
-        // Add search query if it exists
+
         if (searchQuery) {
-          params.search = searchQuery;
+          const searchLower = searchQuery.toLowerCase();
+          result = result.filter((service) =>
+            service.name?.toLowerCase().includes(searchLower)
+          );
         }
-        
-        const data = await ServiceService.getAllServices(params);
-        setServices(data);
+
+        setFilteredServices(result);
         setError(null);
       } catch (err) {
-        console.error("Error fetching services:", err);
-        setError("Không thể tải danh sách dịch vụ. Vui lòng thử lại sau.");
+        console.error("Error filtering services:", err);
+        setError("Không thể lọc dịch vụ. Vui lòng thử lại sau.");
       } finally {
         setLoading(false);
       }
     };
 
-    fetchServices();
-  }, [selectedCategory, searchQuery, categories]);
+    filterData();
+  }, [selectedCategory, searchQuery]);
 
-  // Handler for category selection from Filter component
   const handleFilterChange = (category) => {
     setSelectedCategory(category);
   };
 
-  // Handler for search input from Filter component
   const handleSearchChange = (query) => {
     setSearchQuery(query);
   };
 
-  // Extract category names for the Filter component
-  const categoryNames = categories.map(category => category.name);
+  const categoryNames = categories.map((cat) => cat.name);
 
   return (
     <div className="flex flex-col mt-[100px]">
       <div className="container mx-auto">
-        <div className="">
-          <Filter
-            serviceType={categoryNames}
-            title="Dịch Vụ Của Chúng Tôi"
-            desc="Khám phá các dịch vụ chăm sóc da chuyên nghiệp được thiết kế riêng cho làn da của bạn"
-            onCategoryChange={handleFilterChange}
-            onSearchChange={handleSearchChange}
-            loading={categoryLoading}
-          />
-          
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--primary-color)]"></div>
-            </div>
-          ) : error ? (
-            <div className="text-center py-10 text-red-500">
-              <p>{error}</p>
-              <button 
-                onClick={() => window.location.reload()} 
-                className="mt-4 px-4 py-2 bg-[var(--primary-color)] text-white rounded hover:bg-[var(--primary-color-dark)]"
-              >
-                Thử lại
-              </button>
-            </div>
-          ) : services.length === 0 ? (
-            <div className="text-center py-10">
-              <p>Không tìm thấy dịch vụ nào phù hợp.</p>
-            </div>
-          ) : (
-            <div className={`flex ${services.length > 2 ? 'justify-between' : 'justify-start'} flex-wrap my-10 gap-6`}>
-              {services.map((service) => (
-                <CardService key={service.id} service={service} />
-              ))}
-            </div>
-          )}
-        </div>
+        <Filter
+          serviceType={categoryNames}
+          title="Dịch Vụ Của Chúng Tôi"
+          desc="Khám phá các dịch vụ chăm sóc da chuyên nghiệp được thiết kế riêng cho làn da của bạn"
+          onCategoryChange={handleFilterChange}
+          onSearchChange={handleSearchChange}
+          loading={categoryLoading}
+          selectedCategory={selectedCategory}
+        />
+
+        {loading || categoryLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--primary-color)]"></div>
+          </div>
+        ) : error ? (
+          <div className="text-center py-10 text-red-500">
+            <p>{error}</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="mt-4 px-4 py-2 bg-[var(--primary-color)] text-white rounded  "
+            >
+              Thử lại
+            </button>
+          </div>
+        ) : filteredServices.length === 0 ? (
+          <div className="text-center py-10 text-gray-500 font-semibold">
+            <p>Không tìm thấy dịch vụ nào phù hợp.</p>
+          </div>
+        ) : (
+          <div
+            className={`flex ${
+              filteredServices.length > 2 ? "justify-between" : "justify-start"
+            } flex-wrap my-10 gap-6`}
+          >
+            {filteredServices.map((service) => (
+              <CardService key={service.id} service={service} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

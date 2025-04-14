@@ -61,6 +61,11 @@ const BlogPosts = () => {
     thumbnailUrl: "",
   });
 
+  // Add these new states after the existing state declarations
+  const [contentImages, setContentImages] = useState([]);
+  const [isDraggingContent, setIsDraggingContent] = useState(false);
+  const contentDropZoneRef = useRef(null);
+
   // Fetch blog posts on component mount
   useEffect(() => {
     fetchBlogPosts();
@@ -311,6 +316,70 @@ const BlogPosts = () => {
     const wordCount = content.split(/\s+/).length;
     const minutes = Math.ceil(wordCount / 200);
     return `${minutes} phút`;
+  };
+
+  // Add these new functions after the existing functions
+  const handleContentImageDrop = async (e) => {
+    e.preventDefault();
+    setIsDraggingContent(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files);
+      const imageFiles = files.filter((file) => file.type.startsWith("image/"));
+
+      if (imageFiles.length > 0) {
+        try {
+          setLoading(true);
+          const uploadedImages = await Promise.all(
+            imageFiles.map(async (file) => {
+              const imageUrl = await BlogService.uploadBlogImage(file);
+              return {
+                file,
+                url: imageUrl,
+              };
+            })
+          );
+
+          setContentImages((prev) => [...prev, ...uploadedImages]);
+
+          // Insert image URLs into content at cursor position
+          const imageTags = uploadedImages
+            .map(
+              (img) =>
+                `<img src="${img.url}" alt="Uploaded image" class="max-w-full h-auto" />`
+            )
+            .join("\n");
+
+          const textarea = document.getElementById("content");
+          const start = textarea.selectionStart;
+          const end = textarea.selectionEnd;
+          const content = formData.content;
+
+          setFormData((prev) => ({
+            ...prev,
+            content:
+              content.substring(0, start) + imageTags + content.substring(end),
+          }));
+
+          message.success(`Đã tải lên ${uploadedImages.length} ảnh`);
+        } catch (error) {
+          console.error("Error uploading content images:", error);
+          message.error("Lỗi khi tải lên ảnh");
+        } finally {
+          setLoading(false);
+        }
+      }
+    }
+  };
+
+  const handleContentDragOver = (e) => {
+    e.preventDefault();
+    setIsDraggingContent(true);
+  };
+
+  const handleContentDragLeave = (e) => {
+    e.preventDefault();
+    setIsDraggingContent(false);
   };
 
   return (
@@ -736,7 +805,17 @@ const BlogPosts = () => {
               >
                 Nội dung <span className="text-red-500">*</span>
               </label>
-              <div className="mt-1 rounded-md shadow-sm">
+              <div
+                className={`mt-1 rounded-md shadow-sm relative ${
+                  isDraggingContent
+                    ? "border-2 border-dashed border-pink-500 bg-pink-50"
+                    : ""
+                }`}
+                onDragOver={handleContentDragOver}
+                onDragLeave={handleContentDragLeave}
+                onDrop={handleContentImageDrop}
+                ref={contentDropZoneRef}
+              >
                 <textarea
                   id="content"
                   name="content"
@@ -744,9 +823,19 @@ const BlogPosts = () => {
                   onChange={handleInputChange}
                   rows={10}
                   className="block w-full border-gray-300 rounded-md shadow-sm py-3 px-4 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-pink-500 sm:text-sm"
-                  placeholder="Nhập nội dung bài viết..."
+                  placeholder="Nhập nội dung bài viết... Bạn có thể kéo thả ảnh vào đây"
                   required
                 />
+                {isDraggingContent && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-pink-50 bg-opacity-50 rounded-md">
+                    <div className="text-center">
+                      <i className="fas fa-cloud-upload-alt text-4xl text-pink-500 mb-2"></i>
+                      <p className="text-pink-500 font-medium">
+                        Thả ảnh vào đây
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
               {formData.content && (
                 <div className="mt-1 text-sm text-gray-500">

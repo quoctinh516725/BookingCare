@@ -21,6 +21,7 @@ const customStyles = {
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
 };
+
 const ServiceList = () => {
   const message = useContext(MessageContext);
   const [isOpen, setIsOpen] = useState(false);
@@ -36,22 +37,17 @@ const ServiceList = () => {
   const fileInputRef = useRef(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentServiceId, setCurrentServiceId] = useState(null);
-  
-  // State cho dữ liệu từ API
   const [services, setServices] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-
-  // Thêm state để lưu file cần upload
   const [fileToUpload, setFileToUpload] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Tải dữ liệu khi component mount
   useEffect(() => {
     fetchServices();
     fetchCategories();
   }, []);
 
-  // Hàm tải danh sách dịch vụ
   const fetchServices = async () => {
     try {
       setLoading(true);
@@ -65,12 +61,10 @@ const ServiceList = () => {
     }
   };
 
-  // Hàm tải danh mục dịch vụ
   const fetchCategories = async () => {
     try {
       const data = await ServiceCategoryService.getAllCategories();
       setCategories(data);
-      // Tự động chọn danh mục đầu tiên nếu có
       if (data && data.length > 0) {
         setCategoryId(data[0].id);
       }
@@ -85,23 +79,18 @@ const ServiceList = () => {
     if (!serviceName.trim()) {
       newErrors.serviceName = "Tên dịch vụ không được để trống";
     }
-    
     if (!price || price <= 0) {
       newErrors.price = "Giá dịch vụ phải lớn hơn 0";
     }
-    
     if (!duration || duration <= 0) {
       newErrors.duration = "Thời gian dịch vụ phải lớn hơn 0";
     }
-    
     if (!description.trim()) {
       newErrors.description = "Mô tả dịch vụ không được để trống";
     }
-    
     if (!categoryId) {
       newErrors.category = "Vui lòng chọn danh mục dịch vụ";
     }
-    
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -109,18 +98,19 @@ const ServiceList = () => {
   const handleSubmit = async () => {
     if (validateForm()) {
       try {
-        // Upload ảnh nếu có file mới
         let imageUrlToSave = imageUrl;
         if (fileToUpload) {
           try {
-            imageUrlToSave = await ServiceService.uploadServiceImage(fileToUpload);
+            imageUrlToSave = await ServiceService.uploadServiceImage(
+              fileToUpload
+            );
           } catch (error) {
             console.error("Error uploading image:", error);
             message.error("Không thể tải ảnh lên, vui lòng thử lại");
             return;
           }
         }
-        
+
         const serviceData = {
           name: serviceName,
           description,
@@ -128,9 +118,9 @@ const ServiceList = () => {
           duration: parseInt(duration),
           image: imageUrlToSave,
           isActive: true,
-          categoryId
+          categoryId,
         };
-        
+
         if (isEditMode) {
           await ServiceService.updateService(currentServiceId, serviceData);
           message.success("Cập nhật dịch vụ thành công");
@@ -138,13 +128,17 @@ const ServiceList = () => {
           await ServiceService.createService(serviceData);
           message.success("Thêm dịch vụ thành công");
         }
-        
-        // Tải lại danh sách dịch vụ
+
         fetchServices();
         handleClose();
       } catch (error) {
-        console.error(isEditMode ? "Error updating service:" : "Error creating service:", error);
-        const errorMessage = error.response?.data?.message || `Có lỗi xảy ra khi ${isEditMode ? "cập nhật" : "thêm"} dịch vụ`;
+        console.error(
+          isEditMode ? "Error updating service:" : "Error creating service:",
+          error
+        );
+        const errorMessage =
+          error.response?.data?.message ||
+          `Có lỗi xảy ra khi ${isEditMode ? "cập nhật" : "thêm"} dịch vụ`;
         message.error(errorMessage);
       }
     }
@@ -153,8 +147,6 @@ const ServiceList = () => {
   const handleEdit = (service) => {
     setIsEditMode(true);
     setCurrentServiceId(service.id);
-    
-    // Điền thông tin dịch vụ vào form
     setServiceName(service.name);
     setDescription(service.description);
     setPrice(service.price.toString());
@@ -164,8 +156,6 @@ const ServiceList = () => {
     if (service.image) {
       setPreviewUrl(service.image);
     }
-    
-    // Mở modal
     setIsOpen(true);
   };
 
@@ -174,11 +164,11 @@ const ServiceList = () => {
       try {
         await ServiceService.deleteService(id);
         message.success("Xóa dịch vụ thành công");
-        // Tải lại danh sách dịch vụ
         fetchServices();
       } catch (error) {
         console.error("Error deleting service:", error);
-        const errorMessage = error.response?.data?.message || "Có lỗi xảy ra khi xóa dịch vụ";
+        const errorMessage =
+          error.response?.data?.message || "Có lỗi xảy ra khi xóa dịch vụ";
         message.error(errorMessage);
       }
     }
@@ -207,7 +197,7 @@ const ServiceList = () => {
   const handleFile = (file) => {
     if (file) {
       if (file.type.startsWith("image/")) {
-        setFileToUpload(file); // Lưu file để upload sau
+        setFileToUpload(file);
         const reader = new FileReader();
         reader.onloadend = () => {
           setPreviewUrl(reader.result);
@@ -236,6 +226,11 @@ const ServiceList = () => {
     handleFile(file);
   };
 
+  const filteredServices = services.filter(
+    (service) =>
+      service.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <div className="flex justify-between items-center mb-6">
@@ -253,7 +248,6 @@ const ServiceList = () => {
         </span>
       </div>
 
-      {/* Search and filter bar */}
       <div className="flex flex-col md:flex-row gap-3 mb-6">
         <div className="relative flex-grow">
           <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
@@ -261,22 +255,26 @@ const ServiceList = () => {
             type="text"
             placeholder="Tìm kiếm dịch vụ..."
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
         <div className="relative min-w-[200px]">
-          <select 
+          <select
             className="w-full appearance-none border border-gray-300 rounded-md px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
             onChange={(e) => {
               const catId = e.target.value;
               if (catId) {
-                ServiceService.getServicesByCategory(catId).then(data => setServices(data));
+                ServiceService.getServicesByCategory(catId).then((data) =>
+                  setServices(data)
+                );
               } else {
                 fetchServices();
               }
             }}
           >
             <option value="">Tất cả danh mục</option>
-            {categories.map(category => (
+            {categories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
               </option>
@@ -286,7 +284,6 @@ const ServiceList = () => {
         </div>
       </div>
 
-      {/* Services table */}
       <div className="bg-white rounded-md shadow overflow-hidden">
         {loading ? (
           <div className="text-center py-8">
@@ -318,23 +315,30 @@ const ServiceList = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {services.length === 0 ? (
+              {filteredServices.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
-                    Không có dịch vụ nào
+                  <td
+                    colSpan="6"
+                    className="px-6 py-4 text-center text-gray-500"
+                  >
+                    Không tìm thấy dịch vụ nào
                   </td>
                 </tr>
               ) : (
-                services.map((service) => (
+                filteredServices.map((service) => (
                   <tr key={service.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 max-w-[150px]">
                       <div className="truncate">{service.name}</div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500 max-w-xs">
-                      <div className="line-clamp-2 whitespace-normal">{service.description}</div>
+                      <div className="line-clamp-2 whitespace-normal">
+                        {service.description}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500 max-w-[120px]">
-                      <div className="truncate">{service.categoryName || "Chưa phân loại"}</div>
+                      <div className="truncate">
+                        {service.categoryName || "Chưa phân loại"}
+                      </div>
                     </td>
                     <td className="px-6 py-4 text-sm text-gray-500">
                       {service.duration} phút
@@ -343,13 +347,13 @@ const ServiceList = () => {
                       {service.price?.toLocaleString()} ₫
                     </td>
                     <td className="px-6 py-4 text-sm font-medium text-right">
-                      <span 
+                      <span
                         className="text-blue-500 hover:text-blue-700 bg-blue-100 hover:bg-blue-200 p-1 rounded mr-2 cursor-pointer"
                         onClick={() => handleEdit(service)}
                       >
                         <i className="fas fa-edit"></i>
                       </span>
-                      <span 
+                      <span
                         className="text-red-500 hover:text-red-700 bg-red-100 hover:bg-red-200 p-1 rounded cursor-pointer"
                         onClick={() => handleDelete(service.id)}
                       >
@@ -377,8 +381,8 @@ const ServiceList = () => {
             </span>
           </div>
           <p className="text-sm text-gray-500 mb-4">
-            {isEditMode 
-              ? "Cập nhật thông tin chi tiết dịch vụ." 
+            {isEditMode
+              ? "Cập nhật thông tin chi tiết dịch vụ."
               : "Nhập thông tin chi tiết để thêm dịch vụ mới vào hệ thống."}
           </p>
           <div className="space-y-3">
@@ -440,7 +444,7 @@ const ServiceList = () => {
                 onChange={(e) => setCategoryId(e.target.value)}
               >
                 <option value="">Chọn danh mục</option>
-                {categories.map(category => (
+                {categories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
                   </option>
@@ -488,7 +492,6 @@ const ServiceList = () => {
                   accept="image/*"
                   className="hidden"
                 />
-
                 {previewUrl ? (
                   <div className="relative group">
                     <img
@@ -503,7 +506,7 @@ const ServiceList = () => {
                           setPreviewUrl("");
                           setImageUrl("");
                         }}
-                        className=" text-white p-2 rounded-full cursor-pointer"
+                        className="text-white p-2 rounded-full cursor-pointer"
                       >
                         <i className="fas fa-trash"></i>
                       </span>

@@ -1,7 +1,7 @@
 function Footer() {
   return (
-    <div>
-      <footer>
+    <div className="mt-auto">
+      <footer className="w-full">
         <div className="w-full bg-[#ECEBEA] border border-y border-black/10">
           <div className="container mx-auto">
             <div className="flex justify-between p-20 space-x-5">

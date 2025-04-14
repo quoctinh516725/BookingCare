@@ -54,7 +54,7 @@ const CardSpecialist = memo(function CardSpecialist({ specialist }) {
       <div className="w-full h-[350px] overflow-hidden">
         <img
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 ease-in-out"
-          src={imageError ? specialistImg1 : (avatarUrl || specialistImg1)}
+          src={imageError ? specialistImg1 : avatarUrl || specialistImg1}
           alt={fullName}
           onError={handleImageError}
           loading="lazy" // Thêm lazy loading cho hình ảnh

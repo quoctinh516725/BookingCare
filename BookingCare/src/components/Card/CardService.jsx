@@ -61,7 +61,7 @@ function CardService({ service }) {
           {description || "Đang tải thông tin chi tiết..."}
         </p>
         <button
-          className="text-white font-semibold w-full mt-auto bg-[var(--primary-color)] py-2 rounded-md hover:bg-[var(--primary-color-dark)] transition-colors"
+          className="text-white font-semibold w-full mt-auto bg-[var(--primary-color)] py-2 rounded-md   transition-colors"
           onClick={handleViewDetail}
           disabled={!id}
         >

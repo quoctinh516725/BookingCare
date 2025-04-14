@@ -97,8 +97,12 @@ function SpecialistDetail() {
   return (
     <div className="container mx-auto py-10 px-4">
       <div className="mb-6">
-        <Link to="/specialist" className="text-[var(--primary-color)] font-semibold flex items-center ">
-          <i className="fa fa-arrow-left mr-2"></i> <span>Quay lại danh sách chuyên gia</span>
+        <Link
+          to="/specialist"
+          className="text-[var(--primary-color)] font-semibold flex items-center "
+        >
+          <i className="fa fa-arrow-left mr-2"></i>{" "}
+          <span>Quay lại danh sách chuyên gia</span>
         </Link>
       </div>
 
@@ -132,7 +136,7 @@ function SpecialistDetail() {
             </div>
 
             <Link to={`/booking?specialist=${specialist.id}`}>
-              <button className="w-full py-3 text-white font-semibold rounded-md bg-[var(--primary-color)] hover:bg-[var(--primary-color-dark)] transition duration-300">
+              <button className="w-full py-3 text-white font-semibold rounded-md bg-[var(--primary-color)]   transition duration-300">
                 Đặt lịch với chuyên gia
               </button>
             </Link>

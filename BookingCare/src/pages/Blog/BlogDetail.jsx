@@ -110,7 +110,7 @@ function BlogDetail() {
   return (
     <div className="container mx-auto py-10 px-4">
       <div className="mb-6">
-        <Link to="/blog" className="text-blue-500   flex items-center">
+        <Link to="/blog" className="text-[var(--primary-color)]  flex items-center font-semibold">
           <i className="fa fa-arrow-left mr-2"></i> Quay lại danh sách bài viết
         </Link>
       </div>
@@ -120,7 +120,7 @@ function BlogDetail() {
         <div className="w-full h-[400px] overflow-hidden">
           <img
             src={
-              blog.image ||
+              blog.thumbnailUrl ||
               "https://via.placeholder.com/1200x600?text=Blog+Image"
             }
             alt={blog.title}
@@ -286,7 +286,7 @@ function BlogDetail() {
                 <div className="h-48 overflow-hidden">
                   <img
                     src={
-                      post.image ||
+                      post.thumbnailUrl ||
                       "https://via.placeholder.com/400x200?text=Blog+Image"
                     }
                     alt={post.title}

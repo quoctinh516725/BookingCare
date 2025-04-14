@@ -11,7 +11,7 @@ function ServiceDetail() {
   useEffect(() => {
     const fetchServiceDetail = async () => {
       if (!id) {
-        setError('ID dịch vụ không hợp lệ');
+        setError("ID dịch vụ không hợp lệ");
         setLoading(false);
         return;
       }
@@ -20,15 +20,15 @@ function ServiceDetail() {
         setLoading(true);
         const data = await ServiceService.getServiceById(id);
         if (!data) {
-          setError('Không tìm thấy thông tin dịch vụ');
+          setError("Không tìm thấy thông tin dịch vụ");
           setLoading(false);
           return;
         }
         setService(data);
         setLoading(false);
       } catch (err) {
-        console.error('Error fetching service details:', err);
-        setError('Không thể tải thông tin dịch vụ. Vui lòng thử lại sau.');
+        console.error("Error fetching service details:", err);
+        setError("Không thể tải thông tin dịch vụ. Vui lòng thử lại sau.");
         setLoading(false);
       }
     };
@@ -68,7 +68,10 @@ function ServiceDetail() {
             Đã xảy ra lỗi
           </h2>
           <p className="mb-4">{error}</p>
-          <Link to="/service" className="text-blue-500  ">
+          <Link
+            to="/service"
+            className="text-[var(--primary-color)] font-semibold flex items-center"
+          >
             Quay lại danh sách dịch vụ
           </Link>
         </div>
@@ -82,7 +85,10 @@ function ServiceDetail() {
       <div className="container mx-auto py-10 px-4">
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">Không tìm thấy dịch vụ</h2>
-          <Link to="/service" className="text-blue-500  ">
+          <Link
+            to="/service"
+            className="text-[var(--primary-color)] font-semibold flex items-center   "
+          >
             Quay lại danh sách dịch vụ
           </Link>
         </div>
@@ -97,7 +103,10 @@ function ServiceDetail() {
   return (
     <div className="container mx-auto py-10 px-4">
       <div className="mb-6">
-        <Link to="/service" className="text-blue-500   flex items-center">
+        <Link
+          to="/service"
+          className="text-[var(--primary-color)] font-semibold "
+        >
           <i className="fa fa-arrow-left mr-2"></i> Quay lại danh sách dịch vụ
         </Link>
       </div>
@@ -162,7 +171,7 @@ function ServiceDetail() {
           </div>
 
           <Link to={`/booking?service=${service.id}`}>
-            <button className="w-full py-3 text-white font-semibold text-lg rounded-md bg-[var(--primary-color)] hover:bg-[var(--primary-color-dark)] transition duration-300">
+            <button className="w-full py-3 text-white font-semibold text-lg rounded-md bg-[var(--primary-color)]   transition duration-300">
               Đặt lịch ngay
             </button>
           </Link>

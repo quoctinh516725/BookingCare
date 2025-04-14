@@ -114,7 +114,7 @@ function Specialist() {
               <p>{error}</p>
               <button
                 onClick={() => window.location.reload()}
-                className="mt-4 px-4 py-2 bg-[var(--primary-color)] text-white rounded hover:bg-[var(--primary-color-dark)]"
+                className="mt-4 px-4 py-2 bg-[var(--primary-color)] text-white rounded  "
               >
                 Thử lại
               </button>
@@ -135,7 +135,13 @@ function Specialist() {
                 </div>
               ) : (
                 <div>
-                  <div className="flex justify-between flex-wrap my-10 gap-6">
+                  <div
+                    className={`flex ${
+                      specialists.length > 2
+                        ? "justify-between"
+                        : "justify-start"
+                    } flex-wrap my-10 gap-6`}
+                  >
                     {specialists.map((specialist) => (
                       <CardSpecialist
                         key={specialist.id}

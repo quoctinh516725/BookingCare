@@ -70,7 +70,16 @@ const AdminPermissionMenu = () => {
             to="/admin/specialists"
             icon="fas fa-stethoscope"
           >
-            Quản lý chuyên khoa
+            Quản lý chuyên viên
+          </PermissionMenuItem>
+
+          {/* Quản lý danh mục chuyên viên - Yêu cầu quyền specialist:view */}
+          <PermissionMenuItem
+            permission="specialist:view"
+            to="/admin/specialists/categories"
+            icon="fas fa-folder"
+          >
+            Danh mục chuyên viên
           </PermissionMenuItem>
 
           {/* Quản lý bài viết - Yêu cầu quyền blog:view */}

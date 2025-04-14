@@ -6,7 +6,7 @@ import path from "path";
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
   return {
-    plugins: [react(), tailwindcss(), require("@tailwindcss/line-clamp")],
+    plugins: [react(), tailwindcss()],
     server: {
       proxy:
         mode === "development"

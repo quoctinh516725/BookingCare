@@ -6,7 +6,6 @@ import UserPermissions from "../pages/admin/permission/UserPermissions";
 import ServiceList from "../pages/admin/service/ServiceList";
 import ServiceCategories from "../pages/admin/service/ServiceCategories";
 import SpecialistList from "../pages/admin/specialist/SpecialistList";
-import SpecialistForm from "../pages/admin/specialist/SpecialistForm";
 import BlogPosts from "../pages/admin/blog/BlogPosts";
 import BlogCategories from "../pages/admin/blog/BlogCategories";
 import Appointments from "../pages/admin/Appointments";
@@ -15,7 +14,7 @@ import Transactions from "../pages/admin/Transactions";
 import Settings from "../pages/admin/Settings";
 import AdminLayout from "../layouts/AdminLayout";
 import AdminLogin from "../pages/admin/AdminLogin";
-
+import SpecialistCategory from "../pages/admin/specialist/SpecialistCategory";
 const routes = [
   {
     path: "/admin/login",
@@ -72,8 +71,8 @@ const routes = [
     isDefaultPage: true,
   },
   {
-    path: "/admin/specialists/create",
-    page: SpecialistForm,
+    path: "/admin/specialists/categories",
+    page: SpecialistCategory,
     layout: AdminLayout,
     isDefaultPage: true,
   },
