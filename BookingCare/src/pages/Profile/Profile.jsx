@@ -1,4 +1,4 @@
-import { useState, useContext, useCallback } from "react";
+import React, { useState, useContext } from "react";
 import { useSelector } from "react-redux";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDispatch } from "react-redux";
@@ -66,12 +66,14 @@ function Profile() {
   });
   const [passwordError, setPasswordError] = useState("");
 
-  // State for rating modal
-  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
-  const [selectedBookingId, setSelectedBookingId] = useState(null);
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState("");
-  const [ratingError, setRatingError] = useState("");
+  // State for rating data
+  const [ratingData, setRatingData] = useState({
+    bookingId: "",
+    rating: 5,
+    comment: ""
+  });
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [loading, setLoading] = useState({ rating: false });
 
   // Fetch bookings data
   const { data: bookings, isLoading: bookingsLoading } = useQuery({
@@ -122,32 +124,6 @@ function Profile() {
       );
     },
   });
-
-  // Handle rating submission
-  const submitRatingMutation = useMutation({
-    mutationFn: ({ bookingId, rating, comment }) =>
-      UserService.submitRating(bookingId, { rating, comment }, access_token),
-    onSuccess: () => {
-      message.success("Đánh giá đã được gửi thành công!");
-      queryClient.invalidateQueries(["userBookings"]);
-      closeRatingModal();
-    },
-    onError: (error) => {
-      message.error(
-        error?.response?.data?.message ||
-          "Gửi đánh giá thất bại. Vui lòng thử lại."
-      );
-    },
-  });
-
-  const handleCancelBooking = useCallback(
-    (bookingId) => {
-      if (window.confirm("Bạn có chắc chắn muốn hủy lịch hẹn này không?")) {
-        cancelBookingMutation.mutate(bookingId);
-      }
-    },
-    [cancelBookingMutation]
-  );
 
   // Handle user info change
   const handleUserInfoChange = (e) => {
@@ -205,27 +181,82 @@ function Profile() {
 
   // Handle opening rating modal
   const openRatingModal = (bookingId) => {
-    setSelectedBookingId(bookingId);
-    setRating(0);
-    setComment("");
-    setRatingError("");
-    setIsRatingModalOpen(true);
+    setRatingData({
+      bookingId: bookingId,
+      rating: 5,
+      comment: ""
+    });
+    setShowRatingModal(true);
   };
   
   // Handle closing rating modal
   const closeRatingModal = () => {
-    setIsRatingModalOpen(false);
-    setSelectedBookingId(null);
-    setRating(0);
-    setComment("");
-    setRatingError("");
+    setShowRatingModal(false);
+    setRatingData({
+      bookingId: "",
+      rating: 5,
+      comment: ""
+    });
   };
 
-  // Handle rating submission
-  const handleRatingSubmit = () => {
-    if (rating === 0) {
-      setRatingError("Vui lòng chọn số sao đánh giá");
-      return;
+  const handleRatingChange = (value) => {
+    setRatingData({
+      ...ratingData,
+      rating: value
+    });
+  };
+
+  const handleCommentChange = (e) => {
+    setRatingData({
+      ...ratingData,
+      comment: e.target.value
+    });
+  };
+
+  const handleRatingSubmit = async () => {
+    try {
+      setLoading(prev => ({ ...prev, rating: true }));
+      
+      // Validate rating data
+      if (!ratingData.bookingId) {
+        message.error("Không tìm thấy thông tin đặt lịch");
+        setLoading(prev => ({ ...prev, rating: false }));
+        return;
+      }
+      
+      if (!ratingData.rating || ratingData.rating < 1 || ratingData.rating > 5) {
+        message.error("Vui lòng chọn số sao đánh giá từ 1-5");
+        setLoading(prev => ({ ...prev, rating: false }));
+        return;
+      }
+      
+      // Chuẩn bị dữ liệu gửi đi
+      const feedbackData = {
+        bookingId: ratingData.bookingId,
+        customerId: id,
+        rating: ratingData.rating,
+        comment: ratingData.comment || ""
+      };
+      
+      // Gửi đánh giá sử dụng FeedbackService
+      const response = await FeedbackService.createFeedback(feedbackData);
+      
+      if (response.success) {
+        message.success(response.message || "Đánh giá thành công!");
+        
+        // Cập nhật UI để hiển thị đã đánh giá cho booking này
+        queryClient.invalidateQueries(["userBookings"]);
+        
+        // Đóng modal
+        closeRatingModal();
+      } else {
+        message.error(response.error || "Không thể gửi đánh giá. Vui lòng thử lại sau.");
+      }
+    } catch (error) {
+      console.error("Error submitting rating:", error);
+      message.error("Đã xảy ra lỗi khi gửi đánh giá. Vui lòng thử lại.");
+    } finally {
+      setLoading(prev => ({ ...prev, rating: false }));
     }
     
     // Submit rating using the mutation
@@ -580,25 +611,14 @@ function Profile() {
                             {booking.canCancel && (
                               <span
                                 className="px-4 py-2 text-sm bg-red-50 cursor-pointer text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors flex items-center focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-50"
-                                onClick={() => handleCancelBooking(booking.id)}
-                                disabled={
-                                  cancelBookingMutation.isPending &&
-                                  cancelBookingMutation.variables === booking.id
-                                }
+                                onClick={() => {
+                                  if (window.confirm("Bạn có chắc chắn muốn hủy lịch hẹn này không?")) {
+                                    cancelBookingMutation.mutate(booking.id);
+                                  }
+                                }}
                               >
-                                {cancelBookingMutation.isPending &&
-                                cancelBookingMutation.variables ===
-                                  booking.id ? (
-                                  <>
-                                    <div className="w-4 h-4 border-2 border-red-400 border-t-transparent rounded-full animate-spin mr-2"></div>
-                                    <span>Đang hủy...</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <i className="fas fa-times-circle mr-2"></i>
-                                    <span>Hủy lịch hẹn</span>
-                                  </>
-                                )}
+                                <i className="fas fa-times-circle mr-2"></i>
+                                <span>Hủy lịch hẹn</span>
                               </span>
                             )}
                             {booking.status === "COMPLETED" &&
@@ -818,7 +838,7 @@ function Profile() {
 
       {/* Rating Modal */}
       <Modal
-        isOpen={isRatingModalOpen}
+        isOpen={showRatingModal}
         onRequestClose={closeRatingModal}
         style={customModalStyles}
       >
@@ -848,12 +868,7 @@ function Profile() {
           </div>
 
           <div className="space-y-6">
-            {ratingError && (
-              <div className="bg-red-50 border border-red-200 rounded-lg p-3 flex items-start">
-                <i className="fas fa-exclamation-circle text-red-500 mr-2 mt-0.5"></i>
-                <p className="text-red-700 text-sm">{ratingError}</p>
-              </div>
-            )}
+            {/* No rating error handling in the new code */}
 
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-2">
@@ -864,12 +879,12 @@ function Profile() {
                 {[...Array(5)].map((_, index) => (
                   <span
                     key={index}
-                    onClick={() => setRating(index + 1)}
+                    onClick={() => handleRatingChange(index + 1)}
                     className="cursor-pointer focus:outline-none"
                   >
                     <i
                       className={`fas fa-star text-2xl ${
-                        index < rating ? "text-yellow-400" : "text-gray-300"
+                        index < ratingData.rating ? "text-yellow-400" : "text-gray-300"
                       }`}
                     ></i>
                   </span>
@@ -882,8 +897,8 @@ function Profile() {
                 Nhận xét
               </label>
               <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
+                value={ratingData.comment}
+                onChange={handleCommentChange}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--primary-color)] h-32 resize-none"
                 placeholder="Chia sẻ cảm nhận của bạn về dịch vụ..."
               />
@@ -899,9 +914,9 @@ function Profile() {
               <span
                 onClick={handleRatingSubmit}
                 className="px-4 py-2 bg-[var(--primary-color)] cursor-pointer text-white rounded-lg hover:bg-[var(--primary-color)] transition-colors font-medium flex items-center"
-                disabled={submitRatingMutation.isPending}
+                disabled={loading.rating}
               >
-                {submitRatingMutation.isPending ? (
+                {loading.rating ? (
                   <>
                     <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></span>
                     <span>Đang gửi...</span>
