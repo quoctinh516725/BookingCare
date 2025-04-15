@@ -449,84 +449,117 @@ const getBookingsBySpecialistAndDate = async (specialistId, date) => {
 };
 
 /**
- * Lấy danh sách lịch hẹn gần đây
- * @param {number} limit Số lượng lịch hẹn tối đa cần lấy
- * @returns {Promise<Array>} Danh sách lịch hẹn gần đây
+ * Get recent bookings
+ * @param {number} limit - Number of bookings to retrieve
+ * @returns {Promise<Object>} - Response containing bookings
  */
 const getRecentBookings = async (limit = 5) => {
-  const tokenString = localStorage.getItem("access_token");
-  const token = tokenString ? JSON.parse(tokenString) : null;
-
-  if (!token) {
-    console.error("No token available for getRecentBookings");
-    return [];
+  const accessToken = getAccessToken();
+  
+  if (!accessToken) {
+    console.warn("BookingService.getRecentBookings: No access token available");
+    return { success: false, message: "Bạn cần đăng nhập để xem lịch hẹn gần đây" };
   }
-
+  
   try {
-    const response = await axiosJWT.get(
-      `/api/v1/bookings/recent?limit=${limit}`,
-      {
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        withCredentials: true,
-      }
-    );
-    return response.data || [];
+    // Thêm timestamp để tránh cache
+    const timestamp = new Date().getTime();
+    console.log(`[BookingService.getRecentBookings] Đang tải dữ liệu với limit=${limit}`);
+    
+    // Sử dụng phương án dự phòng làm phương án chính - lấy tất cả và lọc
+    const allResponse = await axiosJWT.get(`/api/v1/bookings?_t=${timestamp}`, {
+      headers: { Authorization: `Bearer ${accessToken}` }
+    });
+    
+    // Sắp xếp theo thời gian tạo mới nhất
+    const sortedBookings = allResponse.data.sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.appointmentTime);
+      const dateB = new Date(b.createdAt || b.appointmentTime);
+      return dateB - dateA;
+    });
+    
+    // Giới hạn số lượng theo tham số limit
+    const limitedBookings = sortedBookings.slice(0, limit);
+    
+    console.log(`[BookingService.getRecentBookings] Đã lấy ${limitedBookings.length} booking gần đây nhất`);
+    
+    return {
+      success: true,
+      data: limitedBookings
+    };
   } catch (error) {
     logApiError('getRecentBookings', error, { limit });
-    return [];
+    
+    // Trả về một mảng trống thay vì lỗi để tránh ảnh hưởng đến giao diện người dùng
+    return {
+      success: true,
+      message: "Không thể tải lịch hẹn gần đây, vui lòng thử lại sau",
+      data: []
+    };
   }
 };
 
-/**
- * Lấy tất cả các lịch hẹn, có thể lọc theo trạng thái
- * @param {string} status Trạng thái lịch hẹn để lọc (tùy chọn)
- * @returns {Promise<Array>} Danh sách lịch hẹn
- */
-const getAllBookings = async (status = null) => {
-  const tokenString = localStorage.getItem("access_token");
-  const token = tokenString ? JSON.parse(tokenString) : null;
-
-  if (!token) {
-    console.error("No token available for getAllBookings");
-    return [];
-  }
-
+export const getAllBookings = async (status) => {
   try {
-    const url = status
-      ? `/api/v1/bookings/status?status=${status}&size=1000` // Tăng size để lấy tất cả dữ liệu
-      : "/api/v1/bookings";
+    // Get headers with access token
+    const token = getAccessToken();
 
-    const response = await axiosJWT.get(url, {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      withCredentials: true,
-    });
-
-    // Xử lý response dựa trên cấu trúc dữ liệu trả về
-    if (status && response.data && response.data.content) {
-      // Nếu có filter, response là Page object
-      return response.data.content;
+    if (!token) {
+      console.warn("BookingService.getAllBookings: No access token available");
+      return { 
+        success: false, 
+        message: "Bạn cần đăng nhập để xem danh sách đặt lịch",
+        data: []
+      };
+    }
+    
+    // Thêm timestamp để tránh cache
+    const timestamp = new Date().getTime();
+    
+    // Different endpoints based on status parameter
+    let url;
+    if (status) {
+      url = `/api/v1/bookings/status?status=${status}&size=1000&_t=${timestamp}`;
+    } else {
+      url = `/api/v1/bookings?_t=${timestamp}`;
     }
 
-    // Nếu không có filter, response là List trực tiếp
-    return response.data || [];
+    console.log(`[BookingService.getAllBookings] Đang tải dữ liệu${status ? ` với status=${status}` : ''}`);
+    
+    // Make the request with appropriate headers
+    const response = await axiosJWT.get(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+
+    // Kiểm tra phản hồi
+    if (!response.data || !Array.isArray(response.data)) {
+      console.warn("[BookingService.getAllBookings] API trả về dữ liệu không đúng định dạng:", response.data);
+      return {
+        success: true,
+        data: [],
+        message: "Dữ liệu không hợp lệ hoặc không có booking nào"
+      };
+    }
+    
+    console.log(`[BookingService.getAllBookings] Đã lấy ${response.data.length} booking`);
+
+    // Structure the response
+    return {
+      success: true,
+      data: response.data,
+      message: "Lấy danh sách đặt lịch thành công"
+    };
   } catch (error) {
     logApiError('getAllBookings', error, { status });
     
-    // Log chi tiết về lỗi
-    if (error.response) {
-      console.error("Response status:", error.response.status);
-      console.error("Response data:", error.response.data);
-    } else if (error.request) {
-      console.error("No response received:", error.request);
-    }
-    
-    return [];
+    // Trả về một mảng trống thay vì thông báo lỗi để tránh làm gián đoạn giao diện người dùng
+    return {
+      success: true,
+      message: "Không thể tải dữ liệu, vui lòng thử lại sau",
+      data: []
+    };
   }
 };
 

@@ -18,8 +18,8 @@ import java.util.UUID;
 
 @Getter
 @Setter
-@ToString(exclude = {"services", "customer", "staff"})
-@EqualsAndHashCode(exclude = {"services", "customer", "staff"})
+@ToString(exclude = {"services", "customer", "staff", "payment"})
+@EqualsAndHashCode(exclude = {"services", "customer", "staff", "payment"})
 @Entity
 @Table(name = "bookings")
 @EntityListeners(AuditingEntityListener.class)
@@ -62,4 +62,7 @@ public class Booking {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+    
+    @OneToOne(mappedBy = "booking", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    private Payment payment;
 }

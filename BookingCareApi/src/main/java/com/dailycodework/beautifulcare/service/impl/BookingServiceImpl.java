@@ -21,6 +21,7 @@ import com.dailycodework.beautifulcare.repository.ServiceRepository;
 import com.dailycodework.beautifulcare.repository.SpecialistRepository;
 import com.dailycodework.beautifulcare.security.SecurityUtils;
 import com.dailycodework.beautifulcare.service.BookingService;
+import com.dailycodework.beautifulcare.service.PaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -52,6 +53,7 @@ public class BookingServiceImpl implements BookingService {
     private final ServiceRepository serviceRepository;
     private final SecurityUtils securityUtils;
     private final SpecialistRepository specialistRepository;
+    private final PaymentService paymentService;
 
     @Override
     public List<BookingResponse> getAllBookings() {
@@ -175,7 +177,18 @@ public class BookingServiceImpl implements BookingService {
         BigDecimal totalPrice = calculateTotalPrice(request.getServiceIds());
         booking.setTotalPrice(totalPrice);
 
-        return bookingMapper.toBookingResponse(bookingRepository.save(booking));
+        Booking savedBooking = bookingRepository.save(booking);
+        
+        // Tự động tạo thông tin thanh toán cho đặt lịch
+        try {
+            log.info("Creating payment for new booking with ID: {}", savedBooking.getId());
+            paymentService.createPaymentForBooking(savedBooking.getId());
+        } catch (Exception e) {
+            log.error("Failed to create payment for booking ID {}: {}", savedBooking.getId(), e.getMessage(), e);
+            // Không ném lại exception vì booking đã được tạo thành công
+        }
+
+        return bookingMapper.toBookingResponse(savedBooking);
     }
 
     @Override

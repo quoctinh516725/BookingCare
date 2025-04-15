@@ -7,6 +7,8 @@ import Modal from "react-modal";
 import { MessageContext } from "../../contexts/MessageProvider.jsx";
 import UserService from "../../../services/UserService";
 import { setUser } from "../../redux/slices/userSlice";
+import PaymentQRCode from "../../components/Payment/PaymentQRCode";
+import { formatCurrency } from "../../utils/formatters";
 
 // Đảm bảo modal hoạt động tốt với screen reader
 Modal.setAppElement("#root");
@@ -209,8 +211,7 @@ function Profile() {
     setRatingError("");
     setIsRatingModalOpen(true);
   };
-  console.log();
-
+  
   // Handle closing rating modal
   const closeRatingModal = () => {
     setIsRatingModalOpen(false);
@@ -226,8 +227,13 @@ function Profile() {
       setRatingError("Vui lòng chọn số sao đánh giá");
       return;
     }
-    message.success("Đánh giá đã được gửi thành công!");
-    setIsRatingModalOpen(false);
+    
+    // Submit rating using the mutation
+    submitRatingMutation.mutate({
+      bookingId: selectedBookingId,
+      rating,
+      comment
+    });
   };
 
   return (
@@ -541,10 +547,7 @@ function Profile() {
                                       </span>
                                     </div>
                                     <span className="font-medium">
-                                      {new Intl.NumberFormat("vi-VN", {
-                                        style: "currency",
-                                        currency: "VND",
-                                      }).format(service.price)}
+                                      {formatCurrency(service.price)}
                                     </span>
                                   </li>
                                 ))}
@@ -568,10 +571,7 @@ function Profile() {
                               </p>
                               <p className="font-medium text-gray-800 flex items-center">
                                 <i className="fas fa-money-bill-wave text-green-500 mr-2"></i>
-                                {new Intl.NumberFormat("vi-VN", {
-                                  style: "currency",
-                                  currency: "VND",
-                                }).format(booking.totalPrice)}
+                                {formatCurrency(booking.totalPrice)}
                               </p>
                             </div>
                           </div>
@@ -634,6 +634,20 @@ function Profile() {
                               <p className="text-gray-600">
                                 {booking.feedback}
                               </p>
+                            </div>
+                          )}
+
+                          {booking.status !== "CANCELLED" && (
+                            <div className="mt-4">
+                              <h3 className="font-semibold text-gray-800 text-base mb-3 flex items-center">
+                                <i className="fas fa-credit-card text-blue-500 mr-2"></i>
+                                Thanh toán
+                              </h3>
+                              <PaymentQRCode 
+                                bookingId={booking.id}
+                                isProfilePage={true}
+                                onPaymentComplete={() => queryClient.invalidateQueries(["userBookings"])}
+                              />
                             </div>
                           )}
                         </div>
