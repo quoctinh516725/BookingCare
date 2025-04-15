@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import Modal from "react-modal";
 import AdminService from "../../../services/AdminService";
+import FeedbackService from "../../../services/FeedbackService";
 import { MessageContext } from "../../contexts/MessageProvider";
 
 const customStyles = {
@@ -11,12 +12,17 @@ const customStyles = {
     bottom: "auto",
     marginRight: "-50%",
     transform: "translate(-50%, -50%)",
-    maxWidth: "600px",
-    borderRadius: "8px",
-    padding: "20px",
+    maxWidth: "800px",
+    width: "90%",
+    maxHeight: "90vh",
+    overflow: "auto",
+    borderRadius: "12px",
+    padding: "24px",
+    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
   },
   overlay: {
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    zIndex: 1000,
   },
 };
 
@@ -29,6 +35,8 @@ const Appointments = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [feedback, setFeedback] = useState(null);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
   const message = useContext(MessageContext);
 
   useEffect(() => {
@@ -166,14 +174,51 @@ const Appointments = () => {
     }`;
   };
 
-  const openModal = (appointment) => {
+  const openModal = async (appointment) => {
     setSelectedAppointment(appointment);
     setIsModalOpen(true);
+    
+    if (appointment.status === "COMPLETED") {
+      setFeedbackLoading(true);
+      try {
+        const response = await FeedbackService.getFeedbackByBooking(appointment.id);
+        if (response.success && response.data && response.data.length > 0) {
+          setFeedback(response.data[0]);
+        } else {
+          setFeedback(null);
+        }
+      } catch (error) {
+        console.error("Error fetching feedback:", error);
+        setFeedback(null);
+      } finally {
+        setFeedbackLoading(false);
+      }
+    } else {
+      setFeedback(null);
+    }
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
     setSelectedAppointment(null);
+    setFeedback(null);
+  };
+
+  const renderStars = (rating) => {
+    if (!rating) return null;
+    
+    const stars = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(
+        <i
+          key={i}
+          className={`fas fa-star ${
+            i <= rating ? "text-yellow-400" : "text-gray-300"
+          }`}
+        ></i>
+      );
+    }
+    return <div className="flex space-x-1">{stars}</div>;
   };
 
   return (
@@ -397,10 +442,12 @@ const Appointments = () => {
           isOpen={isModalOpen}
           onRequestClose={closeModal}
           style={customStyles}
+          contentLabel="Chi tiết lịch đặt"
+          ariaHideApp={false}
         >
           {/* Header */}
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-800">
+          <div className="flex justify-between items-center border-b border-gray-200 pb-4 mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">
               Chi tiết lịch đặt
             </h2>
             <span
@@ -426,121 +473,260 @@ const Appointments = () => {
           {/* Content */}
           {selectedAppointment ? (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 gap-4">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-600">
-                    Mã lịch đặt
-                  </label>
-                  <p className="mt-1 text-base text-gray-900 bg-gray-50 rounded-lg p-3">
-                    {selectedAppointment.id}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-600">
-                    Khách hàng
-                  </label>
-                  <p className="mt-1 text-base text-gray-900 bg-gray-50 rounded-lg p-3">
-                    {selectedAppointment.customerName}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-600">
-                    Liên hệ
-                  </label>
-                  <div className="mt-1 bg-gray-50 rounded-lg p-3">
-                    <p className="text-base text-gray-900">
-                      Email: {selectedAppointment.customerEmail}
-                    </p>
-                    <p className="text-base text-gray-900 mt-1">
-                      SĐT: {selectedAppointment.customerPhone}
-                    </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">Thông tin khách hàng</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500 mb-1">
+                        Tên khách hàng
+                      </label>
+                      <p className="text-base font-medium text-gray-900">
+                        {selectedAppointment.customerName}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500 mb-1">
+                        Email
+                      </label>
+                      <p className="text-base text-gray-900">
+                        {selectedAppointment.customerEmail}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500 mb-1">
+                        Số điện thoại
+                      </label>
+                      <p className="text-base text-gray-900">
+                        {selectedAppointment.customerPhone}
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-600">
-                    Dịch vụ
-                  </label>
-                  <p className="mt-1 text-base text-gray-900 bg-gray-50 rounded-lg p-3">
-                    {selectedAppointment.services
-                      ?.map((s) => s.name)
-                      .join(", ") || "Chưa có dịch vụ"}
-                  </p>
+
+                <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">Thông tin lịch hẹn</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500 mb-1">
+                        Mã lịch đặt
+                      </label>
+                      <p className="text-xs font-mono text-gray-600 bg-gray-50 p-2 rounded">
+                        {selectedAppointment.id}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500 mb-1">
+                        Thời gian
+                      </label>
+                      <p className="text-base text-gray-900 flex items-center">
+                        <i className="far fa-calendar-alt mr-2 text-[var(--primary-color)]"></i>
+                        {selectedAppointment.formattedDateTime ||
+                          formatDateTime(
+                            selectedAppointment.bookingDate,
+                            selectedAppointment.startTime
+                          )}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-500 mb-1">
+                        Trạng thái
+                      </label>
+                      <span
+                        className={`inline-flex items-center px-3 py-1 text-sm font-semibold rounded-full ${getStatusClasses(
+                          selectedAppointment.status
+                        )}`}
+                      >
+                        {getStatusText(selectedAppointment.status)}
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-600">
-                    Chuyên viên
-                  </label>
-                  <p className="mt-1 text-base text-gray-900 bg-gray-50 rounded-lg p-3">
-                    {selectedAppointment.staffName || "Chưa phân công"}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-600">
-                    Thời gian
-                  </label>
-                  <p className="mt-1 text-base text-gray-900 bg-gray-50 rounded-lg p-3">
-                    {selectedAppointment.formattedDateTime ||
-                      formatDateTime(
-                        selectedAppointment.bookingDate,
-                        selectedAppointment.startTime
-                      )}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-600">
-                    Trạng thái
-                  </label>
-                  <span
-                    className={`mt-2 inline-flex items-center px-3 py-1 text-sm font-semibold rounded-full ${getStatusClasses(
-                      selectedAppointment.status
-                    )}`}
-                  >
-                    {getStatusText(selectedAppointment.status)}
-                  </span>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-600">
-                    Ngày tạo
-                  </label>
-                  <p className="mt-1 text-base text-gray-900 bg-gray-50 rounded-lg p-3">
-                    {new Date(selectedAppointment.createdAt).toLocaleString(
-                      "vi-VN",
-                      {
-                        year: "numeric",
-                        month: "2-digit",
-                        day: "2-digit",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      }
-                    )}
-                  </p>
-                </div>
-                {selectedAppointment.notes && (
+              </div>
+              
+              <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-100">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">Chi tiết dịch vụ</h3>
+                <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-semibold text-gray-600">
-                      Ghi chú
+                    <label className="block text-sm font-medium text-gray-500 mb-1">
+                      Chuyên viên
                     </label>
-                    <p className="mt-1 text-base text-gray-900 bg-gray-50 rounded-lg p-3">
-                      {selectedAppointment.notes}
+                    <p className="text-base text-gray-900 flex items-center">
+                      <i className="fas fa-user-md mr-2 text-[var(--primary-color)]"></i>
+                      {selectedAppointment.staffName || "Chưa phân công"}
                     </p>
                   </div>
-                )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 mb-1">
+                      Dịch vụ
+                    </label>
+                    {selectedAppointment.services && selectedAppointment.services.length > 0 ? (
+                      <div className="mt-2 space-y-2">
+                        {selectedAppointment.services.map((service, index) => (
+                          <div key={index} className="flex items-start p-3 bg-gray-50 rounded-md">
+                            {service.image && (
+                              <img 
+                                src={service.image} 
+                                alt={service.name} 
+                                className="w-12 h-12 object-cover rounded-md mr-3"
+                              />
+                            )}
+                            <div>
+                              <p className="font-medium text-gray-900">{service.name}</p>
+                              <div className="flex items-center text-sm text-gray-500 mt-1">
+                                <span className="mr-3">{new Intl.NumberFormat('vi-VN').format(service.price)}₫</span>
+                                <span>{service.duration} phút</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 italic">Chưa có dịch vụ</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-500 mb-1">
+                      Tổng giá trị
+                    </label>
+                    <p className="text-lg font-semibold text-[var(--primary-color)]">
+                      {new Intl.NumberFormat('vi-VN').format(selectedAppointment.totalPrice || 0)}₫
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Phần hiển thị phản hồi */}
+              {selectedAppointment.status === "COMPLETED" && (
+                <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">
+                    Phản hồi của khách hàng
+                  </h3>
+                  
+                  {feedbackLoading ? (
+                    <div className="flex justify-center py-6">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary-color)]"></div>
+                    </div>
+                  ) : feedback ? (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-500 mb-1">
+                          Đánh giá
+                        </label>
+                        <div className="flex items-center">
+                          {renderStars(feedback.rating)}
+                          <span className="ml-2 text-gray-700">
+                            {feedback.rating}/5
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-500 mb-1">
+                          Nhận xét
+                        </label>
+                        {feedback.comment ? (
+                          <div className="bg-gray-50 p-3 rounded-md text-gray-700">
+                            <i className="fas fa-quote-left text-gray-400 mr-2"></i>
+                            {feedback.comment}
+                            <i className="fas fa-quote-right text-gray-400 ml-2"></i>
+                          </div>
+                        ) : (
+                          <p className="text-gray-500 italic">Khách hàng không để lại nhận xét</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-500 mb-1">
+                          Thời gian đánh giá
+                        </label>
+                        <p className="text-sm text-gray-600">
+                          {new Date(feedback.createdAt).toLocaleString("vi-VN", {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-6 text-gray-500">
+                      <i className="far fa-comment-dots text-4xl mb-2 text-gray-300"></i>
+                      <p>Khách hàng chưa để lại đánh giá nào</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {selectedAppointment.notes && (
+                <div className="bg-white p-5 rounded-lg shadow-sm border border-gray-100">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">
+                    Ghi chú
+                  </h3>
+                  <p className="text-gray-700 whitespace-pre-line">
+                    {selectedAppointment.notes}
+                  </p>
+                </div>
+              )}
+              
+              <div className="border-t border-gray-200 pt-4">
+                <p className="text-sm text-gray-500">
+                  Ngày tạo: {new Date(selectedAppointment.createdAt).toLocaleString(
+                    "vi-VN",
+                    {
+                      year: "numeric",
+                      month: "2-digit",
+                      day: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }
+                  )}
+                </p>
               </div>
             </div>
           ) : (
-            <p className="text-center text-gray-500">
-              Không có dữ liệu lịch đặt
-            </p>
+            <div className="text-center py-10 text-gray-500">
+              <i className="far fa-calendar-check text-5xl mb-3 text-gray-300"></i>
+              <p>Không có dữ liệu lịch đặt</p>
+            </div>
           )}
 
           {/* Footer */}
-          <div className="flex justify-end mt-8">
-            <span
+          <div className="flex justify-end mt-8 pt-4 border-t border-gray-200">
+            {selectedAppointment && selectedAppointment.status === "PENDING" && (
+              <>
+                <button
+                  onClick={() => handleStatusUpdate(selectedAppointment.id, "CONFIRMED")}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg mr-3 hover:bg-blue-600 transition-colors duration-200 font-medium"
+                >
+                  <i className="fas fa-check mr-2"></i> Xác nhận
+                </button>
+                <button
+                  onClick={() => handleStatusUpdate(selectedAppointment.id, "CANCELLED")}
+                  className="px-4 py-2 bg-red-500 text-white rounded-lg mr-3 hover:bg-red-600 transition-colors duration-200 font-medium"
+                >
+                  <i className="fas fa-times mr-2"></i> Hủy
+                </button>
+              </>
+            )}
+            
+            {selectedAppointment && selectedAppointment.status === "CONFIRMED" && (
+              <button
+                onClick={() => handleStatusUpdate(selectedAppointment.id, "COMPLETED")}
+                className="px-4 py-2 bg-green-500 text-white rounded-lg mr-3 hover:bg-green-600 transition-colors duration-200 font-medium"
+              >
+                <i className="fas fa-check-double mr-2"></i> Hoàn thành
+              </button>
+            )}
+            
+            <button
               onClick={closeModal}
-              className="px-4 py-2 bg-[var(--primary-color)] text-white rounded-lg hover:bg-[var(--primary-color)] transition-colors duration-200 font-medium cursor-pointer"
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200 font-medium"
             >
               Đóng
-            </span>
+            </button>
           </div>
         </Modal>
       </div>
