@@ -4,6 +4,7 @@ import UserService from "../../../../services/UserService";
 import ServiceService from "../../../../services/ServiceService";
 import ServiceCategoryService from "../../../../services/ServiceCategoryService";
 import { MessageContext } from "../../../contexts/MessageProvider.jsx";
+import Pagination from "../../../components/Pagination";
 
 const customStyles = {
   content: {
@@ -42,6 +43,9 @@ const ServiceList = () => {
   const [loading, setLoading] = useState(true);
   const [fileToUpload, setFileToUpload] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
     fetchServices();
@@ -52,6 +56,7 @@ const ServiceList = () => {
     try {
       setLoading(true);
       const data = await ServiceService.getAllServices();
+      setTotalItems(data.length);
       setServices(data);
     } catch (error) {
       console.error("Error fetching services:", error);
@@ -226,10 +231,20 @@ const ServiceList = () => {
     handleFile(file);
   };
 
-  const filteredServices = services.filter(
-    (service) =>
-      service.name.toLowerCase().includes(searchTerm.toLowerCase())
+  const filteredServices = services.filter((service) =>
+    service.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const indexOfLastItem = currentPage * pageSize;
+  const indexOfFirstItem = indexOfLastItem - pageSize;
+  const currentItems = filteredServices.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
@@ -315,7 +330,15 @@ const ServiceList = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredServices.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan="6" className="px-6 py-4 text-center">
+                    <div className="flex justify-center items-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+                    </div>
+                  </td>
+                </tr>
+              ) : currentItems.length === 0 ? (
                 <tr>
                   <td
                     colSpan="6"
@@ -325,7 +348,7 @@ const ServiceList = () => {
                   </td>
                 </tr>
               ) : (
-                filteredServices.map((service) => (
+                currentItems.map((service) => (
                   <tr key={service.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 text-sm font-medium text-gray-900 max-w-[150px]">
                       <div className="truncate">{service.name}</div>
@@ -367,6 +390,14 @@ const ServiceList = () => {
           </table>
         )}
       </div>
+
+      <Pagination
+        currentPage={currentPage}
+        totalItems={filteredServices.length}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+      />
+
       <Modal isOpen={isOpen} onRequestClose={handleClose} style={customStyles}>
         <div className="bg-white rounded-lg p-6 w-[500px] max-h-[90vh] overflow-y-auto scrollbar-hidden">
           <div className="flex justify-between items-center mb-4">

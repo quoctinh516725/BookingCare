@@ -7,7 +7,7 @@ const axiosJWT = UserService.axiosJWT;
  * Get access token from localStorage
  */
 const getAccessToken = () => {
-    return localStorage.getItem("accessToken") || null;
+    return localStorage.getItem("access_token") || null;
 };
 
 /**

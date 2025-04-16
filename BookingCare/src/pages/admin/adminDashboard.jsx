@@ -100,7 +100,7 @@ const AdminDashboard = () => {
   const fetchRecentBookings = async () => {
     try {
       console.log("Fetching recent bookings...");
-      const bookingsData = await AdminService.getRecentBookings(6);
+      const bookingsData = await AdminService.getRecentBookings(10)
       console.log("Recent bookings data:", bookingsData);
 
       const formattedAppointments = bookingsData.map((booking) => {
@@ -345,13 +345,13 @@ const AdminDashboard = () => {
                         </th>
                       </tr>
                     </thead>
-                    <tbody className="bg-white divide-y divide-gray-100">
+                    <tbody className="bg-white divide-y divide-gray-100 ">
                       {appointments.map((appointment, index) => (
                         <tr key={index}>
                           <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
                             {appointment.customer}
                           </td>
-                          <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
+                          <td className="px-4 py-3  max-w-[300px] text-sm text-gray-900">
                             {appointment.service}
                           </td>
                           <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">

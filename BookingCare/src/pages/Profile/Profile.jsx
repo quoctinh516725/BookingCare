@@ -346,7 +346,7 @@ function Profile() {
             {activeTab === "profile" && (
               <div>
                 <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-                  <i className="fas fa-user-circle text-blue-500 mr-3"></i>
+                  <i className="fas fa-user-circle text-[var(--primary-color)] mr-3"></i>
                   Thông tin cá nhân
                 </h2>
 
@@ -500,20 +500,20 @@ function Profile() {
             {activeTab === "bookings" && (
               <div>
                 <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-                  <i className="fas fa-calendar-check text-blue-500 mr-3"></i>
+                  <i className="fas fa-calendar-check text-[var(--primary-color)] mr-3"></i>
                   Lịch hẹn của tôi
                 </h2>
 
-                <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg shadow-sm">
+                <div className="mb-6 p-4 bg-[var(--primary-color)]/10 border border-[var(--primary-color)]/20 rounded-lg shadow-sm">
                   <div className="flex">
                     <div className="flex-shrink-0">
-                      <i className="fas fa-info-circle text-blue-500 text-xl mt-0.5"></i>
+                      <i className="fas fa-info-circle text-[var(--primary-color)] text-xl mt-0.5"></i>
                     </div>
                     <div className="ml-4">
-                      <h4 className="text-blue-800 font-semibold">
+                      <h4 className="text-[var(--primary-color)] font-semibold">
                         Chính sách hủy lịch
                       </h4>
-                      <p className="text-blue-700 text-sm mt-1">
+                      <p className="text-[var(--primary-color)] text-sm mt-1">
                         Bạn có thể hủy lịch hẹn miễn phí trước 24 giờ. Việc hủy
                         lịch muộn hơn có thể phát sinh phí.
                       </p>
@@ -561,7 +561,7 @@ function Profile() {
                         <div className="p-5">
                           <div className="mb-4">
                             <h3 className="font-semibold text-gray-800 text-base mb-3 flex items-center">
-                              <i className="fas fa-concierge-bell text-blue-500 mr-2"></i>
+                              <i className="fas fa-concierge-bell text-[var(--primary-color)] mr-2"></i>
                               Dịch vụ đã đặt
                             </h3>
                             <div className="bg-gray-50 rounded-lg p-3">
@@ -592,7 +592,7 @@ function Profile() {
                                 Chuyên viên
                               </p>
                               <p className="font-medium text-gray-800 flex items-center">
-                                <i className="fas fa-user-tie text-blue-500 mr-2"></i>
+                                <i className="fas fa-user-tie text-[var(--primary-color)] mr-2"></i>
                                 {booking.staffName}
                               </p>
                             </div>
@@ -660,7 +660,7 @@ function Profile() {
                           {booking.status !== "CANCELLED" && (
                             <div className="mt-4">
                               <h3 className="font-semibold text-gray-800 text-base mb-3 flex items-center">
-                                <i className="fas fa-credit-card text-blue-500 mr-2"></i>
+                                <i className="fas fa-credit-card text-[var(--primary-color)] mr-2"></i>
                                 Thanh toán
                               </h3>
                               <PaymentQRCode 
@@ -700,14 +700,14 @@ function Profile() {
             {activeTab === "security" && (
               <div>
                 <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center">
-                  <i className="fas fa-shield-alt text-blue-500 mr-3"></i>
+                  <i className="fas fa-shield-alt text-[var(--primary-color)] mr-3"></i>
                   Bảo mật tài khoản
                 </h2>
 
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-6">
                   <div className="border-b border-gray-100 bg-gray-50 px-5 py-4">
                     <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-                      <i className="fas fa-key text-blue-500 mr-2"></i>
+                      <i className="fas fa-key text-[var(--primary-color)] mr-2"></i>
                       Đổi mật khẩu
                     </h3>
                   </div>
@@ -804,7 +804,7 @@ function Profile() {
 
                 <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                   <h4 className="font-medium text-gray-800 mb-2 flex items-center">
-                    <i className="fas fa-shield-alt text-blue-500 mr-2"></i>
+                    <i className="fas fa-shield-alt text-[var(--primary-color)] mr-2"></i>
                     Mẹo bảo mật
                   </h4>
                   <ul className="text-sm text-gray-600 space-y-2">

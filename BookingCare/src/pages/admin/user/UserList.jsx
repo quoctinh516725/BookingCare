@@ -3,6 +3,7 @@ import Modal from "react-modal";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import AdminService from "../../../../services/AdminService";
 import { toast } from "sonner";
+import Pagination from "../../../components/Pagination";
 
 const customStyles = {
   content: {
@@ -42,10 +43,15 @@ const UserList = () => {
     message: "",
     details: [],
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState([]);
 
   // Fetch users data
   const {
-    data: users = [],
+    data: usersData = [],
     isLoading,
     isError,
     error,
@@ -57,6 +63,8 @@ const UserList = () => {
         console.log("Fetching users from UserList component");
         const data = await AdminService.getAllUsers();
         console.log("Received user data:", data);
+        setTotalItems(data.length);
+        setUsers(data);
         return data;
       } catch (error) {
         console.error("Error in UserList query function:", error);
@@ -406,6 +414,15 @@ const UserList = () => {
         user.fullName.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
+  // Add pagination logic
+  const indexOfLastItem = currentPage * pageSize;
+  const indexOfFirstItem = indexOfLastItem - pageSize;
+  const currentItems = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <div className="flex justify-between items-center mb-6">
@@ -489,8 +506,25 @@ const UserList = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredUsers.length > 0 ? (
-                filteredUsers.map((user) => (
+              {loading ? (
+                <tr>
+                  <td colSpan="6" className="px-6 py-4 text-center">
+                    <div className="flex justify-center items-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+                    </div>
+                  </td>
+                </tr>
+              ) : currentItems.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan="6"
+                    className="px-6 py-4 text-center text-gray-500"
+                  >
+                    Không tìm thấy người dùng nào
+                  </td>
+                </tr>
+              ) : (
+                currentItems.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {user.fullName ||
@@ -533,22 +567,19 @@ const UserList = () => {
                     </td>
                   </tr>
                 ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan="5"
-                    className="px-6 py-4 text-center text-sm text-gray-500"
-                  >
-                    {searchTerm
-                      ? "Không tìm thấy người dùng phù hợp"
-                      : "Không có người dùng nào"}
-                  </td>
-                </tr>
               )}
             </tbody>
           </table>
         </div>
       )}
+
+      {/* Add pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalItems={filteredUsers.length}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+      />
 
       <Modal
         isOpen={isOpen}

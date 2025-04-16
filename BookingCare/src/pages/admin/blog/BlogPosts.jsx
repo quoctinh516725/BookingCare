@@ -3,6 +3,7 @@ import { MessageContext } from "../../../contexts/MessageProvider.jsx";
 import BlogService from "../../../../services/BlogService";
 import { useSelector } from "react-redux";
 import Modal from "react-modal";
+import Pagination from "../../../components/Pagination";
 
 // Modal styles
 const customStyles = {
@@ -36,6 +37,9 @@ const BlogPosts = () => {
   const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
 
   // State for modal
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -77,6 +81,7 @@ const BlogPosts = () => {
     try {
       setLoading(true);
       const data = await BlogService.getAllBlogs();
+      setTotalItems(data.length);
       setPosts(data);
     } catch (error) {
       console.error("Error fetching blog posts:", error);
@@ -382,6 +387,15 @@ const BlogPosts = () => {
     setIsDraggingContent(false);
   };
 
+  // Add pagination logic
+  const indexOfLastItem = currentPage * pageSize;
+  const indexOfFirstItem = indexOfLastItem - pageSize;
+  const currentItems = filteredPosts.slice(indexOfFirstItem, indexOfLastItem);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="flex justify-between items-start">
@@ -469,7 +483,15 @@ const BlogPosts = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredPosts.length === 0 ? (
+                {loading ? (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-4 text-center">
+                      <div className="flex justify-center items-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+                      </div>
+                    </td>
+                  </tr>
+                ) : currentItems.length === 0 ? (
                   <tr>
                     <td
                       colSpan="6"
@@ -479,7 +501,7 @@ const BlogPosts = () => {
                     </td>
                   </tr>
                 ) : (
-                  filteredPosts.map((post) => (
+                  currentItems.map((post) => (
                     <tr key={post.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
@@ -563,6 +585,14 @@ const BlogPosts = () => {
           )}
         </div>
       </div>
+
+      {/* Add pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalItems={filteredPosts.length}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+      />
 
       {/* Add/Edit Blog Modal */}
       <Modal

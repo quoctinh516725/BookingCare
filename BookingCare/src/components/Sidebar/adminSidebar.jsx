@@ -50,7 +50,7 @@ function AdminSidebar() {
   };
 
   return (
-    <div className="w-[278px] h-full border-r border-gray-200 flex flex-col justify-between">
+    <div className="w-[278px] h-full border-r border-gray-200 flex flex-col ">
       <div>
         <div className="flex items-center space-x-2 border-b border-gray-200 p-3">
           <img
@@ -332,7 +332,7 @@ function AdminSidebar() {
 
       {/* Logout button */}
       <div
-        className="flex items-center space-x-2 p-4 border-t border-gray-200 text-red-500 hover:bg-gray-100 cursor-pointer mt-auto mb-5"
+        className="flex items-center space-x-2 p-4 border-t border-gray-200 text-red-500 hover:bg-gray-100 cursor-pointer mb-5"
         onClick={handleLogout}
       >
         <i className="fas fa-sign-out-alt text-2xl min-w-[30px]"></i>

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import Filter from "../../components/Filter";
 import CardSpecialist from "../../components/Card/CardSpecialist";
 import SpecialistService from "../../../services/SpecialistService";
+import Pagination from "../../components/Pagination";
 
 function Specialist() {
   // Will be populated from API
@@ -12,6 +13,8 @@ function Specialist() {
   const [error, setError] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState("Tất cả");
   const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(6); // 6 items per page for grid layout
 
   // Fetch specialties when component mounts
   useEffect(() => {
@@ -101,6 +104,15 @@ function Specialist() {
   // Extract specialty names for the Filter component
   const specialtyNames = specialties.map((specialty) => specialty.name);
 
+  // Add pagination logic
+  const indexOfLastItem = currentPage * pageSize;
+  const indexOfFirstItem = indexOfLastItem - pageSize;
+  const currentItems = specialists.slice(indexOfFirstItem, indexOfLastItem);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
   return (
     <div className="flex flex-col mt-[100px]">
       <div className="container mx-auto">
@@ -114,7 +126,7 @@ function Specialist() {
               <p>{error}</p>
               <button
                 onClick={() => window.location.reload()}
-                className="mt-4 px-4 py-2 bg-[var(--primary-color)] text-white rounded  "
+                className="mt-4 px-4 py-2 bg-[var(--primary-color)] text-white rounded"
               >
                 Thử lại
               </button>
@@ -129,7 +141,7 @@ function Specialist() {
                 onSearchChange={handleSearchChange}
                 loading={specialtyLoading}
               />
-              {specialists.length === 0 ? (
+              {currentItems.length === 0 ? (
                 <div className="text-center py-10 mb-20 text-gray-500 font-semibold">
                   <p>Không tìm thấy chuyên viên nào phù hợp.</p>
                 </div>
@@ -137,18 +149,24 @@ function Specialist() {
                 <div>
                   <div
                     className={`flex ${
-                      specialists.length > 2
+                      currentItems.length > 2
                         ? "justify-between"
                         : "justify-start"
                     } flex-wrap my-10 gap-6`}
                   >
-                    {specialists.map((specialist) => (
+                    {currentItems.map((specialist) => (
                       <CardSpecialist
                         key={specialist.id}
                         specialist={specialist}
                       />
                     ))}
                   </div>
+                  <Pagination
+                    currentPage={currentPage}
+                    totalItems={specialists.length}
+                    pageSize={pageSize}
+                    onPageChange={handlePageChange}
+                  />
                 </div>
               )}
             </div>

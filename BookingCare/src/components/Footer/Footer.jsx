@@ -1,6 +1,6 @@
 function Footer() {
   return (
-    <div className="mt-auto">
+    <div className="mt-10">
       <footer className="w-full">
         <div className="w-full bg-[#ECEBEA] border border-y border-black/10">
           <div className="container mx-auto">

@@ -3,6 +3,7 @@ import CardService from "../../components/Card/CardService";
 import Filter from "../../components/Filter";
 import ServiceService from "../../../services/ServiceService";
 import ServiceCategoryService from "../../../services/ServiceCategoryService";
+import Pagination from "../../components/Pagination";
 
 function Service() {
   const [categories, setCategories] = useState([{ name: "Tất cả" }]);
@@ -13,6 +14,8 @@ function Service() {
   const [loading, setLoading] = useState(true);
   const [categoryLoading, setCategoryLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(6); // 6 items per page for grid layout
 
   // Fetch categories and all services
   useEffect(() => {
@@ -93,48 +96,74 @@ function Service() {
 
   const categoryNames = categories.map((cat) => cat.name);
 
+  // Add pagination logic
+  const indexOfLastItem = currentPage * pageSize;
+  const indexOfFirstItem = indexOfLastItem - pageSize;
+  const currentItems = filteredServices.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
   return (
     <div className="flex flex-col mt-[100px]">
       <div className="container mx-auto">
-        <Filter
-          serviceType={categoryNames}
-          title="Dịch Vụ Của Chúng Tôi"
-          desc="Khám phá các dịch vụ chăm sóc da chuyên nghiệp được thiết kế riêng cho làn da của bạn"
-          onCategoryChange={handleFilterChange}
-          onSearchChange={handleSearchChange}
-          loading={categoryLoading}
-          selectedCategory={selectedCategory}
-        />
-
-        {loading || categoryLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--primary-color)]"></div>
-          </div>
-        ) : error ? (
-          <div className="text-center py-10 text-red-500">
-            <p>{error}</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="mt-4 px-4 py-2 bg-[var(--primary-color)] text-white rounded  "
-            >
-              Thử lại
-            </button>
-          </div>
-        ) : filteredServices.length === 0 ? (
-          <div className="text-center py-10 text-gray-500 font-semibold">
-            <p>Không tìm thấy dịch vụ nào phù hợp.</p>
-          </div>
-        ) : (
-          <div
-            className={`flex ${
-              filteredServices.length > 2 ? "justify-between" : "justify-start"
-            } flex-wrap my-10 gap-6`}
-          >
-            {filteredServices.map((service) => (
-              <CardService key={service.id} service={service} />
-            ))}
-          </div>
-        )}
+        <div className="">
+          {loading ? (
+            <div className="flex justify-center items-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--primary-color)]"></div>
+            </div>
+          ) : error ? (
+            <div className="text-center py-10 text-red-500">
+              <p>{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-4 px-4 py-2 bg-[var(--primary-color)] text-white rounded"
+              >
+                Thử lại
+              </button>
+            </div>
+          ) : (
+            <div>
+              <Filter
+                serviceType={categoryNames}
+                title="Dịch vụ"
+                desc="Khám phá các dịch vụ chăm sóc da và làm đẹp"
+                onCategoryChange={handleFilterChange}
+                onSearchChange={handleSearchChange}
+                loading={loading}
+              />
+              {currentItems.length === 0 ? (
+                <div className="text-center py-10 mb-20 text-gray-500 font-semibold">
+                  <p>Không tìm thấy dịch vụ nào phù hợp.</p>
+                </div>
+              ) : (
+                <div>
+                  <div
+                    className={`flex ${
+                      currentItems.length > 2
+                        ? "justify-between"
+                        : "justify-start"
+                    } flex-wrap my-10 gap-6`}
+                  >
+                    {currentItems.map((service) => (
+                      <CardService key={service.id} service={service} />
+                    ))}
+                  </div>
+                  <Pagination
+                    currentPage={currentPage}
+                    totalItems={filteredServices.length}
+                    pageSize={pageSize}
+                    onPageChange={handlePageChange}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

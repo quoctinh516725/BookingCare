@@ -4,6 +4,7 @@ import SpecialistService from "../../../../services/SpecialistService";
 import UserService from "../../../../services/UserService";
 import Modal from "react-modal";
 import { MessageContext } from "../../../contexts/MessageProvider.jsx";
+import Pagination from "../../../components/Pagination";
 
 const customStyles = {
   content: {
@@ -54,6 +55,11 @@ const SpecialistList = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
 
+  // Add pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+
   // Tải dữ liệu khi component mount
   useEffect(() => {
     fetchSpecialists();
@@ -64,6 +70,7 @@ const SpecialistList = () => {
     try {
       setLoading(true);
       const data = await SpecialistService.getAllSpecialists();
+      setTotalItems(data.length);
       setSpecialists(data);
     } catch (error) {
       console.error("Error fetching specialists:", error);
@@ -143,6 +150,18 @@ const SpecialistList = () => {
     return matchesSearch && matchesStatus;
   });
   console.log("specialists", specialists);
+
+  // Add pagination logic
+  const indexOfLastItem = currentPage * pageSize;
+  const indexOfFirstItem = indexOfLastItem - pageSize;
+  const currentItems = filteredSpecialists.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
 
   // Xử lý thay đổi ô tìm kiếm
   const handleSearchChange = (e) => {
@@ -495,7 +514,15 @@ const SpecialistList = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredSpecialists.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan="6" className="px-6 py-4 text-center">
+                    <div className="flex justify-center items-center">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+                    </div>
+                  </td>
+                </tr>
+              ) : currentItems.length === 0 ? (
                 <tr>
                   <td
                     colSpan="6"
@@ -505,7 +532,7 @@ const SpecialistList = () => {
                   </td>
                 </tr>
               ) : (
-                filteredSpecialists.map((specialist) => (
+                currentItems.map((specialist) => (
                   <tr key={specialist.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="h-12 w-12 rounded-full overflow-hidden bg-gray-100">
@@ -605,6 +632,14 @@ const SpecialistList = () => {
           </table>
         )}
       </div>
+
+      {/* Add pagination */}
+      <Pagination
+        currentPage={currentPage}
+        totalItems={filteredSpecialists.length}
+        pageSize={pageSize}
+        onPageChange={handlePageChange}
+      />
 
       <Modal
         isOpen={isOpen}

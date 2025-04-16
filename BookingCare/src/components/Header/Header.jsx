@@ -112,7 +112,7 @@ function Header() {
           {isShowMenu && (
             <div
               ref={menuRef}
-              className="absolute bottom-[-210px] right-0 min-w-[200px] p-4 bg-white  rounded-lg"
+              className="absolute bottom-[-160px] right-0 min-w-[200px] p-4 bg-white  rounded-lg shadow-xl"
             >
               <ul className="flex flex-col gap-2 cursor-pointer">
                 <li className="font-semibold text-xl border-b  border-black/10 cursor-auto">
