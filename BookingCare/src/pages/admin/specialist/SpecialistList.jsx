@@ -485,9 +485,8 @@ const SpecialistList = () => {
       {/* Specialists table */}
       <div className="bg-white rounded-md shadow overflow-hidden">
         {loading ? (
-          <div className="text-center py-8">
-            <i className="fas fa-spinner fa-spin text-2xl text-pink-500"></i>
-            <p className="mt-2">Đang tải danh sách chuyên gia...</p>
+          <div className="flex justify-center items-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
           </div>
         ) : (
           <table className="min-w-full divide-y divide-gray-200">

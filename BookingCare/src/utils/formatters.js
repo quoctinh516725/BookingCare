@@ -4,14 +4,13 @@
  * @returns {string} Formatted currency string
  */
 export const formatCurrency = (amount) => {
-  if (amount === null || amount === undefined) return '';
-  
-  return new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount);
+  if (amount === null || amount === undefined) return "";
+
+  // Format số với dấu phân cách hàng nghìn
+  const formattedNumber = new Intl.NumberFormat("vi-VN").format(amount);
+
+  // Thêm ký hiệu tiền tệ VND
+  return `${formattedNumber} VND`;
 };
 
 /**
@@ -20,13 +19,13 @@ export const formatCurrency = (amount) => {
  * @returns {string} Formatted date string
  */
 export const formatDate = (dateString) => {
-  if (!dateString) return '';
-  
+  if (!dateString) return "";
+
   const date = new Date(dateString);
-  return date.toLocaleDateString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
+  return date.toLocaleDateString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
   });
 };
 
@@ -36,12 +35,12 @@ export const formatDate = (dateString) => {
  * @returns {string} Formatted time string
  */
 export const formatTime = (timeString) => {
-  if (!timeString) return '';
-  
+  if (!timeString) return "";
+
   const date = new Date(`2000-01-01T${timeString}`);
-  return date.toLocaleTimeString('vi-VN', {
-    hour: '2-digit',
-    minute: '2-digit'
+  return date.toLocaleTimeString("vi-VN", {
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
@@ -51,14 +50,14 @@ export const formatTime = (timeString) => {
  * @returns {string} Formatted datetime string
  */
 export const formatDateTime = (dateTimeString) => {
-  if (!dateTimeString) return '';
-  
+  if (!dateTimeString) return "";
+
   const date = new Date(dateTimeString);
-  return date.toLocaleString('vi-VN', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+  return date.toLocaleString("vi-VN", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
-}; 
+};

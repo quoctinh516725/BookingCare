@@ -1,4 +1,4 @@
-import React, { useState, useContext } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDispatch } from "react-redux";
@@ -9,7 +9,7 @@ import UserService from "../../../services/UserService";
 import { setUser } from "../../redux/slices/userSlice";
 import PaymentQRCode from "../../components/Payment/PaymentQRCode";
 import { formatCurrency } from "../../utils/formatters";
-
+import FeedbackService from "../../../services/FeedbackService";
 // Đảm bảo modal hoạt động tốt với screen reader
 Modal.setAppElement("#root");
 
@@ -70,10 +70,20 @@ function Profile() {
   const [ratingData, setRatingData] = useState({
     bookingId: "",
     rating: 5,
-    comment: ""
+    comment: "",
   });
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [loading, setLoading] = useState({ rating: false });
+  const [feedbackStatus, setFeedbackStatus] = useState(() => {
+    // Load feedback status from localStorage on component mount
+    const savedStatus = localStorage.getItem("feedbackStatus");
+    return savedStatus ? JSON.parse(savedStatus) : {};
+  });
+
+  // Update localStorage whenever feedbackStatus changes
+  useEffect(() => {
+    localStorage.setItem("feedbackStatus", JSON.stringify(feedbackStatus));
+  }, [feedbackStatus]);
 
   // Fetch bookings data
   const { data: bookings, isLoading: bookingsLoading } = useQuery({
@@ -184,87 +194,90 @@ function Profile() {
     setRatingData({
       bookingId: bookingId,
       rating: 5,
-      comment: ""
+      comment: "",
     });
     setShowRatingModal(true);
   };
-  
+
   // Handle closing rating modal
   const closeRatingModal = () => {
     setShowRatingModal(false);
     setRatingData({
       bookingId: "",
       rating: 5,
-      comment: ""
+      comment: "",
     });
   };
 
   const handleRatingChange = (value) => {
     setRatingData({
       ...ratingData,
-      rating: value
+      rating: value,
     });
   };
 
   const handleCommentChange = (e) => {
     setRatingData({
       ...ratingData,
-      comment: e.target.value
+      comment: e.target.value,
     });
   };
 
   const handleRatingSubmit = async () => {
     try {
-      setLoading(prev => ({ ...prev, rating: true }));
-      
+      setLoading((prev) => ({ ...prev, rating: true }));
+
       // Validate rating data
       if (!ratingData.bookingId) {
         message.error("Không tìm thấy thông tin đặt lịch");
-        setLoading(prev => ({ ...prev, rating: false }));
+        setLoading((prev) => ({ ...prev, rating: false }));
         return;
       }
-      
-      if (!ratingData.rating || ratingData.rating < 1 || ratingData.rating > 5) {
+
+      if (
+        !ratingData.rating ||
+        ratingData.rating < 1 ||
+        ratingData.rating > 5
+      ) {
         message.error("Vui lòng chọn số sao đánh giá từ 1-5");
-        setLoading(prev => ({ ...prev, rating: false }));
+        setLoading((prev) => ({ ...prev, rating: false }));
         return;
       }
-      
+
       // Chuẩn bị dữ liệu gửi đi
       const feedbackData = {
         bookingId: ratingData.bookingId,
         customerId: id,
         rating: ratingData.rating,
-        comment: ratingData.comment || ""
+        comment: ratingData.comment || "",
       };
-      
+
       // Gửi đánh giá sử dụng FeedbackService
       const response = await FeedbackService.createFeedback(feedbackData);
-      
+
       if (response.success) {
         message.success(response.message || "Đánh giá thành công!");
-        
+        // Update feedback status for this specific booking
+        setFeedbackStatus((prev) => ({
+          ...prev,
+          [ratingData.bookingId]: true,
+        }));
         // Cập nhật UI để hiển thị đã đánh giá cho booking này
         queryClient.invalidateQueries(["userBookings"]);
-        
+
         // Đóng modal
         closeRatingModal();
       } else {
-        message.error(response.error || "Không thể gửi đánh giá. Vui lòng thử lại sau.");
+        message.error(
+          response.error || "Không thể gửi đánh giá. Vui lòng thử lại sau."
+        );
       }
     } catch (error) {
       console.error("Error submitting rating:", error);
       message.error("Đã xảy ra lỗi khi gửi đánh giá. Vui lòng thử lại.");
     } finally {
-      setLoading(prev => ({ ...prev, rating: false }));
+      setLoading((prev) => ({ ...prev, rating: false }));
     }
-    
-    // Submit rating using the mutation
-    submitRatingMutation.mutate({
-      bookingId: selectedBookingId,
-      rating,
-      comment
-    });
   };
 
   return (
@@ -303,7 +316,9 @@ function Profile() {
               >
                 <i
                   className={`fa-solid fa-user-circle mr-3 text-lg ${
-                    activeTab === "profile" ? "text-[var(--primary-color)]" : "text-gray-400"
+                    activeTab === "profile"
+                      ? "text-[var(--primary-color)]"
+                      : "text-gray-400"
                   }`}
                 ></i>
                 <span className="truncate">Thông tin cá nhân</span>
@@ -318,7 +333,9 @@ function Profile() {
               >
                 <i
                   className={`fa-solid fa-calendar-check mr-3 text-lg ${
-                    activeTab === "bookings" ? "text-[var(--primary-color)]" : "text-gray-400"
+                    activeTab === "bookings"
+                      ? "text-[var(--primary-color)]"
+                      : "text-gray-400"
                   }`}
                 ></i>
                 <span className="truncate">Lịch hẹn của tôi</span>
@@ -333,7 +350,9 @@ function Profile() {
               >
                 <i
                   className={`fa-solid fa-shield-alt mr-3 text-lg ${
-                    activeTab === "security" ? "text-[var(--primary-color)]" : "text-gray-400"
+                    activeTab === "security"
+                      ? "text-[var(--primary-color)]"
+                      : "text-gray-400"
                   }`}
                 ></i>
                 <span className="truncate">Bảo mật</span>
@@ -612,7 +631,11 @@ function Profile() {
                               <span
                                 className="px-4 py-2 text-sm bg-red-50 cursor-pointer text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors flex items-center focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-50"
                                 onClick={() => {
-                                  if (window.confirm("Bạn có chắc chắn muốn hủy lịch hẹn này không?")) {
+                                  if (
+                                    window.confirm(
+                                      "Bạn có chắc chắn muốn hủy lịch hẹn này không?"
+                                    )
+                                  ) {
                                     cancelBookingMutation.mutate(booking.id);
                                   }
                                 }}
@@ -622,7 +645,8 @@ function Profile() {
                               </span>
                             )}
                             {booking.status === "COMPLETED" &&
-                              !booking.feedback && (
+                              !booking.feedback &&
+                              !feedbackStatus[booking.id] && (
                                 <span
                                   className="px-4 py-2 text-sm bg-blue-50 cursor-pointer text-blue-600 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors flex items-center focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-50"
                                   onClick={() => openRatingModal(booking.id)}
@@ -663,10 +687,14 @@ function Profile() {
                                 <i className="fas fa-credit-card text-[var(--primary-color)] mr-2"></i>
                                 Thanh toán
                               </h3>
-                              <PaymentQRCode 
+                              <PaymentQRCode
                                 bookingId={booking.id}
                                 isProfilePage={true}
-                                onPaymentComplete={() => queryClient.invalidateQueries(["userBookings"])}
+                                onPaymentComplete={() =>
+                                  queryClient.invalidateQueries([
+                                    "userBookings",
+                                  ])
+                                }
                               />
                             </div>
                           )}
@@ -692,8 +720,6 @@ function Profile() {
                     </div>
                   </div>
                 )}
-
-                
               </div>
             )}
 
@@ -884,7 +910,9 @@ function Profile() {
                   >
                     <i
                       className={`fas fa-star text-2xl ${
-                        index < ratingData.rating ? "text-yellow-400" : "text-gray-300"
+                        index < ratingData.rating
+                          ? "text-yellow-400"
+                          : "text-gray-300"
                       }`}
                     ></i>
                   </span>

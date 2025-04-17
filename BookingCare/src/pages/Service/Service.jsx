@@ -15,9 +15,9 @@ function Service() {
   const [categoryLoading, setCategoryLoading] = useState(true);
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(6); // 6 items per page for grid layout
+  const [pageSize] = useState(6);
 
-  // Fetch categories and all services
+  // Fetch all categories and services once
   useEffect(() => {
     const fetchInitialData = async () => {
       try {
@@ -48,43 +48,31 @@ function Service() {
     fetchInitialData();
   }, []);
 
-  // Filter services when category or searchQuery changes
+  // Reset current page when filter/search changes
   useEffect(() => {
-    const filterData = async () => {
-      try {
-        setLoading(true);
-        let result = services;
-
-        if (selectedCategory !== "Tất cả") {
-          const selected = categories.find(
-            (cat) => cat.name === selectedCategory
-          );
-          if (selected?.id) {
-            result = await ServiceService.getAllServices({
-              category: selected.id,
-            });
-          }
-        }
-
-        if (searchQuery) {
-          const searchLower = searchQuery.toLowerCase();
-          result = result.filter((service) =>
-            service.name?.toLowerCase().includes(searchLower)
-          );
-        }
-
-        setFilteredServices(result);
-        setError(null);
-      } catch (err) {
-        console.error("Error filtering services:", err);
-        setError("Không thể lọc dịch vụ. Vui lòng thử lại sau.");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    filterData();
+    setCurrentPage(1);
   }, [selectedCategory, searchQuery]);
+
+  // Filter logic (client-side)
+  useEffect(() => {
+    let result = [...services];
+
+    if (selectedCategory !== "Tất cả") {
+      const selected = categories.find((cat) => cat.name === selectedCategory);
+      if (selected?.id) {
+        result = result.filter((service) => service.categoryId === selected.id);
+      }
+    }
+
+    if (searchQuery) {
+      const searchLower = searchQuery.toLowerCase();
+      result = result.filter((service) =>
+        service.name?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    setFilteredServices(result);
+  }, [selectedCategory, searchQuery, services, categories]);
 
   const handleFilterChange = (category) => {
     setSelectedCategory(category);
@@ -96,7 +84,6 @@ function Service() {
 
   const categoryNames = categories.map((cat) => cat.name);
 
-  // Add pagination logic
   const indexOfLastItem = currentPage * pageSize;
   const indexOfFirstItem = indexOfLastItem - pageSize;
   const currentItems = filteredServices.slice(
@@ -111,8 +98,8 @@ function Service() {
   return (
     <div className="flex flex-col mt-[100px]">
       <div className="container mx-auto">
-        <div className="">
-          {loading ? (
+        <div>
+          {loading || categoryLoading ? (
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--primary-color)]"></div>
             </div>
@@ -134,6 +121,7 @@ function Service() {
                 desc="Khám phá các dịch vụ chăm sóc da và làm đẹp"
                 onCategoryChange={handleFilterChange}
                 onSearchChange={handleSearchChange}
+                selectedCategory={selectedCategory}
                 loading={loading}
               />
               {currentItems.length === 0 ? (

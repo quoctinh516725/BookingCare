@@ -163,7 +163,7 @@ const Test = () => {
                 {currentQuestion.options.map((option, index) => (
                   <label
                     key={index}
-                    className="block p-3 border border-black/30 rounded-lg cursor-pointer hover:bg-gray-100"
+                    className="block p-3 border border-black/10 rounded-lg cursor-pointer hover:bg-gray-100"
                   >
                     <input
                       type="radio"

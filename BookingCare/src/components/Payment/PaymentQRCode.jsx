@@ -126,55 +126,20 @@ const PaymentQRCode = ({ bookingId, isProfilePage = true }) => {
       localStorage.setItem(`payment_code_${bookingId}`, currentCode);
     }
 
-    // Tạo dữ liệu QR với thông tin chi tiết
-    const qrData = {
-      kieuThanhToan: "QR BeautyCare",
-      maThanhToan: payment.paymentCode,
-      maXacThuc: currentCode, // Luôn đảm bảo có mã xác thực
-      maDatLich: payment.bookingId,
-      tongTien: payment.amount,
-      daThanhToan: payment.status === "COMPLETED",
-      thongTinKhachHang: {
-        hoTen: payment.customerName || "Chưa có thông tin",
-        email: payment.customerEmail || "Chưa có thông tin",
-        soDienThoai: payment.customerPhone || "Chưa có thông tin",
-      },
-      thongTinDichVu:
-        payment.bookingDetails?.services?.map((service) => ({
-          tenDichVu: service.name,
-          gia: service.price,
-        })) || [],
-    };
-
     try {
-      // Lưu mã xác thực này vào QR data của payment nếu chưa thanh toán
-      if (payment.status === "UNPAID" && payment.qrData) {
-        try {
-          // Phân tích QR data hiện tại
-          const existingData = JSON.parse(payment.qrData);
-          // Kiểm tra nếu chưa có mã xác thực hoặc mã khác
-          if (
-            !existingData.maXacThuc ||
-            existingData.maXacThuc !== currentCode
-          ) {
-            console.log("Cập nhật mã xác thực trong QR data");
-            // Cần lưu mã xác thực mới vào QR data (sẽ được xử lý bởi backend)
-          }
-        } catch (error) {
-          console.error("Lỗi khi phân tích dữ liệu QR hiện tại:", error);
-        }
-      }
+      // Tạo dữ liệu QR dạng text
+      let textData = `BEAUTYCARE PAYMENT\n`;
+      textData += `MA THANH TOAN: ${payment.paymentCode}\n`;
+      textData += `MA XAC THUC: ${currentCode}\n`;
+      textData += `TONG TIEN: ${formatCurrency(payment.amount)}\n`;
+      textData += `TRANG THAI: ${
+        payment.status === "COMPLETED" ? "DA THANH TOAN" : "CHUA THANH TOAN"
+      }\n\n`;
 
-      return JSON.stringify(qrData);
+      return textData;
     } catch (error) {
       console.error("Lỗi khi tạo dữ liệu QR:", error);
-      // Trả về dữ liệu tối thiểu nếu có lỗi
-      return JSON.stringify({
-        kieuThanhToan: "QR BeautyCare",
-        maThanhToan: payment.paymentCode,
-        maXacThuc: currentCode,
-        maDatLich: payment.bookingId,
-      });
+      return `BEAUTYCARE PAYMENT\nMA THANH TOAN: ${payment.paymentCode}\nMA XAC THUC: ${currentCode}\nMA DAT LICH: ${payment.bookingId}`;
     }
   };
 

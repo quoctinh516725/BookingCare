@@ -48,40 +48,37 @@ function Blog() {
     fetchInitialData();
   }, []);
 
+  // Reset to page 1 when filter/search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, searchQuery]);
+
   // Filter blogs when category or search query changes
   useEffect(() => {
-    const filterData = async () => {
-      try {
-        setLoading(true);
-        let result = blogs;
+    const filterData = () => {
+      let result = blogs;
 
-        if (selectedCategory !== "Tất cả") {
-          const category = categories.find(
-            (cat) => cat.name === selectedCategory
-          );
-          if (category && category.id) {
-            result = await BlogService.getBlogsByCategory(category.id);
-          }
+      if (selectedCategory !== "Tất cả") {
+        const category = categories.find(
+          (cat) => cat.name === selectedCategory
+        );
+        if (category?.id) {
+          result = result.filter((blog) => blog.categoryId === category.id);
         }
-
-        if (searchQuery) {
-          const searchLower = searchQuery.toLowerCase();
-          result = result.filter((blog) =>
-            blog.title?.toLowerCase().includes(searchLower)
-          );
-        }
-
-        setFilteredBlogs(result);
-      } catch (err) {
-        console.error("Error filtering blogs:", err);
-        setError("Không thể lọc bài viết. Vui lòng thử lại sau.");
-      } finally {
-        setLoading(false);
       }
+
+      if (searchQuery) {
+        const searchLower = searchQuery.toLowerCase();
+        result = result.filter((blog) =>
+          blog.title?.toLowerCase().includes(searchLower)
+        );
+      }
+
+      setFilteredBlogs(result);
     };
 
     filterData();
-  }, [selectedCategory, searchQuery]);
+  }, [selectedCategory, searchQuery, blogs, categories]);
 
   const handleFilterChange = (category) => {
     setSelectedCategory(category);
@@ -93,10 +90,10 @@ function Blog() {
 
   const categoryNames = categories.map((cat) => cat.name);
 
-  // Add pagination logic
+  // Pagination
   const indexOfLastItem = currentPage * pageSize;
   const indexOfFirstItem = indexOfLastItem - pageSize;
-  const currentItems = blogs.slice(indexOfFirstItem, indexOfLastItem);
+  const currentItems = filteredBlogs.slice(indexOfFirstItem, indexOfLastItem);
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
@@ -105,8 +102,8 @@ function Blog() {
   return (
     <div className="flex flex-col mt-[100px]">
       <div className="container mx-auto">
-        <div className="">
-          {loading ? (
+        <div>
+          {loading || categoryLoading ? (
             <div className="flex justify-center items-center h-64">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[var(--primary-color)]"></div>
             </div>
@@ -127,6 +124,7 @@ function Blog() {
                 title="Blog"
                 desc="Khám phá những bài viết mới nhất về chăm sóc da và làm đẹp"
                 onCategoryChange={handleFilterChange}
+                selectedCategory={selectedCategory}
                 onSearchChange={handleSearchChange}
                 loading={loading}
               />
@@ -149,7 +147,7 @@ function Blog() {
                   </div>
                   <Pagination
                     currentPage={currentPage}
-                    totalItems={blogs.length}
+                    totalItems={filteredBlogs.length}
                     pageSize={pageSize}
                     onPageChange={handlePageChange}
                   />

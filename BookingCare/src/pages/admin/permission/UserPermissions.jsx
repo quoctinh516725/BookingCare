@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import AdminService from "../../../../services/AdminService";
 import { toast } from "sonner";
-
+import Pagination from "../../../components/Pagination";
 const UserPermissions = () => {
   const [users, setUsers] = useState([]);
   const [permissionGroups, setPermissionGroups] = useState([]);
@@ -10,6 +10,8 @@ const UserPermissions = () => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState("ALL");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize] = useState(10);
 
   // Hàm lấy tên hiển thị của người dùng
   const getUserDisplayName = (user) => {
@@ -102,6 +104,20 @@ const UserPermissions = () => {
     return matchesSearch && matchesRole;
   });
 
+  // Reset trang khi filter/search thay đổi
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, roleFilter]);
+
+  // Tính toán items hiển thị trên trang hiện tại
+  const indexOfLastItem = currentPage * pageSize;
+  const indexOfFirstItem = indexOfLastItem - pageSize;
+  const currentUsers = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+  };
+
   // Kiểm tra xem người dùng có nhóm quyền cụ thể không
   const hasPermissionGroup = (userId, groupId) => {
     return userPermissions[userId]?.includes(groupId);
@@ -179,7 +195,7 @@ const UserPermissions = () => {
 
         {loading ? (
           <div className="flex justify-center items-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--primary-color)]"></div>
             <span className="ml-2 text-gray-600">Đang tải dữ liệu...</span>
           </div>
         ) : users.length === 0 ? (
@@ -191,7 +207,7 @@ const UserPermissions = () => {
             Không tìm thấy nhóm quyền nào. Vui lòng tạo nhóm quyền trước.
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -213,8 +229,8 @@ const UserPermissions = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredUsers.length > 0 ? (
-                  filteredUsers.map((user) => (
+                {currentUsers.length > 0 ? (
+                  currentUsers.map((user) => (
                     <tr key={user.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
@@ -254,7 +270,7 @@ const UserPermissions = () => {
                             <div className="flex justify-center items-center">
                               <input
                                 type="checkbox"
-                                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                                className="h-4 w-4 text-[var(--primary-color)] focus:ring-[var(--primary-color)] border-gray-300 rounded"
                                 checked={isAdmin || hasGroup}
                                 disabled={isAdmin} // Admin luôn có tất cả quyền
                                 onChange={() => {
@@ -285,6 +301,16 @@ const UserPermissions = () => {
                 )}
               </tbody>
             </table>
+            {filteredUsers.length > 0 && (
+              <div className="mt-4">
+                <Pagination
+                  currentPage={currentPage}
+                  totalItems={filteredUsers.length}
+                  pageSize={pageSize}
+                  onPageChange={handlePageChange}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>

@@ -935,11 +935,20 @@ function Booking() {
               ) : (
                 specialists.map((specialist) => (
                   <option key={specialist.id} value={specialist.id}>
-                    {specialist.fullName ||
-                      specialist.name ||
-                      `${specialist.firstName || ""} ${
-                        specialist.lastName || ""
-                      }`.trim()}
+                    <div className="flex items-center">
+                      <div>
+                        <span className="text-gray-500 text-sm">
+                          {specialist.fullName ||
+                            specialist.name ||
+                            `${specialist.firstName || ""} ${
+                              specialist.lastName || ""
+                            }`.trim()}
+                        </span>
+                        <span className="text-gray-500 text-sm">
+                          {` (${specialist.specialty})`}
+                        </span>
+                      </div>
+                    </div>
                   </option>
                 ))
               )}
