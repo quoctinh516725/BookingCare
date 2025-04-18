@@ -1,18 +1,29 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
-import ServiceService from "../../../services/ServiceService";
 import SpecialistService from "../../../services/SpecialistService";
 import BookingService from "../../../services/BookingService";
 import UserService from "../../../services/UserService";
 import { useSelector } from "react-redux";
 import { MessageContext } from "../../contexts/MessageProvider";
+import { useServiceCache } from "./contexts/ServiceCacheContext";
+
+// Component imports
+import ServiceSelection from "./components/ServiceSelection";
+import CustomerInfo from "./components/CustomerInfo";
+import DateTimeSelection from "./components/DateTimeSelection";
+import SpecialistSelection from "./components/SpecialistSelection";
+import ConflictInfo from "./components/ConflictInfo";
+import Notes from "./components/Notes";
+import BookingSuccess from "./components/BookingSuccess";
 
 function Booking() {
   const navigate = useNavigate();
   const user = useSelector((state) => state.user);
   const message = useContext(MessageContext);
+  const { services } = useServiceCache();
   const userData = JSON.parse(localStorage.getItem("user") || "{}");
   const [countdown, setCountdown] = useState(10);
+  
   // Kiểm tra và xử lý thông tin người dùng để tránh hiển thị null null
   const userFullName =
     userData?.fullName ||
@@ -33,11 +44,9 @@ function Booking() {
     phone: userPhone,
   });
 
-  const [services, setServices] = useState([]);
   const [selectedServices, setSelectedServices] = useState([]);
   const [specialists, setSpecialists] = useState([]);
   const [loading, setLoading] = useState({
-    services: true,
     specialists: false,
     timeSlots: false,
     submitting: false,
@@ -48,51 +57,6 @@ function Booking() {
   const [conflictData, setConflictData] = useState(null);
   // Thêm state mới để lưu danh sách thời gian đã đặt
   const [bookedTimeSlots, setBookedTimeSlots] = useState([]);
-
-  // Available time slots (simplified)
-  const timeSlots = [
-    "07:00",
-    "07:30",
-    "08:00",
-    "08:30",
-    "09:00",
-    "09:30",
-    "10:00",
-    "10:30",
-    "11:00",
-    "11:30",
-    "12:00",
-    "12:30",
-    "13:00",
-    "13:30",
-    "14:00",
-    "14:30",
-    "15:00",
-    "15:30",
-    "16:00",
-    "16:30",
-    "17:00",
-    "17:30",
-    "18:00",
-  ];
-
-  // Fetch services when component mounts
-  useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const servicesData = await ServiceService.getAllServices();
-        setServices(servicesData);
-      } catch (error) {
-        console.error("Error fetching services:", error);
-        setError("Không thể tải danh sách dịch vụ");
-        message.error("Không thể tải danh sách dịch vụ");
-      } finally {
-        setLoading((prev) => ({ ...prev, services: false }));
-      }
-    };
-
-    fetchServices();
-  }, [message]);
 
   // Fetch specialists when component mounts - try to get ACTIVE specialists first
   useEffect(() => {
@@ -283,28 +247,6 @@ function Booking() {
 
     // Reset conflict data when changing service
     setConflictData(null);
-  };
-
-  // Calculate estimated duration for all selected services
-  const getEstimatedDuration = () => {
-    if (selectedServices.length === 0) return "0 phút";
-
-    const totalMinutes = selectedServices.reduce((total, serviceId) => {
-      const service = services.find((s) => s.id === serviceId);
-      return total + (service?.duration || 60);
-    }, 0);
-
-    // Format duration as hours and minutes
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-
-    if (hours > 0 && minutes > 0) {
-      return `${hours} giờ ${minutes} phút`;
-    } else if (hours > 0) {
-      return `${hours} giờ`;
-    } else {
-      return `${minutes} phút`;
-    }
   };
 
   // Handle form submission
@@ -568,124 +510,16 @@ function Booking() {
   // Render success confirmation
   if (successData) {
     return (
-      <div className="my-30">
-        <div className="w-[900px] mx-auto">
-          <div className="p-8 border-3 border-[var(--primary-color)]/50 rounded-2xl bg-white shadow-lg">
-            <div className="text-center">
-              <div className="w-20 h-20 bg-green-100 rounded-full mx-auto flex items-center justify-center mb-6">
-                <i className="fas fa-check text-green-500 text-3xl"></i>
-              </div>
-              <h2 className="text-3xl font-bold text-green-600 mb-4">
-                Đặt lịch thành công!
-              </h2>
-              <p className="text-lg mb-6">
-                Cảm ơn bạn đã sử dụng dịch vụ của chúng tôi.
-              </p>
-            </div>
-
-            <div className="bg-gray-50 rounded-lg p-6 mb-6">
-              <h3 className="text-xl font-semibold mb-4">Thông tin đặt lịch</h3>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-gray-600">Dịch vụ</p>
-                  <p className="font-medium">
-                    {successData?.services?.map((s) => s.name).join(", ") ||
-                      selectedServices
-                        .map(
-                          (serviceId) =>
-                            services.find((s) => s.id === serviceId)?.name
-                        )
-                        .filter(Boolean)
-                        .join(", ") ||
-                      "Không có thông tin"}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-gray-600">Chuyên viên</p>
-                  <p className="font-medium">
-                    {successData?.staffName || "Chưa cập nhật"}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-gray-600">Họ tên khách hàng</p>
-                  <p className="font-medium">
-                    {successData?.customerName || formData.fullName}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-gray-600">Số điện thoại</p>
-                  <p className="font-medium">
-                    {successData?.customerPhone || formData.phone}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-gray-600">Ngày</p>
-                  <p className="font-medium">
-                    {successData?.bookingDate || formData.bookingDate}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-gray-600">Giờ</p>
-                  <p className="font-medium">
-                    {successData?.startTime || formData.startTime}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-gray-600">Tổng tiền</p>
-                  <p className="font-medium">
-                    {new Intl.NumberFormat("vi-VN").format(
-                      successData?.totalPrice || 0
-                    )}
-                    đ
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-gray-600">Trạng thái</p>
-                  <p className="font-medium bg-yellow-100 text-yellow-800 px-2 py-1 rounded inline-block">
-                    {successData?.statusDescription || "Chờ xác nhận"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="text-center">
-              <p className="text-gray-600 mb-4">
-                Bạn sẽ được chuyển đến trang cá nhân sau {countdown} giây...
-              </p>
-              <div className="flex justify-center space-x-4">
-                <span
-                  onClick={() => navigate("/")}
-                  className="px-6 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 cursor-pointer"
-                >
-                  Trang chủ
-                </span>
-                <span
-                  onClick={() => navigate("/profile")}
-                  className="px-6 py-2 bg-[var(--primary-color)] text-white rounded-md hover:opacity-80 cursor-pointer"
-                >
-                  Xem lịch đặt
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <BookingSuccess 
+        successData={successData} 
+        formData={formData} 
+        countdown={countdown} 
+        services={services} 
+        selectedServices={selectedServices} 
+      />
     );
   }
-  const formatCurrencyVND = (amount) => {
-    return new Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(amount);
-  };
+
   return (
     <div className="my-30">
       <div className="w-[900px] mx-auto">
@@ -706,300 +540,42 @@ function Booking() {
           )}
 
           {/* Thông tin xung đột thời gian */}
-          {conflictData && (
-            <div className="bg-amber-50 border border-amber-300 text-amber-800 p-4 rounded-md mb-4">
-              <h3 className="font-semibold mb-2">
-                Chuyên viên đã có lịch hẹn vào giờ này:
-              </h3>
-              <div className="grid grid-cols-2 gap-2 text-sm">
-                <div>
-                  <b>Chuyên viên:</b> {conflictData.staffName}
-                </div>
-                <div>
-                  <b>Trạng thái:</b>{" "}
-                  <span className="bg-amber-100 px-2 py-0.5 rounded-md text-amber-800">
-                    {conflictData.statusDescription ||
-                      conflictData.status ||
-                      "Đã đặt"}
-                  </span>
-                </div>
-                <div>
-                  <b>Ngày:</b> {conflictData.bookingDate}
-                </div>
-                <div>
-                  <b>Thời gian:</b> {conflictData.startTime} -{" "}
-                  {conflictData.endTime}
-                </div>
-              </div>
-              <p className="mt-2 text-sm">
-                Vui lòng chọn thời gian khác hoặc chuyên viên khác.
-              </p>
-            </div>
-          )}
+          <ConflictInfo conflictData={conflictData} />
 
           {/* Service selection */}
-          <div className="mb-6">
-            <p className="text-xl font-semibold mb-2">
-              Dịch vụ <span className="text-red-500">*</span>
-            </p>
-            <div className="p-4 border border-black/10 rounded-2xl">
-              {services.map((service, index) => {
-                return (
-                  <div key={index} className="flex items-center mb-5">
-                    <input
-                      type="checkbox"
-                      name="service"
-                      id={`service-${service.id}`}
-                      className="accent-[var(--primary-color)] w-4 h-4 mx-4 cursor-pointer"
-                      onChange={(e) => handleServiceChange(e, service.id)}
-                      checked={selectedServices.includes(service.id)}
-                    />
-                    <div className="mr-auto">
-                      <h5 className="font-semibold">{service.name}</h5>
-                      <p className="text-black/50">{service.desc}</p>
-                      <div className="space-x-1 text-black/50">
-                        <i className="fa-regular fa-clock"></i>
-                        <span>{service.duration} Phút</span>
-                      </div>
-                    </div>
-                    <span className="font-semibold">
-                      {formatCurrencyVND(service.price)}
-                    </span>
-                  </div>
-                );
-              })}
-              {selectedServices.length > 0 && (
-                <div className="mt-2 border-t border-gray-200 pt-2 flex justify-between items-center">
-                  <div className="text-gray-700">
-                    <span className="font-medium">Tổng thời gian: </span>
-                    <span>{getEstimatedDuration()}</span>
-                  </div>
-                  <div className="text-gray-700">
-                    <span className="font-medium">Đã chọn: </span>
-                    <span>{selectedServices.length} dịch vụ</span>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          <ServiceSelection 
+            selectedServices={selectedServices} 
+            onServiceChange={handleServiceChange}
+          />
 
-          {/* Grid layout for personal information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-            <div>
-              <p className="text-xl font-semibold mb-2">
-                Họ và tên <span className="text-red-500">*</span>
-              </p>
-              <input
-                type="text"
-                name="fullName"
-                id="fullName"
-                placeholder="Nhập họ và tên..."
-                className="w-full p-3 border-2 border-gray-200 rounded-lg outline-none focus:border-[var(--primary-color)] transition-colors"
-                value={formData.fullName}
-                onChange={handleChange}
-                required
-              />
-            </div>
+          {/* Customer information */}
+          <CustomerInfo formData={formData} handleChange={handleChange} />
 
-            <div>
-              <p className="text-xl font-semibold mb-2">
-                Số điện thoại <span className="text-red-500">*</span>
-              </p>
-              <input
-                type="text"
-                name="phone"
-                id="phone"
-                placeholder="Nhập số điện thoại..."
-                className="w-full p-3 border-2 border-gray-200 rounded-lg outline-none focus:border-[var(--primary-color)] transition-colors"
-                value={formData.phone}
-                onChange={handleChange}
-                required
-              />
-            </div>
-          </div>
-
-          {/* Date and time */}
-          <div>
-            <p className="text-xl font-semibold mb-2">
-              Ngày <span className="text-red-500">*</span>
-            </p>
-            <input
-              type="date"
-              name="bookingDate"
-              id="bookingDate"
-              className="w-full p-3 border-2 border-gray-200 rounded-lg outline-none focus:border-[var(--primary-color)] transition-colors cursor-pointer"
-              value={formData.bookingDate}
-              onChange={handleChange}
-              min={new Date().toISOString().split("T")[0]}
-              required
-            />
-          </div>
-          <div>
-            <p className="text-xl font-semibold mb-2 ">
-              Giờ <span className="text-red-500">*</span>
-            </p>
-
-            {/* Hiển thị loading indicator khi đang tải thời gian đã đặt */}
-            {loading.timeSlots ? (
-              <div className="flex items-center justify-center p-4 border-2 border-gray-200 rounded-lg bg-gray-50">
-                <span className="inline-block w-5 h-5 border-2 border-gray-300 border-t-[var(--primary-color)] rounded-full animate-spin mr-2"></span>
-                <span>Đang kiểm tra lịch đã đặt...</span>
-              </div>
-            ) : (
-              <>
-                {/* Hiển thị custom time slot selector */}
-                <div className="border-2 border-gray-200 rounded-lg p-3">
-                  <div className="grid grid-cols-4 gap-2 max-h-[200px] overflow-y-auto scrollbar-hidden">
-                    {timeSlots.map((time) => {
-                      const isBooked = bookedTimeSlots.includes(time);
-                      const isSelected = formData.startTime === time;
-
-                      return (
-                        <div
-                          key={time}
-                          onClick={() =>
-                            !isBooked &&
-                            handleChange({
-                              target: { name: "startTime", value: time },
-                            })
-                          }
-                          className={`p-2 text-center rounded cursor-pointer transition-colors ${
-                            isBooked
-                              ? "bg-red-100 text-red-500 font-bold cursor-not-allowed"
-                              : isSelected
-                              ? "bg-[var(--primary-color)] text-white font-semibold"
-                              : "bg-gray-100 hover:bg-gray-200"
-                          }`}
-                        >
-                          {time}
-                          {isBooked && (
-                            <div className="text-xs mt-1">Đã đặt</div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Hidden input for form validation */}
-                <input
-                  type="hidden"
-                  name="startTime"
-                  value={formData.startTime}
-                  required
-                />
-
-                {/* Selected time display */}
-                {formData.startTime && (
-                  <div className="mt-2 p-2 bg-blue-50 rounded text-blue-700 flex items-center">
-                    <i className="fas fa-clock mr-2"></i>
-                    <span>
-                      Thời gian đã chọn: <strong>{formData.startTime}</strong>
-                    </span>
-                  </div>
-                )}
-              </>
-            )}
-
-            {/* Thông báo khi có khung giờ đã đặt */}
-            {!loading.timeSlots && bookedTimeSlots.length > 0 && (
-              <div className="text-sm text-amber-600 mt-1">
-                <span className="inline-block mr-1">⚠️</span>
-                <strong>
-                  Có {bookedTimeSlots.length} khung giờ đã được đặt
-                </strong>{" "}
-                và không thể chọn
-              </div>
-            )}
-          </div>
+          {/* Date and time selection */}
+          <DateTimeSelection 
+            formData={formData} 
+            handleChange={handleChange} 
+            loading={loading}
+            bookedTimeSlots={bookedTimeSlots}
+          />
 
           {/* Specialist selection */}
-          <div className="mb-6">
-            <p className="text-xl font-semibold mb-2">
-              Chuyên viên <span className="text-red-500">*</span>
-            </p>
-            <select
-              name="staffId"
-              id="staffId"
-              className="w-full p-3 border-2 border-gray-200 rounded-lg outline-none focus:border-[var(--primary-color)] transition-colors"
-              value={formData.staffId}
-              onChange={handleChange}
-              disabled={loading.specialists}
-              required
-            >
-              <option value="">Chọn chuyên viên</option>
-              {loading.specialists ? (
-                <option disabled>Đang tải danh sách chuyên viên...</option>
-              ) : specialists.length === 0 ? (
-                <option disabled>Không có chuyên viên nào</option>
-              ) : (
-                specialists.map((specialist) => (
-                  <option key={specialist.id} value={specialist.id}>
-                    <div className="flex items-center">
-                      <div>
-                        <span className="text-gray-500 text-sm">
-                          {specialist.fullName ||
-                            specialist.name ||
-                            `${specialist.firstName || ""} ${
-                              specialist.lastName || ""
-                            }`.trim()}
-                        </span>
-                        <span className="text-gray-500 text-sm">
-                          {` (${specialist.specialty})`}
-                        </span>
-                      </div>
-                    </div>
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
-
-          {/* Hiển thị thông tin về thời gian đã đặt */}
-          {formData.staffId &&
-            formData.bookingDate &&
-            bookedTimeSlots.length > 0 && (
-              <div className="mb-6 p-4 bg-amber-50 rounded-lg border-2 border-amber-300 shadow-sm">
-                <p className="font-semibold text-amber-800 mb-3 flex items-center text-lg">
-                  <i className="fas fa-exclamation-circle mr-2"></i>
-                  Đã đặt trên thời gian cho chuyên viên này:
-                </p>
-                <div className="flex flex-wrap gap-3">
-                  {bookedTimeSlots.map((time) => (
-                    <span
-                      key={time}
-                      className="inline-block px-3 py-1.5 bg-amber-100 text-amber-800 rounded-md text-sm font-semibold border border-amber-200 shadow-sm"
-                    >
-                      {time}
-                    </span>
-                  ))}
-                </div>
-                <p className="text-sm text-amber-700 mt-3 italic">
-                  Các khung giờ trên đã được đặt và không thể chọn. Vui lòng
-                  chọn khung giờ khác hoặc chuyên viên khác.
-                </p>
-              </div>
-            )}
+          <SpecialistSelection 
+            formData={formData}
+            handleChange={handleChange}
+            specialists={specialists}
+            loading={loading}
+            bookedTimeSlots={bookedTimeSlots}
+          />
 
           {/* Notes */}
-          <div className="mb-6">
-            <p className="text-xl font-semibold mb-2">Ghi chú</p>
-            <textarea
-              name="notes"
-              id="notes"
-              placeholder="Nhập ghi chú nếu có..."
-              className="w-full p-3 border-2 border-gray-200 rounded-lg outline-none focus:border-[var(--primary-color)] transition-colors"
-              rows={4}
-              value={formData.notes}
-              onChange={handleChange}
-            ></textarea>
-          </div>
+          <Notes formData={formData} handleChange={handleChange} />
 
           {/* Submit button */}
           <div className="flex justify-center">
             <button
               type="submit"
-              className="w-2/3 py-3 bg-[var(--primary-color)] text-white rounded-lg   transition-colors text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-2/3 py-3 bg-[var(--primary-color)] text-white rounded-lg transition-colors text-lg font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               disabled={loading.submitting}
             >
               {loading.submitting ? (

@@ -45,6 +45,14 @@ spring:
 # Cấu hình lưu trữ file
 file:
   uploadDir: ./uploads/images
+  # Cấu hình WebP
+  webp:
+    enabled: true
+    quality: 0.85  # Chất lượng ảnh WebP (0.0-1.0)
+  # Cấu hình cache
+  cache:
+    max-age: 604800  # 7 ngày (tính bằng giây)
+    public: true
 
 application:
   security:

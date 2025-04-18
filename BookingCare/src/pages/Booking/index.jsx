@@ -1,3 +1,12 @@
 import Booking from "./Booking";
+import { ServiceCacheProvider } from "./contexts/ServiceCacheContext";
 
-export default Booking;
+const BookingPage = () => {
+  return (
+    <ServiceCacheProvider>
+      <Booking />
+    </ServiceCacheProvider>
+  );
+};
+
+export default BookingPage;

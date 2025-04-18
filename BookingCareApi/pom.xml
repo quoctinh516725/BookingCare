@@ -109,6 +109,13 @@
 			<version>0.12.5</version>
 			<scope>runtime</scope>
 		</dependency>
+
+		<!-- WebP support for Java -->
+		<dependency>
+			<groupId>org.sejda.imageio</groupId>
+			<artifactId>webp-imageio</artifactId>
+			<version>0.1.6</version>
+		</dependency>
 	</dependencies>
 	<build>
 		<plugins>

@@ -7,7 +7,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @RestController
@@ -27,6 +30,12 @@ import java.util.stream.Collectors;
 public class FileUploadController {
 
     private final FileStorageService fileStorageService;
+    
+    @Value("${file.cache.max-age:604800}")
+    private long cacheMaxAge; // 7 ngày mặc định
+    
+    @Value("${file.webp.enabled:true}")
+    private boolean webpEnabled;
     
     @PostMapping("/image")
     @Operation(summary = "Upload một ảnh", description = "Tải một ảnh lên server và trả về URL công khai")
@@ -41,7 +50,20 @@ public class FileUploadController {
         ImageUploadResponse response = new ImageUploadResponse(fileName, fileUrl, 
                 "Image uploaded successfully");
         
+        // Thêm thông tin về WebP nếu có
+        if (webpEnabled && isImage(file.getContentType())) {
+            response.setWebpUrl(fileUrl); // URL gốc vẫn được dùng, phía backend sẽ tự động chọn WebP nếu phù hợp
+            response.setWebpEnabled(true);
+        }
+        
         return ResponseEntity.ok(response);
+    }
+    
+    /**
+     * Kiểm tra xem file có phải là ảnh không
+     */
+    private boolean isImage(String contentType) {
+        return contentType != null && contentType.startsWith("image/");
     }
     
     @PostMapping("/images")
@@ -54,8 +76,17 @@ public class FileUploadController {
                 .map(file -> {
                     String fileName = fileStorageService.storeFile(file);
                     String fileUrl = fileStorageService.getFileUrl(fileName);
-                    return new ImageUploadResponse(fileName, fileUrl, 
+                    
+                    ImageUploadResponse response = new ImageUploadResponse(fileName, fileUrl, 
                             "Image uploaded successfully");
+                    
+                    // Thêm thông tin về WebP nếu có
+                    if (webpEnabled && isImage(file.getContentType())) {
+                        response.setWebpUrl(fileUrl); // URL gốc vẫn được dùng, phía backend sẽ tự động chọn WebP nếu phù hợp
+                        response.setWebpEnabled(true);
+                    }
+                    
+                    return response;
                 })
                 .collect(Collectors.toList());
         
@@ -86,11 +117,39 @@ public class FileUploadController {
             contentType = "application/octet-stream";
         }
         
+        // Thiết lập cache control
+        CacheControl cacheControl = CacheControl.maxAge(cacheMaxAge, TimeUnit.SECONDS)
+                                               .cachePublic();
+                                               
+        // Thiết lập headers bổ sung
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(contentType));
+        headers.setCacheControl(cacheControl.getHeaderValue());
+        headers.setExpires(System.currentTimeMillis() + TimeUnit.SECONDS.toMillis(cacheMaxAge));
+        
+        // ETag để hỗ trợ validation caching
+        try {
+            String etag = Integer.toHexString((int) resource.contentLength() + 
+                                             (int) resource.lastModified() + 
+                                             resource.getFilename().hashCode());
+            headers.setETag("\"" + etag + "\"");
+        } catch (IOException e) {
+            log.warn("Could not generate ETag for resource: {}", e.getMessage());
+        }
+        
+        // Thiết lập CORS headers
+        headers.add("Access-Control-Allow-Origin", "*");
+        headers.add("Access-Control-Allow-Methods", "GET, OPTIONS");
+        headers.add("Access-Control-Allow-Headers", "Origin, Content-Type, Accept");
+        headers.add("Access-Control-Max-Age", "3600");
+        
+        // Vary header để đảm bảo cache dựa trên Accept header (quan trọng cho WebP)
+        headers.add("Vary", "Accept");
+        
         log.info("File {} downloaded successfully", fileName);
         
         return ResponseEntity.ok()
-                .contentType(MediaType.parseMediaType(contentType))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + resource.getFilename() + "\"")
+                .headers(headers)
                 .body(resource);
     }
 } 
