@@ -13,20 +13,19 @@ const Filter = memo(function Filter(props) {
 
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
   const [searchValue, setSearchValue] = useState("");
-  const [visibleCategories, setVisibleCategories] = useState([]);
+  const [visibleCategories, setVisibleCategories] = useState(serviceType.slice(0, 5));
   
   // Hiển thị danh mục theo lô để tránh render quá nhiều cùng lúc
   useEffect(() => {
     if (serviceType.length > 0 && !loading) {
       // Hiển thị ban đầu tối đa 5 danh mục
-      const initialCategories = serviceType.slice(0, 5);
-      setVisibleCategories(initialCategories);
+      setVisibleCategories(serviceType.slice(0, 5));
       
-      // Nếu có nhiều hơn 5 danh mục, thêm phần còn lại sau 100ms
+      // Nếu có nhiều hơn 5 danh mục, thêm phần còn lại sau 50ms
       if (serviceType.length > 5) {
         const timeoutId = setTimeout(() => {
           setVisibleCategories(serviceType);
-        }, 100);
+        }, 50);
         
         return () => clearTimeout(timeoutId);
       }
@@ -39,7 +38,7 @@ const Filter = memo(function Filter(props) {
       if (onSearchChange) {
         onSearchChange(debouncedSearchTerm);
       }
-    }, 300);
+    }, 250);
 
     return () => clearTimeout(delaySearch);
   }, [debouncedSearchTerm, onSearchChange]);
@@ -65,7 +64,9 @@ const Filter = memo(function Filter(props) {
         <h1 className="text-5xl font-bold font-arial whitespace-nowrap">
           {title}
         </h1>
-        <p className="text-2xl text-black/70 mt-5">{desc}</p>
+        <p className="text-2xl text-black/70 mt-5" style={{ contentVisibility: 'auto' }}>
+          {desc}
+        </p>
       </div>
       <div className="flex justify-center my-10">
         <div className="w-[60%] bg-white px-4 shadow-xl rounded-full flex items-center">
@@ -78,6 +79,7 @@ const Filter = memo(function Filter(props) {
             className="w-full text-xl outline-none p-4"
             onChange={handleSearchInputChange}
             value={searchValue}
+            autoComplete="off"
           />
         </div>
       </div>
@@ -85,7 +87,7 @@ const Filter = memo(function Filter(props) {
         <div className="w-[60%] bg-[#F1F5F9] p-[3px]">
           {loading ? (
             <div className="flex justify-center items-center py-2">
-              <div className="animate-pulse bg-gray-200 h-6 w-full rounded"></div>
+              <div className="bg-gray-200 h-6 w-full rounded"></div>
             </div>
           ) : (
             <ul className="flex items-center text-[12px] text-black/80 font-semibold cursor-pointer">
@@ -105,7 +107,7 @@ const Filter = memo(function Filter(props) {
                 );
               })}
               {visibleCategories.length < serviceType.length && (
-                <li className="animate-pulse text-center px-2 py-1 flex-1">
+                <li className="text-center px-2 py-1 flex-1">
                   ...
                 </li>
               )}

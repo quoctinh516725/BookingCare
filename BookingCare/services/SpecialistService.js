@@ -466,43 +466,21 @@ const SpecialistService = {
         return cache.specialties.data;
       }
 
-      const tokenString = localStorage.getItem("access_token");
-      const token = tokenString ? JSON.parse(tokenString) : null;
+      // Sử dụng danh sách mẫu thay vì gọi API vì API đang lỗi
+      console.log("Sử dụng danh sách chuyên môn mẫu");
+      const fallbackData = [
+        { id: 1, name: "Bác sĩ da liễu" },
+        { id: 2, name: "Chuyên gia điều trị mụn" },
+        { id: 3, name: "Chuyên gia trị liệu" },
+        { id: 4, name: "Chuyên gia chăm sóc da" },
+        { id: 5, name: "Chuyên gia trẻ hóa da" },
+      ];
 
-      // Thử gọi API để lấy danh sách chuyên môn
-      try {
-        const response = await axiosJWT.get(`/api/v1/specialists/specialties`, {
-          headers: {
-            "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
-          },
-          withCredentials: true,
-        });
+      // Lưu cache cho dữ liệu fallback
+      cache.specialties.data = fallbackData;
+      cache.specialties.timestamp = Date.now();
 
-        // Lưu cache
-        cache.specialties.data = response.data || [];
-        cache.specialties.timestamp = Date.now();
-
-        return response.data || [];
-      } catch (apiError) {
-        console.error("Lỗi khi gọi API danh sách chuyên môn:", apiError);
-
-        // Nếu API không tồn tại hoặc có lỗi, trả về danh sách mẫu
-        console.warn("Sử dụng danh sách chuyên môn mẫu");
-        const fallbackData = [
-          { id: 1, name: "Bác sĩ da liễu" },
-          { id: 2, name: "Chuyên gia điều trị mụn" },
-          { id: 3, name: "Chuyên gia trị liệu" },
-          { id: 4, name: "Chuyên gia chăm sóc da" },
-          { id: 5, name: "Chuyên gia trẻ hóa da" },
-        ];
-
-        // Lưu cache cho dữ liệu fallback
-        cache.specialties.data = fallbackData;
-        cache.specialties.timestamp = Date.now();
-
-        return fallbackData;
-      }
+      return fallbackData;
     } catch (error) {
       console.error("Lỗi khi lấy danh sách chuyên môn:", error);
       return [];

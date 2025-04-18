@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import serviceImg1 from "../../assets/services/serviceImg1.jpg";
 import PropTypes from "prop-types";
@@ -13,6 +13,14 @@ function CardService({ service }) {
   const [isHovering, setIsHovering] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [contentReady, setContentReady] = useState(false);
+
+  // Mark content as ready when service data is valid
+  useEffect(() => {
+    if (service && service.id) {
+      setContentReady(true);
+    }
+  }, [service]);
 
   // Prefetch dữ liệu khi hover
   const handleMouseEnter = useCallback(() => {
@@ -34,6 +42,8 @@ function CardService({ service }) {
         })
         .catch(err => {
           console.error("Error prefetching service:", err);
+          // Reset status on error to allow retry later
+          prefetchStatus[service.id] = false;
         });
     }
   }, [service?.id]);
@@ -115,9 +125,11 @@ function CardService({ service }) {
             <span>{duration} Phút</span>
           </span>
         </div>
-        <p className="mt-5 mb-4 line-clamp-3">
-          {description || "Đang tải thông tin chi tiết..."}
-        </p>
+        <div className={`mt-5 mb-4 ${!contentReady ? 'animate-pulse' : ''}`}>
+          <p className="line-clamp-3">
+            {contentReady ? description : "Đang tải thông tin chi tiết..."}
+          </p>
+        </div>
         <button
           className="text-white font-semibold w-full mt-auto bg-[var(--primary-color)] py-2 rounded-md transition-colors hover:bg-[var(--primary-color-dark)]"
           onClick={handleViewDetail}
