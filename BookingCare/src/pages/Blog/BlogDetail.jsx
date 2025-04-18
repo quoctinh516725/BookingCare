@@ -1,14 +1,26 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import BlogService from "../../../services/BlogService";
+
+// Cache ở mức module
+const blogCache = {};
+const cacheTimes = {};
+const relatedCache = {};
+const CACHE_EXPIRY = 10 * 60 * 1000; // 10 phút
 
 function BlogDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [blog, setBlog] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!blogCache[id]);
   const [error, setError] = useState(null);
-  const [relatedPosts, setRelatedPosts] = useState([]);
+  const [relatedPosts, setRelatedPosts] = useState(relatedCache[id] || []);
+
+  // Kiểm tra xem cache cho bài viết này còn hiệu lực không
+  const isCacheValid = useMemo(() => {
+    const now = Date.now();
+    return blogCache[id] && cacheTimes[id] && (now - cacheTimes[id] < CACHE_EXPIRY);
+  }, [id]);
 
   useEffect(() => {
     // Validate ID before making the API call
@@ -21,15 +33,32 @@ function BlogDetail() {
     }
 
     const fetchBlogDetail = async () => {
+      // Kiểm tra nếu có cache hợp lệ
+      if (isCacheValid) {
+        console.log("Using cached blog data for:", id);
+        setBlog(blogCache[id]);
+        setRelatedPosts(relatedCache[id] || []);
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
-        const data = await BlogService.getBlogById(id);
-        setBlog(data);
+        
+        // Tải song song cả chi tiết và bài viết liên quan
+        const [blogData, relatedBlogData] = await Promise.all([
+          BlogService.getBlogById(id),
+          BlogService.getAllBlogs(3)
+        ]);
+        
+        // Lưu blog vào cache
+        blogCache[id] = blogData;
+        cacheTimes[id] = Date.now();
+        setBlog(blogData);
 
-        // Lấy danh sách các bài viết liên quan
-        const posts = await BlogService.getAllBlogs(3);
         // Lọc ra các bài viết khác không phải bài viết hiện tại
-        const filtered = posts.filter((post) => post.id !== parseInt(id));
+        const filtered = relatedBlogData.filter((post) => post.id !== parseInt(id));
+        relatedCache[id] = filtered;
         setRelatedPosts(filtered);
 
         setLoading(false);
@@ -41,7 +70,27 @@ function BlogDetail() {
     };
 
     fetchBlogDetail();
-  }, [id, navigate]);
+  }, [id, navigate, isCacheValid]);
+
+  // Prefetch bài viết liên quan khi hover
+  const prefetchBlogDetail = (prefetchId) => {
+    // Không prefetch nếu đã có trong cache
+    if (blogCache[prefetchId]) return;
+
+    // Prefetch ngầm
+    BlogService.getBlogById(prefetchId)
+      .then(data => {
+        if (data) {
+          // Lưu vào cache
+          blogCache[prefetchId] = data;
+          cacheTimes[prefetchId] = Date.now();
+          console.log("Prefetched blog:", prefetchId);
+        }
+      })
+      .catch(err => {
+        console.error("Error prefetching blog:", err);
+      });
+  };
 
   // Format date
   const formatDate = (dateString) => {
@@ -281,7 +330,8 @@ function BlogDetail() {
             {relatedPosts.map((post, index) => (
               <div
                 key={index}
-                className="bg-white rounded-lg shadow-md overflow-hidden"
+                className="bg-white rounded-lg shadow-md overflow-hidden transition-shadow hover:shadow-lg"
+                onMouseEnter={() => prefetchBlogDetail(post.id)}
               >
                 <div className="h-48 overflow-hidden">
                   <img

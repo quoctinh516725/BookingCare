@@ -183,7 +183,6 @@ function App() {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[var(--background-color)]">
         <div className="text-center">
-          {/* <div className="w-12 h-12 border-4 border-[var(--primary-color)] border-t-transparent rounded-full animate-spin mx-auto"></div> */}
           <p className="mt-3 text-gray-600">
             <img
               src={logo}
@@ -198,26 +197,34 @@ function App() {
 
   // Separate public and admin routes for better organization
   const publicRoutes = routes.filter(route => 
-    !route.path.startsWith("/admin") || route.path === "/admin/login"
-  );
+    !route.isAdmin && !route.isSpecialist && !route.isStaff);
   
-  const adminRoutes = routes.filter(route => 
-    route.path.startsWith("/admin") && route.path !== "/admin/login"
-  );
+  const protectedRoutes = routes.filter(route => 
+    route.isAdmin || route.isSpecialist || route.isStaff);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    
       <Router>
         <Routes>
-          {/* Public routes - including login pages and user area */}
-          {publicRoutes.map((item, index) => {
-            const Layout = item?.isDefaultPage ? item.layout : Fragment;
-            const Page = item.page;
+          {publicRoutes.map((route, idx) => {
+            const Page = route.page;
             
+            // Kiểm tra xem Page có được định nghĩa không
+            if (!Page) {
+              console.error(`Route at index ${idx} has undefined component:`, route);
+              return null;
+            }
+            
+            // Xác định layout component cho route
+            let Layout = Fragment;
+            if (route.layout) {
+              Layout = route.layout;
+            }
+
             return (
               <Route
-                key={`public-${index}`}
-                path={item.path}
+                key={idx}
+                path={route.path}
                 element={
                   <Layout>
                     <Page />
@@ -226,34 +233,50 @@ function App() {
               />
             );
           })}
+
+          {/* Service Detail Route */}
+          <Route path="/service/:id" element={<ServiceDetail />} />
+
+          {/* Specialist Detail Route */}
+          <Route path="/specialist/:id" element={<SpecialistDetail />} />
+
+          {/* Blog Routes */}
+          <Route path="/blog" element={<BlogList />} />
+          <Route path="/blog/:id" element={<BlogDetail />} />
           
-          {/* Admin protected routes */}
-          <Route element={<AdminProtectedRoute />}>
-            {adminRoutes.map((item, index) => {
-              const Layout = item?.isDefaultPage ? item.layout : Fragment;
-              const Page = item.page;
-              return (
-                <Route
-                  key={`admin-${index}`}
-                  path={item.path}
-                  element={
+          {/* Protected Admin Routes */}
+          {protectedRoutes.map((route, idx) => {
+            const Page = route.page;
+            
+            // Kiểm tra xem Page có được định nghĩa không
+            if (!Page) {
+              console.error(`Protected route at index ${idx} has undefined component:`, route);
+              return null;
+            }
+            
+            // Xác định layout component cho route
+            let Layout = Fragment;
+            if (route.layout) {
+              Layout = route.layout;
+            }
+
+            return (
+              <Route
+                key={`admin-${idx}`}
+                path={route.path}
+                element={
+                  <AdminProtectedRoute expectedRole={route.role}>
                     <Layout>
                       <Page />
                     </Layout>
-                  }
-                />
-              );
-            })}
-          </Route>
-          
-          {/* Detail routes */}
-          <Route path="/service/:id" element={<ServiceDetail />} />
-          <Route path="/specialist/:id" element={<SpecialistDetail />} />
-          <Route path="/blog/:id" element={<BlogDetail />} />
-          <Route path="/blog" element={<BlogList />} />
+                  </AdminProtectedRoute>
+                }
+              />
+            );
+          })}
         </Routes>
       </Router>
-    </div>
+ 
   );
 }
 
