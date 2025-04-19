@@ -2,9 +2,10 @@ import React, { useState, useRef, useEffect, useContext } from "react";
 import Modal from "react-modal";
 import UserService from "../../../../services/UserService";
 import ServiceService from "../../../../services/ServiceService";
-import ServiceCategoryService from "../../../../services/ServiceCategoryService";
 import { MessageContext } from "../../../contexts/MessageProvider.jsx";
 import Pagination from "../../../components/Pagination";
+import { useAdminServiceCache } from "../contexts/AdminServiceCacheContext";
+import useImageCache from "../hooks/useImageCache";
 
 const customStyles = {
   content: {
@@ -23,8 +24,39 @@ const customStyles = {
   },
 };
 
+const ServiceImage = ({ src, alt }) => {
+  const { imgSrc, isLoading } = useImageCache(src, '', 0.8, 7 * 24 * 60 * 60 * 1000, 'service_img_');
+  
+  if (isLoading) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-100">
+        <div className="w-5 h-5 border-2 border-gray-200 border-t-pink-500 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+  
+  return (
+    <img
+      src={imgSrc}
+      alt={alt}
+      className="w-full h-full object-cover"
+      loading="lazy"
+      decoding="async"
+      fetchPriority="low"
+    />
+  );
+};
+
 const ServiceList = () => {
   const message = useContext(MessageContext);
+  const { 
+    services, 
+    categories, 
+    servicesLoading, 
+    categoriesLoading, 
+    invalidateServicesCache 
+  } = useAdminServiceCache();
+
   const [isOpen, setIsOpen] = useState(false);
   const [serviceName, setServiceName] = useState("");
   const [price, setPrice] = useState("");
@@ -38,46 +70,27 @@ const ServiceList = () => {
   const fileInputRef = useRef(null);
   const [isEditMode, setIsEditMode] = useState(false);
   const [currentServiceId, setCurrentServiceId] = useState(null);
-  const [services, setServices] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [fileToUpload, setFileToUpload] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
-  const [totalItems, setTotalItems] = useState(0);
 
   useEffect(() => {
-    fetchServices();
-    fetchCategories();
-  }, []);
-
-  const fetchServices = async () => {
-    try {
-      setLoading(true);
-      const data = await ServiceService.getAllServices();
-      setTotalItems(data.length);
-      setServices(data);
-    } catch (error) {
-      console.error("Error fetching services:", error);
-      message.error("Không thể tải danh sách dịch vụ");
-    } finally {
-      setLoading(false);
+    // If categories have loaded and no categoryId is selected, set the first one
+    if (categories && categories.length > 0 && !categoryId) {
+      setCategoryId(categories[0].id);
     }
-  };
+  }, [services, categories, categoryId]);
 
-  const fetchCategories = async () => {
-    try {
-      const data = await ServiceCategoryService.getAllCategories();
-      setCategories(data);
-      if (data && data.length > 0) {
-        setCategoryId(data[0].id);
-      }
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-      message.error("Không thể tải danh mục dịch vụ");
-    }
-  };
+  // Filtered services based on search term
+  const filteredServices = searchTerm 
+    ? services.filter(service => 
+        service.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    : services;
+
+  const indexOfLastItem = currentPage * pageSize;
+  const indexOfFirstItem = indexOfLastItem - pageSize;
+  const currentItems = filteredServices.slice(indexOfFirstItem, indexOfLastItem);
 
   const validateForm = () => {
     const newErrors = {};
@@ -134,7 +147,8 @@ const ServiceList = () => {
           message.success("Thêm dịch vụ thành công");
         }
 
-        fetchServices();
+        // Invalidate and refresh services cache after changes
+        invalidateServicesCache();
         handleClose();
       } catch (error) {
         console.error(
@@ -169,7 +183,9 @@ const ServiceList = () => {
       try {
         await ServiceService.deleteService(id);
         message.success("Xóa dịch vụ thành công");
-        fetchServices();
+        
+        // Invalidate and refresh services cache after delete
+        invalidateServicesCache();
       } catch (error) {
         console.error("Error deleting service:", error);
         const errorMessage =
@@ -231,344 +247,379 @@ const ServiceList = () => {
     handleFile(file);
   };
 
-  const filteredServices = services.filter((service) =>
-    service.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const indexOfLastItem = currentPage * pageSize;
-  const indexOfFirstItem = indexOfLastItem - pageSize;
-  const currentItems = filteredServices.slice(
-    indexOfFirstItem,
-    indexOfLastItem
-  );
-
   const handlePageChange = (page) => {
     setCurrentPage(page);
+  };
+
+  // Force refresh function for manual data refresh
+  const handleRefreshData = () => {
+    invalidateServicesCache();
   };
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-xl font-bold mb-6">Quản lý dịch vụ</h1>
-        <span
-          onClick={() => {
-            setIsEditMode(false);
-            setCurrentServiceId(null);
-            setIsOpen(true);
-          }}
-          className="flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-md cursor-pointer"
-        >
-          <i className="fas fa-plus-circle"></i>
-          <span>Thêm dịch vụ</span>
-        </span>
-      </div>
-
-      <div className="flex flex-col md:flex-row gap-3 mb-6">
-        <div className="relative flex-grow">
-          <i className="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
-          <input
-            type="text"
-            placeholder="Tìm kiếm dịch vụ..."
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <div className="relative min-w-[200px]">
-          <select
-            className="w-full appearance-none border border-gray-300 rounded-md px-4 py-2 pr-8 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent"
-            onChange={(e) => {
-              const catId = e.target.value;
-              if (catId) {
-                ServiceService.getServicesByCategory(catId).then((data) =>
-                  setServices(data)
-                );
-              } else {
-                fetchServices();
-              }
-            }}
+        <h1 className="text-xl font-bold">Quản lý dịch vụ</h1>
+        <div className="flex space-x-2">
+          <button
+            onClick={handleRefreshData}
+            className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md cursor-pointer"
           >
-            <option value="">Tất cả danh mục</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-          <i className="fas fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+            <i className="fas fa-sync-alt"></i>
+            <span>Làm mới</span>
+          </button>
+          <button
+            onClick={() => setIsOpen(true)}
+            className="flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-md cursor-pointer"
+          >
+            <i className="fas fa-plus-circle"></i>
+            <span>Thêm dịch vụ</span>
+          </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-md shadow overflow-hidden">
-        {loading ? (
-          <div className="text-center py-8">
+      {/* Filter and search */}
+      <div className="mb-6 bg-white p-4 rounded-md shadow-sm">
+        <div className="flex flex-col md:flex-row md:items-center gap-4">
+          <div className="flex-1">
+            <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-1">
+              Tìm kiếm dịch vụ
+            </label>
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-400">
+                <i className="fas fa-search"></i>
+              </span>
+              <input
+                type="text"
+                id="search"
+                className="pl-10 w-full p-2 border border-gray-300 rounded-md"
+                placeholder="Nhập tên dịch vụ..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1); // Reset to first page when searching
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Services list */}
+      <div className="bg-white rounded-md shadow-sm p-6">
+        <h2 className="text-lg font-medium mb-4">Danh sách dịch vụ</h2>
+
+        {servicesLoading ? (
+          <div className="text-center py-4">
             <i className="fas fa-spinner fa-spin text-2xl text-pink-500"></i>
             <p className="mt-2">Đang tải dịch vụ...</p>
           </div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Tên dịch vụ
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Mô tả
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Danh mục
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Thời gian
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Giá
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Thao tác
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {loading ? (
-                <tr>
-                  <td colSpan="6" className="px-6 py-4 text-center">
-                    <div className="flex justify-center items-center">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
-                    </div>
-                  </td>
-                </tr>
-              ) : currentItems.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan="6"
-                    className="px-6 py-4 text-center text-gray-500"
-                  >
-                    Không tìm thấy dịch vụ nào
-                  </td>
-                </tr>
-              ) : (
-                currentItems.map((service) => (
-                  <tr key={service.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900 max-w-[150px]">
-                      <div className="truncate">{service.name}</div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 max-w-xs">
-                      <div className="line-clamp-2 whitespace-normal">
-                        {service.description}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500 max-w-[120px]">
-                      <div className="truncate">
-                        {service.categoryName || "Chưa phân loại"}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {service.duration} phút
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
-                      {service.price?.toLocaleString()} ₫
-                    </td>
-                    <td className="px-6 py-4 text-sm font-medium text-right">
-                      <span
-                        className="text-blue-500 hover:text-blue-700 bg-blue-100 hover:bg-blue-200 p-1 rounded mr-2 cursor-pointer"
-                        onClick={() => handleEdit(service)}
-                      >
-                        <i className="fas fa-edit"></i>
-                      </span>
-                      <span
-                        className="text-red-500 hover:text-red-700 bg-red-100 hover:bg-red-200 p-1 rounded cursor-pointer"
-                        onClick={() => handleDelete(service.id)}
-                      >
-                        <i className="fas fa-trash-alt"></i>
-                      </span>
-                    </td>
+          <>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead>
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Hình ảnh
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Tên dịch vụ
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Danh mục
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Giá
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Thời gian
+                    </th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Thao tác
+                    </th>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {currentItems.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
+                        {searchTerm
+                          ? "Không tìm thấy dịch vụ phù hợp"
+                          : "Chưa có dịch vụ nào"}
+                      </td>
+                    </tr>
+                  ) : (
+                    currentItems.map((service) => (
+                      <tr key={service.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="w-12 h-12 rounded-md overflow-hidden bg-gray-100">
+                            {service.image ? (
+                              <ServiceImage src={service.image} alt={service.name} />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center bg-gray-200 text-gray-400">
+                                <i className="fas fa-image text-xl"></i>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="text-sm font-medium text-gray-900">
+                            {service.name}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {categories.find(cat => cat.id === service.categoryId)?.name || 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Intl.NumberFormat("vi-VN", {
+                            style: "currency",
+                            currency: "VND",
+                          }).format(service.price)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {service.duration} phút
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <span
+                            className="text-blue-500 hover:text-blue-700 bg-blue-100 hover:bg-blue-200 p-1 rounded mr-2 cursor-pointer"
+                            onClick={() => handleEdit(service)}
+                          >
+                            <i className="fas fa-edit"></i>
+                          </span>
+                          <span
+                            className="text-red-500 hover:text-red-700 bg-red-100 hover:bg-red-200 p-1 rounded cursor-pointer"
+                            onClick={() => handleDelete(service.id)}
+                          >
+                            <i className="fas fa-trash-alt"></i>
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {/* Pagination */}
+            {filteredServices.length > pageSize && (
+              <div className="mt-6">
+                <Pagination
+                  currentPage={currentPage}
+                  totalItems={filteredServices.length}
+                  pageSize={pageSize}
+                  onPageChange={handlePageChange}
+                />
+              </div>
+            )}
+          </>
         )}
       </div>
 
-      <Pagination
-        currentPage={currentPage}
-        totalItems={filteredServices.length}
-        pageSize={pageSize}
-        onPageChange={handlePageChange}
-      />
-
+      {/* Service modal for create/edit */}
       <Modal isOpen={isOpen} onRequestClose={handleClose} style={customStyles}>
-        <div className="bg-white rounded-lg p-6 w-[500px] max-h-[90vh] overflow-y-auto scrollbar-hidden">
+        <div className="bg-white rounded-lg p-6 w-[600px]">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">
               {isEditMode ? "Cập nhật dịch vụ" : "Thêm dịch vụ mới"}
             </h2>
             <span
               onClick={handleClose}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 hover:text-gray-700 cursor-pointer"
             >
               <i className="fas fa-times"></i>
             </span>
           </div>
           <p className="text-sm text-gray-500 mb-4">
             {isEditMode
-              ? "Cập nhật thông tin chi tiết dịch vụ."
-              : "Nhập thông tin chi tiết để thêm dịch vụ mới vào hệ thống."}
+              ? "Cập nhật thông tin dịch vụ hiện có"
+              : "Thêm dịch vụ mới vào hệ thống"}
           </p>
-          <div className="space-y-3">
+          <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium">Tên dịch vụ *</label>
+              <label
+                htmlFor="serviceName"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Tên dịch vụ <span className="text-red-500">*</span>
+              </label>
               <input
-                className={`w-full border border-black/30 mt-1 p-2 rounded-md ${
-                  errors.serviceName ? "border-red-500" : ""
-                }`}
+                type="text"
+                id="serviceName"
                 value={serviceName}
                 onChange={(e) => setServiceName(e.target.value)}
+                className={`w-full p-2 border ${
+                  errors.serviceName ? "border-red-500" : "border-gray-300"
+                } rounded-md focus:outline-none focus:ring-1 focus:ring-pink-500`}
                 placeholder="Nhập tên dịch vụ"
               />
               {errors.serviceName && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.serviceName}
-                </p>
+                <p className="mt-1 text-sm text-red-500">{errors.serviceName}</p>
               )}
             </div>
-            <div className="flex gap-4">
-              <div className="w-1/2">
-                <label className="block text-sm font-medium">Giá (VND) *</label>
-                <input
-                  className={`w-full border border-black/30 mt-1 p-2 rounded-md ${
-                    errors.price ? "border-red-500" : ""
-                  }`}
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  type="number"
-                />
-                {errors.price && (
-                  <p className="text-red-500 text-sm mt-1">{errors.price}</p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label
+                  htmlFor="category"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Danh mục dịch vụ <span className="text-red-500">*</span>
+                </label>
+                <select
+                  id="category"
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  className={`w-full p-2 border ${
+                    errors.category ? "border-red-500" : "border-gray-300"
+                  } rounded-md focus:outline-none focus:ring-1 focus:ring-pink-500`}
+                >
+                  <option value="">-- Chọn danh mục --</option>
+                  {categoriesLoading ? (
+                    <option disabled>Đang tải danh mục...</option>
+                  ) : (
+                    categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+                {errors.category && (
+                  <p className="mt-1 text-sm text-red-500">{errors.category}</p>
                 )}
               </div>
-              <div className="w-1/2">
-                <label className="block text-sm font-medium">
-                  Thời gian (phút) *
+
+              <div>
+                <label
+                  htmlFor="price"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Giá dịch vụ (VNĐ) <span className="text-red-500">*</span>
                 </label>
                 <input
-                  className={`w-full border border-black/30 mt-1 p-2 rounded-md ${
-                    errors.duration ? "border-red-500" : ""
-                  }`}
+                  type="number"
+                  id="price"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  className={`w-full p-2 border ${
+                    errors.price ? "border-red-500" : "border-gray-300"
+                  } rounded-md focus:outline-none focus:ring-1 focus:ring-pink-500`}
+                  placeholder="Giá dịch vụ"
+                  min="0"
+                />
+                {errors.price && (
+                  <p className="mt-1 text-sm text-red-500">{errors.price}</p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  htmlFor="duration"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Thời gian (phút) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  id="duration"
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
-                  type="number"
+                  className={`w-full p-2 border ${
+                    errors.duration ? "border-red-500" : "border-gray-300"
+                  } rounded-md focus:outline-none focus:ring-1 focus:ring-pink-500`}
+                  placeholder="Thời gian thực hiện"
+                  min="1"
+                  max="480"
                 />
                 {errors.duration && (
-                  <p className="text-red-500 text-sm mt-1">{errors.duration}</p>
+                  <p className="mt-1 text-sm text-red-500">{errors.duration}</p>
                 )}
               </div>
             </div>
+
             <div>
-              <label className="block text-sm font-medium">Danh mục *</label>
-              <select
-                className={`w-full border border-black/30 mt-1 p-2 rounded-md ${
-                  errors.category ? "border-red-500" : ""
-                }`}
-                value={categoryId}
-                onChange={(e) => setCategoryId(e.target.value)}
+              <label
+                htmlFor="description"
+                className="block text-sm font-medium text-gray-700 mb-1"
               >
-                <option value="">Chọn danh mục</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-              {errors.category && (
-                <p className="text-red-500 text-sm mt-1">{errors.category}</p>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium">Mô tả *</label>
+                Mô tả dịch vụ <span className="text-red-500">*</span>
+              </label>
               <textarea
-                className={`w-full border border-black/30 mt-1 p-2 rounded-md h-24 ${
-                  errors.description ? "border-red-500" : ""
-                }`}
+                id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Nhập mô tả dịch vụ"
-              />
+                className={`w-full p-2 border ${
+                  errors.description ? "border-red-500" : "border-gray-300"
+                } rounded-md focus:outline-none focus:ring-1 focus:ring-pink-500`}
+                placeholder="Nhập mô tả chi tiết về dịch vụ"
+                rows="4"
+              ></textarea>
               {errors.description && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.description}
-                </p>
+                <p className="mt-1 text-sm text-red-500">{errors.description}</p>
               )}
             </div>
+
             <div>
-              <label className="block text-sm font-medium mb-2">
-                Hình ảnh (tùy chọn)
-              </label>
+              <p className="block text-sm font-medium text-gray-700 mb-1">
+                Hình ảnh dịch vụ
+              </p>
               <div
-                className={`relative border-2 border-dashed rounded-lg p-4 text-center ${
-                  isDragging
-                    ? "border-pink-500 bg-pink-50"
-                    : "border-gray-300 hover:border-pink-500"
+                className={`border-2 border-dashed p-4 rounded-md flex flex-col items-center justify-center cursor-pointer ${
+                  isDragging ? "border-pink-500 bg-pink-50" : "border-gray-300"
                 }`}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => fileInputRef.current.click()}
               >
+                {previewUrl ? (
+                  <div className="w-full">
+                    {previewUrl.startsWith('data:') ? (
+                      <img
+                        src={previewUrl}
+                        alt="Preview"
+                        className="w-32 h-32 object-cover mx-auto mb-2 rounded-md"
+                      />
+                    ) : (
+                      <div className="w-32 h-32 mx-auto mb-2">
+                        <ServiceImage src={previewUrl} alt="Preview" />
+                      </div>
+                    )}
+                    <p className="text-xs text-center text-gray-500">
+                      Nhấp hoặc kéo thả để thay đổi ảnh
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <i className="fas fa-cloud-upload-alt text-2xl text-gray-400 mb-2"></i>
+                    <p className="text-sm text-center text-gray-500">
+                      Nhấp vào đây hoặc kéo thả file ảnh
+                    </p>
+                  </>
+                )}
                 <input
                   type="file"
                   ref={fileInputRef}
-                  onChange={handleUpload}
-                  accept="image/*"
                   className="hidden"
+                  accept="image/*"
+                  onChange={handleUpload}
                 />
-                {previewUrl ? (
-                  <div className="relative group">
-                    <img
-                      src={previewUrl}
-                      alt="Preview"
-                      className="max-h-[150px] mx-auto rounded-lg object-contain"
-                    />
-                    <div className="absolute inset-0 bg-gray-500/30 bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                      <span
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setPreviewUrl("");
-                          setImageUrl("");
-                        }}
-                        className="text-white p-2 rounded-full cursor-pointer"
-                      >
-                        <i className="fas fa-trash"></i>
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-2 py-4">
-                    <i className="fas fa-cloud-upload-alt text-4xl text-gray-400"></i>
-                    <div className="text-gray-600">
-                      Kéo thả hình ảnh vào đây hoặc click để chọn file
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      Hỗ trợ: JPG, PNG, GIF
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
-            <div className="flex justify-end gap-3 mt-6 sticky bottom-0 bg-white pt-3 pb-1">
-              <span
+
+            <div className="flex justify-end space-x-2 pt-4">
+              <button
                 onClick={handleClose}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
               >
                 Hủy
-              </span>
-              <span
+              </button>
+              <button
                 onClick={handleSubmit}
-                className="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-md cursor-pointer"
+                className="px-4 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600"
               >
-                {isEditMode ? "Cập nhật" : "Thêm dịch vụ"}
-              </span>
+                {isEditMode ? "Cập nhật" : "Thêm mới"}
+              </button>
             </div>
           </div>
         </div>

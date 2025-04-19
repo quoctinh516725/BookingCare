@@ -3,8 +3,7 @@ import UserList from "../pages/admin/user/UserList";
 import UserRoles from "../pages/admin/user/UserRoles";
 import PermissionGroups from "../pages/admin/permission/PermissionGroups";
 import UserPermissions from "../pages/admin/permission/UserPermissions";
-import ServiceList from "../pages/admin/service/ServiceList";
-import ServiceCategories from "../pages/admin/service/ServiceCategories";
+import AdminServicePage from "../pages/admin/service";
 import SpecialistList from "../pages/admin/specialist/SpecialistList";
 import BlogPosts from "../pages/admin/blog/BlogPosts";
 import BlogCategories from "../pages/admin/blog/BlogCategories";
@@ -54,13 +53,13 @@ const routes = [
   },
   {
     path: "/admin/services",
-    page: ServiceList,
+    page: AdminServicePage,
     layout: AdminLayout,
     isDefaultPage: true,
   },
   {
     path: "/admin/services/categories",
-    page: ServiceCategories,
+    page: AdminServicePage,
     layout: AdminLayout,
     isDefaultPage: true,
   },

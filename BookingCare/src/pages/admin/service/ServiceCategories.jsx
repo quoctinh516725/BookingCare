@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 import Modal from "react-modal";
 import ServiceCategoryService from "../../../../services/ServiceCategoryService";
 import { useContext } from "react";
 import { MessageContext } from "../../../contexts/MessageProvider.jsx";
+import { useAdminServiceCache } from "../contexts/AdminServiceCacheContext";
 
 const customStyles = {
   content: {
@@ -24,34 +25,19 @@ const customStyles = {
 
 const ServiceCategories = () => {
   const message = useContext(MessageContext);
+  const { 
+    categories, 
+    categoriesLoading, 
+    invalidateCategoriesCache 
+  } = useAdminServiceCache();
+  
   const [isOpen, setIsOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [categoryName, setCategoryName] = useState("");
   const [categoryCode, setCategoryCode] = useState("");
   const [description, setDescription] = useState("");
   const [errors, setErrors] = useState({});
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [currentCategoryId, setCurrentCategoryId] = useState(null);
-
-  // Tải danh sách danh mục khi component mount
-  useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  // Hàm tải danh sách danh mục
-  const fetchCategories = async () => {
-    try {
-      setLoading(true);
-      const data = await ServiceCategoryService.getAllCategories();
-      setCategories(data);
-    } catch (error) {
-      console.error("Error fetching categories:", error);
-      message.error("Không thể tải danh sách danh mục");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const validateForm = () => {
     const newErrors = {};
@@ -91,8 +77,8 @@ const ServiceCategories = () => {
           message.success("Thêm danh mục thành công");
         }
         
-        // Tải lại danh sách danh mục
-        fetchCategories();
+        // Invalidate and refresh the categories cache
+        invalidateCategoriesCache();
         handleClose();
       } catch (error) {
         console.error("Error saving category:", error);
@@ -116,7 +102,9 @@ const ServiceCategories = () => {
       try {
         await ServiceCategoryService.deleteCategory(id);
         message.success("Xóa danh mục thành công");
-        fetchCategories();
+        
+        // Invalidate and refresh the categories cache
+        invalidateCategoriesCache();
       } catch (error) {
         console.error("Error deleting category:", error);
         const errorMessage = error.response?.data?.message || "Có lỗi xảy ra khi xóa danh mục";
@@ -145,24 +133,38 @@ const ServiceCategories = () => {
     setCurrentCategoryId(null);
   };
 
+  // Function to manually refresh category data
+  const handleRefreshData = () => {
+    invalidateCategoriesCache();
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-xl font-bold mb-6">Quản lý danh mục dịch vụ</h1>
-        <span
-          onClick={handleOpenModal}
-          className="flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-md cursor-pointer"
-        >
-          <i className="fas fa-plus-circle"></i>
-          <span>Thêm danh mục</span>
-        </span>
+        <h1 className="text-xl font-bold">Quản lý danh mục dịch vụ</h1>
+        <div className="flex space-x-2">
+          <button
+            onClick={handleRefreshData}
+            className="flex items-center gap-2 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md cursor-pointer"
+          >
+            <i className="fas fa-sync-alt"></i>
+            <span>Làm mới</span>
+          </button>
+          <button
+            onClick={handleOpenModal}
+            className="flex items-center gap-2 bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-md cursor-pointer"
+          >
+            <i className="fas fa-plus-circle"></i>
+            <span>Thêm danh mục</span>
+          </button>
+        </div>
       </div>
 
       {/* Categories content */}
       <div className="bg-white rounded-md shadow-sm p-6">
         <h2 className="text-lg font-medium mb-4">Danh sách danh mục dịch vụ</h2>
 
-        {loading ? (
+        {categoriesLoading ? (
           <div className="text-center py-4">
             <i className="fas fa-spinner fa-spin text-2xl text-pink-500"></i>
             <p className="mt-2">Đang tải danh mục...</p>
@@ -248,74 +250,69 @@ const ServiceCategories = () => {
           </p>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium">
-                Tên danh mục *
+              <label htmlFor="categoryName" className="block text-sm font-medium text-gray-700 mb-1">
+                Tên danh mục <span className="text-red-500">*</span>
               </label>
               <input
-                className={`w-full border border-black/30 mt-1 p-2 rounded-md ${
-                  errors.categoryName ? "border-red-500" : ""
-                }`}
+                type="text"
+                id="categoryName"
+                className={`w-full p-2 border ${errors.categoryName ? "border-red-500" : "border-gray-300"} rounded-md focus:outline-none focus:ring-1 focus:ring-pink-500`}
                 value={categoryName}
                 onChange={(e) => setCategoryName(e.target.value)}
                 placeholder="Nhập tên danh mục"
               />
               {errors.categoryName && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.categoryName}
-                </p>
+                <p className="mt-1 text-sm text-red-500">{errors.categoryName}</p>
               )}
             </div>
-            
+
             <div>
-              <label className="block text-sm font-medium">
-                Mã danh mục *
+              <label htmlFor="categoryCode" className="block text-sm font-medium text-gray-700 mb-1">
+                Mã danh mục <span className="text-red-500">*</span>
               </label>
               <input
-                className={`w-full border border-black/30 mt-1 p-2 rounded-md font-mono ${
-                  errors.categoryCode ? "border-red-500" : ""
-                }`}
+                type="text"
+                id="categoryCode"
+                className={`w-full p-2 border ${errors.categoryCode ? "border-red-500" : "border-gray-300"} rounded-md focus:outline-none focus:ring-1 focus:ring-pink-500`}
                 value={categoryCode}
-                onChange={(e) => setCategoryCode(e.target.value.toUpperCase())}
-                placeholder="Nhập mã danh mục (ví dụ: SKIN_CARE)"
-                disabled={isEditMode} // Không cho phép sửa mã danh mục
+                onChange={(e) => setCategoryCode(e.target.value)}
+                placeholder="Nhập mã danh mục (ví dụ: dental_care)"
               />
               {errors.categoryCode && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.categoryCode}
-                </p>
+                <p className="mt-1 text-sm text-red-500">{errors.categoryCode}</p>
               )}
             </div>
 
             <div>
-              <label className="block text-sm font-medium">Mô tả *</label>
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                Mô tả <span className="text-red-500">*</span>
+              </label>
               <textarea
-                className={`w-full border border-black/30 mt-1 p-2 rounded-md h-24 ${
-                  errors.description ? "border-red-500" : ""
-                }`}
+                id="description"
+                className={`w-full p-2 border ${errors.description ? "border-red-500" : "border-gray-300"} rounded-md focus:outline-none focus:ring-1 focus:ring-pink-500`}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Nhập mô tả cho danh mục"
-              />
+                placeholder="Nhập mô tả về danh mục dịch vụ"
+                rows="3"
+              ></textarea>
               {errors.description && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.description}
-                </p>
+                <p className="mt-1 text-sm text-red-500">{errors.description}</p>
               )}
             </div>
 
-            <div className="flex justify-end gap-3 mt-6">
-              <span
+            <div className="flex justify-end pt-4 space-x-2">
+              <button
                 onClick={handleClose}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
+                className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
               >
                 Hủy
-              </span>
-              <span
+              </button>
+              <button
                 onClick={handleSubmit}
-                className="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-md cursor-pointer"
+                className="px-4 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600"
               >
-                {isEditMode ? "Cập nhật" : "Thêm danh mục"}
-              </span>
+                {isEditMode ? "Cập nhật" : "Thêm mới"}
+              </button>
             </div>
           </div>
         </div>
