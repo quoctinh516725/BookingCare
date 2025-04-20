@@ -1,102 +1,108 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { FaEye, FaEdit, FaTrash } from 'react-icons/fa';
-import SpecialistImage from "./SpecialistImage";
-import SpecialistStatusBadge from "./SpecialistStatusBadge";
-import StarRating from "./StarRating";
-import { useSpecialists } from "../../contexts/SpecialistContext";
+import { useImageCache } from "../../../../hooks/useImageCache";
+import { FaEye, FaEdit, FaTrash } from "react-icons/fa";
 
 const SpecialistCard = ({ 
   specialist, 
   onView, 
   onEdit, 
   onDelete,
-  ImageComponent
+  selected = false
 }) => {
-  const { deleteSpecialist } = useSpecialists();
-  const { id, nameSpecialist, nameSpecialists, specialty, image } = specialist;
+  const { getCachedImageUrl } = useImageCache();
   
-  const handleDelete = async (e) => {
-    e.stopPropagation();
-    if (window.confirm("Bạn có chắc chắn muốn xóa chuyên viên này không?")) {
-      try {
-        await deleteSpecialist(id);
-        if (onDelete) onDelete(id);
-      } catch (error) {
-        console.error("Failed to delete specialist:", error);
-      }
-    }
+  if (!specialist) return null;
+  
+  const {
+    id,
+    firstName,
+    lastName,
+    profileImage,
+    specialistCategory,
+    position,
+    yearsOfExperience,
+  } = specialist;
+  
+  const handleView = () => {
+    if (onView) onView(specialist);
   };
-
+  
   const handleEdit = (e) => {
     e.stopPropagation();
     if (onEdit) onEdit(specialist);
   };
-
-  const handleView = () => {
-    if (onView) onView(specialist);
+  
+  const handleDelete = (e) => {
+    e.stopPropagation();
+    if (onDelete) onDelete(specialist);
   };
-
-  const displayName = nameSpecialist || nameSpecialists || 'No Name';
-
+  
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden transition-all hover:shadow-md">
-      <div className="relative h-48 bg-gray-100">
-        {ImageComponent ? (
-          <ImageComponent
-            src={image}
-            alt={displayName}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <img
-            src={image || '/images/placeholder-specialist.jpg'}
-            alt={displayName}
-            className="w-full h-full object-cover"
+    <div 
+      data-specialist-id={id}
+      className={`relative bg-white rounded-lg shadow-md overflow-hidden transition-all duration-200 hover:shadow-lg cursor-pointer ${
+        selected ? "ring-2 ring-pink-500" : ""
+      }`}
+      onClick={handleView}
+    >
+      <div className="relative pb-[60%] overflow-hidden bg-gray-100">
+        {profileImage ? (
+          <img 
+            src={getCachedImageUrl(profileImage)} 
+            alt={`${firstName} ${lastName}`}
+            className="absolute inset-0 w-full h-full object-cover"
+            loading="lazy"
             onError={(e) => {
               e.target.onerror = null;
-              e.target.src = '/images/placeholder-specialist.jpg';
+              e.target.src = '/images/default-specialist.jpg';
             }}
           />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-200">
+            <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+            </svg>
+          </div>
         )}
       </div>
-
+      
       <div className="p-4">
-        <h3 className="font-semibold text-lg truncate" title={displayName}>
-          {displayName}
+        <h3 className="text-lg font-semibold text-gray-900 truncate">
+          {firstName} {lastName}
         </h3>
         
-        {specialty && (
-          <p className="text-gray-600 text-sm mt-1 truncate" title={specialty}>
-            {specialty}
+        <p className="text-sm text-gray-500 mb-2">
+          {specialistCategory?.name || "Uncategorized"}
+        </p>
+        
+        <p className="text-sm text-gray-700 mb-1">
+          {position || "Specialist"}
+        </p>
+        
+        {yearsOfExperience && (
+          <p className="text-xs text-gray-600">
+            {yearsOfExperience} {yearsOfExperience === 1 ? "year" : "years"} of experience
           </p>
         )}
+      </div>
+      
+      <div className="absolute bottom-0 right-0 p-2 flex gap-2">
+        <button
+          onClick={handleEdit}
+          className="p-2 bg-blue-50 text-blue-600 rounded-full hover:bg-blue-100 transition-colors"
+          aria-label="Edit specialist"
+        >
+          <FaEdit size={16} />
+        </button>
         
-        <div className="flex justify-between mt-4">
-          <button
-            onClick={handleView}
-            className="text-blue-500 hover:text-blue-700 p-2 rounded-full hover:bg-blue-50"
-            title="View details"
-          >
-            <FaEye />
-          </button>
-
-          <button
-            onClick={handleEdit}
-            className="text-amber-500 hover:text-amber-700 p-2 rounded-full hover:bg-amber-50"
-            title="Edit specialist"
-          >
-            <FaEdit />
-          </button>
-
-          <button
-            onClick={handleDelete}
-            className="text-red-500 hover:text-red-700 p-2 rounded-full hover:bg-red-50"
-            title="Delete specialist"
-          >
-            <FaTrash />
-          </button>
-        </div>
+        <button
+          onClick={handleDelete}
+          className="p-2 bg-red-50 text-red-600 rounded-full hover:bg-red-100 transition-colors"
+          aria-label="Delete specialist"
+        >
+          <FaTrash size={16} />
+        </button>
       </div>
     </div>
   );
@@ -105,15 +111,19 @@ const SpecialistCard = ({
 SpecialistCard.propTypes = {
   specialist: PropTypes.shape({
     id: PropTypes.string.isRequired,
-    nameSpecialist: PropTypes.string,
-    nameSpecialists: PropTypes.string,
-    specialty: PropTypes.string,
-    image: PropTypes.string
+    firstName: PropTypes.string.isRequired,
+    lastName: PropTypes.string.isRequired,
+    profileImage: PropTypes.string,
+    specialistCategory: PropTypes.shape({
+      name: PropTypes.string
+    }),
+    position: PropTypes.string,
+    yearsOfExperience: PropTypes.number
   }).isRequired,
-  onView: PropTypes.func.isRequired,
-  onEdit: PropTypes.func.isRequired,
-  onDelete: PropTypes.func.isRequired,
-  ImageComponent: PropTypes.elementType
+  onView: PropTypes.func,
+  onEdit: PropTypes.func,
+  onDelete: PropTypes.func,
+  selected: PropTypes.bool
 };
 
-export default React.memo(SpecialistCard); 
+export default SpecialistCard; 

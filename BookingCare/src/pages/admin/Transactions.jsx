@@ -80,33 +80,52 @@ const Transactions = () => {
     const statuses = {};
 
     try {
-      // Gọi API đồng thời cho tất cả booking
-      const paymentPromises = bookings.map(async (booking) => {
+      // Chia nhỏ các booking thành các batch để giảm tải server
+      const BATCH_SIZE = 5; // Xử lý 5 booking mỗi lần
+      const DELAY_BETWEEN_BATCHES = 300; // ms giữa các batch
+      const MAX_RETRIES = 2; // Số lần thử lại tối đa cho mỗi request
+      
+      // Hàm fetch với retry logic
+      const fetchWithRetry = async (bookingId, retries = 0) => {
         try {
-          const response = await PaymentService.getPaymentByBookingId(
-            booking.id
-          );
+          const response = await PaymentService.getPaymentByBookingId(bookingId);
           return {
-            bookingId: booking.id,
-            status: response.success
-              ? response.data.status || "UNPAID"
-              : "UNPAID",
+            bookingId,
+            status: response.success ? response.data.status || "UNPAID" : "UNPAID",
           };
         } catch (err) {
-          console.error(
-            `Error fetching payment status for booking ${booking.id}:`,
-            err
-          );
-          return { bookingId: booking.id, status: "UNPAID" };
+          console.warn(`Lỗi khi lấy thông tin thanh toán cho booking ${bookingId}`, err);
+          
+          // Thử lại nếu chưa quá số lần tối đa
+          if (retries < MAX_RETRIES) {
+            // Chờ một khoảng thời gian trước khi thử lại
+            await new Promise(resolve => setTimeout(resolve, 500));
+            return fetchWithRetry(bookingId, retries + 1);
+          }
+          
+          // Nếu vẫn lỗi sau MAX_RETRIES lần thử, trả về UNPAID
+          return { bookingId, status: "UNPAID" };
         }
-      });
-
-      const results = await Promise.all(paymentPromises);
-
-      // Cập nhật statuses từ kết quả
-      results.forEach(({ bookingId, status }) => {
-        statuses[bookingId] = status;
-      });
+      };
+      
+      // Chia thành các batch và xử lý
+      for (let i = 0; i < bookings.length; i += BATCH_SIZE) {
+        const batch = bookings.slice(i, i + BATCH_SIZE);
+        
+        // Xử lý một batch
+        const batchPromises = batch.map(booking => fetchWithRetry(booking.id));
+        const batchResults = await Promise.all(batchPromises);
+        
+        // Cập nhật statuses từ kết quả
+        batchResults.forEach(({ bookingId, status }) => {
+          statuses[bookingId] = status;
+        });
+        
+        // Nếu còn batch tiếp theo, chờ một chút để tránh quá tải server
+        if (i + BATCH_SIZE < bookings.length) {
+          await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_BATCHES));
+        }
+      }
     } catch (err) {
       console.error("Error fetching payment statuses:", err);
       // Nếu có lỗi, gán mặc định tất cả là UNPAID

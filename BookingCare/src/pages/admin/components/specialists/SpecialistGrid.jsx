@@ -1,91 +1,88 @@
 import React, { useState } from "react";
 import PropTypes from "prop-types";
 import SpecialistCard from "./SpecialistCard";
+import { Spinner } from "../../../../components";
 import SpecialistDetailModal from "./SpecialistDetailModal";
 import SpecialistEditModal from "./SpecialistEditModal";
 
-const SpecialistGrid = ({ 
-  specialists, 
-  loading, 
-  onDeleteSpecialist, 
-  onUpdateSpecialist,
-  ImageComponent 
+const SpecialistGrid = ({
+  specialists,
+  isLoading,
+  onEdit,
+  onDelete,
+  categories,
 }) => {
   const [selectedSpecialist, setSelectedSpecialist] = useState(null);
-  const [viewModalOpen, setViewModalOpen] = useState(false);
-  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const handleViewSpecialist = (specialist) => {
     setSelectedSpecialist(specialist);
-    setViewModalOpen(true);
+    setShowDetailModal(true);
   };
 
   const handleEditSpecialist = (specialist) => {
     setSelectedSpecialist(specialist);
-    setEditModalOpen(true);
+    setShowEditModal(true);
   };
 
-  const handleCloseModals = () => {
-    setViewModalOpen(false);
-    setEditModalOpen(false);
+  const handleCloseDetailModal = () => {
+    setShowDetailModal(false);
   };
 
-  const handleSpecialistUpdated = (updatedSpecialist) => {
-    if (onUpdateSpecialist) {
-      onUpdateSpecialist(updatedSpecialist);
-    }
-    handleCloseModals();
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex justify-center items-center min-h-[300px]">
-        <div className="spinner-border text-primary" role="status">
-          <span className="visually-hidden">Loading...</span>
-        </div>
+      <div className="flex justify-center items-center h-64">
+        <Spinner size="lg" />
       </div>
     );
   }
 
   if (!specialists || specialists.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
-        No specialists found. Add a specialist to get started.
+      <div className="text-center p-8">
+        <p className="text-gray-500">No specialists found.</p>
       </div>
     );
   }
 
   return (
     <div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {specialists.map((specialist) => (
           <SpecialistCard
             key={specialist.id}
             specialist={specialist}
             onView={handleViewSpecialist}
             onEdit={handleEditSpecialist}
-            onDelete={onDeleteSpecialist}
-            ImageComponent={ImageComponent}
+            onDelete={onDelete}
+            selected={selectedSpecialist?.id === specialist.id}
           />
         ))}
       </div>
 
-      {selectedSpecialist && viewModalOpen && (
+      {showDetailModal && selectedSpecialist && (
         <SpecialistDetailModal
           specialist={selectedSpecialist}
-          onClose={handleCloseModals}
-          onEdit={() => {
-            setViewModalOpen(false);
-            setEditModalOpen(true);
-          }}
+          isOpen={showDetailModal}
+          onClose={handleCloseDetailModal}
         />
       )}
 
-      {selectedSpecialist && editModalOpen && (
+      {showEditModal && selectedSpecialist && (
         <SpecialistEditModal
           specialist={selectedSpecialist}
-          onClose={handleCloseModals}
-          onSave={handleSpecialistUpdated}
+          categories={categories}
+          isOpen={showEditModal}
+          onClose={handleCloseEditModal}
+          onSubmit={(data) => {
+            onEdit(selectedSpecialist.id, data);
+            setShowEditModal(false);
+          }}
         />
       )}
     </div>
@@ -93,23 +90,16 @@ const SpecialistGrid = ({
 };
 
 SpecialistGrid.propTypes = {
-  specialists: PropTypes.arrayOf(
-    PropTypes.shape({
-      id: PropTypes.string.isRequired,
-      nameSpecialist: PropTypes.string,
-      nameSpecialists: PropTypes.string,
-      specialty: PropTypes.string,
-      image: PropTypes.string
-    })
-  ).isRequired,
-  loading: PropTypes.bool,
-  onDeleteSpecialist: PropTypes.func.isRequired,
-  onUpdateSpecialist: PropTypes.func.isRequired,
-  ImageComponent: PropTypes.elementType
+  specialists: PropTypes.array.isRequired,
+  isLoading: PropTypes.bool,
+  onEdit: PropTypes.func.isRequired,
+  onDelete: PropTypes.func.isRequired,
+  categories: PropTypes.array,
 };
 
 SpecialistGrid.defaultProps = {
-  loading: false
+  isLoading: false,
+  categories: [],
 };
 
 export default SpecialistGrid; 

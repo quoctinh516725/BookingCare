@@ -73,10 +73,23 @@ const getPaymentByBookingId = async (bookingId) => {
     } catch (error) {
         // Trường hợp không tìm thấy thanh toán cho booking này
         if (error.response?.status === 404) {
+            console.log(`Không tìm thấy thông tin thanh toán cho booking ID: ${bookingId}`);
+            
+            // Trả về dữ liệu mẫu thay vì báo lỗi
             return {
-                success: false,
-                message: "Chưa có thông tin thanh toán cho lịch hẹn này",
-                status: 404
+                success: true,
+                data: {
+                    id: null,
+                    bookingId: bookingId,
+                    amount: 0,
+                    status: "UNPAID",
+                    paymentMethod: null,
+                    paymentCode: `PAYMENT_${bookingId.substring(0, 8)}`,
+                    customerName: "",
+                    qrData: null,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                }
             };
         }
         
