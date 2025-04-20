@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import Modal from "react-modal";
-// import SpecialistCategoryService from "../../../../services/SpecialistCategoryService";
 import { useContext } from "react";
 import { MessageContext } from "../../../contexts/MessageProvider.jsx";
+import { useAdminSpecialistCache } from "../contexts/AdminSpecialistCacheContext.jsx";
+import SpecialistCategoryService from "../../../../services/SpecialistCategoryService";
 
 // Đảm bảo modal hoạt động tốt với screen reader
 Modal.setAppElement("#root");
@@ -32,28 +33,22 @@ const SpecialistCategories = () => {
   const [categoryCode, setCategoryCode] = useState("");
   const [description, setDescription] = useState("");
   const [errors, setErrors] = useState({});
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [currentCategoryId, setCurrentCategoryId] = useState(null);
+  
+  // Use the context for state management
+  const { 
+    specialistCategories, 
+    specialistCategoriesLoading, 
+    invalidateSpecialistCategoriesCache,
+    loadSpecialistCategories
+  } = useAdminSpecialistCache();
 
-  // Tải danh sách danh mục khi component mount
+  // Tải danh sách danh mục khi component mount if not already loaded
   useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  // Hàm tải danh sách danh mục
-  const fetchCategories = async () => {
-    try {
-      setLoading(true);
-    //   const data = await SpecialistCategoryService.getAllCategories();
-    //   setCategories(data);
-    } catch (error) {
-      console.error("Error fetching specialist categories:", error);
-      message.error("Không thể tải danh sách danh mục chuyên viên");
-    } finally {
-      setLoading(false);
+    if (!specialistCategories) {
+      loadSpecialistCategories();
     }
-  };
+  }, [specialistCategories, loadSpecialistCategories]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -97,8 +92,8 @@ const SpecialistCategories = () => {
           message.success("Thêm danh mục chuyên viên thành công");
         }
 
-        // Tải lại danh sách danh mục
-        fetchCategories();
+        // Invalidate cache after successful operation
+        invalidateSpecialistCategoriesCache();
         handleClose();
       } catch (error) {
         console.error("Error saving specialist category:", error);
@@ -126,7 +121,8 @@ const SpecialistCategories = () => {
       try {
         await SpecialistCategoryService.deleteCategory(id);
         message.success("Xóa danh mục chuyên viên thành công");
-        fetchCategories();
+        // Invalidate cache after successful delete
+        invalidateSpecialistCategoriesCache();
       } catch (error) {
         console.error("Error deleting specialist category:", error);
         const errorMessage =
@@ -176,7 +172,7 @@ const SpecialistCategories = () => {
           Danh sách danh mục chuyên viên
         </h2>
 
-        {loading ? (
+        {specialistCategoriesLoading ? (
           <div className="text-center py-4">
             <i className="fas fa-spinner fa-spin text-2xl text-blue-500"></i>
             <p className="mt-2">Đang tải danh mục...</p>
@@ -204,7 +200,7 @@ const SpecialistCategories = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {categories.length === 0 ? (
+                {!specialistCategories || specialistCategories.length === 0 ? (
                   <tr>
                     <td
                       colSpan="5"
@@ -214,7 +210,7 @@ const SpecialistCategories = () => {
                     </td>
                   </tr>
                 ) : (
-                  categories.map((category) => (
+                  specialistCategories.map((category) => (
                     <tr key={category.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
                         {category.name}
@@ -251,96 +247,117 @@ const SpecialistCategories = () => {
         )}
       </div>
 
-      <Modal isOpen={isOpen} onRequestClose={handleClose} style={customStyles}>
-        <div className="bg-white rounded-lg p-6 w-[500px]">
+      {/* Modal Form */}
+      <Modal
+        isOpen={isOpen}
+        onRequestClose={handleClose}
+        style={customStyles}
+        contentLabel="Specialist Category Modal"
+      >
+        <div className="min-w-[500px]">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold">
+            <h2 className="text-xl font-semibold">
               {isEditMode
                 ? "Cập nhật danh mục chuyên viên"
-                : "Thêm danh mục chuyên viên mới"}
+                : "Thêm danh mục chuyên viên"}
             </h2>
-            <span
+            <button
+              className="text-gray-500 hover:text-gray-700"
               onClick={handleClose}
-              className="text-gray-500 hover:text-gray-700 cursor-pointer"
             >
-              <i className="fas fa-times"></i>
-            </span>
+              <i className="fas fa-times text-lg"></i>
+            </button>
           </div>
-          <p className="text-sm text-gray-500 mb-4">
-            {isEditMode
-              ? "Cập nhật thông tin danh mục chuyên viên"
-              : "Tạo danh mục chuyên viên mới để phân loại các chuyên viên."}
-          </p>
+
           <div className="space-y-4">
+            {/* Category Name */}
             <div>
-              <label className="block text-sm font-medium">
-                Tên danh mục *
+              <label
+                htmlFor="categoryName"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Tên danh mục <span className="text-red-500">*</span>
               </label>
               <input
-                className={`w-full border border-gray-300 mt-1 p-2 rounded-md ${
-                  errors.categoryName ? "border-red-500" : ""
-                }`}
+                type="text"
+                id="categoryName"
                 value={categoryName}
                 onChange={(e) => setCategoryName(e.target.value)}
+                className={`w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.categoryName ? "border-red-500" : ""
+                }`}
                 placeholder="Nhập tên danh mục"
               />
               {errors.categoryName && (
-                <p className="text-red-500 text-sm mt-1">
+                <p className="mt-1 text-xs text-red-600">
                   {errors.categoryName}
                 </p>
               )}
             </div>
 
+            {/* Category Code */}
             <div>
-              <label className="block text-sm font-medium">
-                Mã danh mục *
+              <label
+                htmlFor="categoryCode"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Mã danh mục <span className="text-red-500">*</span>
               </label>
               <input
-                className={`w-full border border-gray-300 mt-1 p-2 rounded-md font-mono ${
+                type="text"
+                id="categoryCode"
+                value={categoryCode}
+                onChange={(e) => setCategoryCode(e.target.value)}
+                className={`w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${
                   errors.categoryCode ? "border-red-500" : ""
                 }`}
-                value={categoryCode}
-                onChange={(e) => setCategoryCode(e.target.value.toUpperCase())}
-                placeholder="Nhập mã danh mục (ví dụ: SKIN_SPECIALIST)"
-                disabled={isEditMode} // Không cho phép sửa mã danh mục
+                placeholder="Nhập mã danh mục (VD: CARDIOLOGY, NEUROLOGY)"
               />
               {errors.categoryCode && (
-                <p className="text-red-500 text-sm mt-1">
+                <p className="mt-1 text-xs text-red-600">
                   {errors.categoryCode}
                 </p>
               )}
             </div>
 
+            {/* Description */}
             <div>
-              <label className="block text-sm font-medium">Mô tả *</label>
+              <label
+                htmlFor="description"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
+                Mô tả <span className="text-red-500">*</span>
+              </label>
               <textarea
-                className={`w-full border border-gray-300 mt-1 p-2 rounded-md h-24 ${
-                  errors.description ? "border-red-500" : ""
-                }`}
+                id="description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Nhập mô tả cho danh mục"
-              />
+                className={`w-full p-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${
+                  errors.description ? "border-red-500" : ""
+                }`}
+                rows="3"
+                placeholder="Nhập mô tả danh mục"
+              ></textarea>
               {errors.description && (
-                <p className="text-red-500 text-sm mt-1">
+                <p className="mt-1 text-xs text-red-600">
                   {errors.description}
                 </p>
               )}
             </div>
 
-            <div className="flex justify-end gap-3 mt-6">
-              <span
+            <div className="flex justify-end pt-4 space-x-3">
+              <button
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300"
                 onClick={handleClose}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 cursor-pointer"
               >
                 Hủy
-              </span>
-              <span
+              </button>
+              <button
+                className="px-4 py-2 bg-[var(--primary-color)] text-white rounded-md hover:bg-[var(--primary-dark-color)]"
                 onClick={handleSubmit}
-                className="bg-[var(--primary-color)] hover:bg-[var(--primary-color)] text-white px-4 py-2 rounded-md cursor-pointer"
               >
-                {isEditMode ? "Cập nhật" : "Thêm danh mục"}
-              </span>
+                {isEditMode ? "Cập nhật" : "Thêm mới"}
+              </button>
             </div>
           </div>
         </div>
