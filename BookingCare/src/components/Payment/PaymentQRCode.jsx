@@ -4,9 +4,6 @@ import PropTypes from "prop-types";
 import PaymentService from "../../../services/PaymentService";
 import logo from "../../assets/logo.png";
 import { formatCurrency } from "../../utils/formatters";
-import { Spin, Result, Button } from 'antd';
-import { QrcodeOutlined, LoadingOutlined, ReloadOutlined } from '@ant-design/icons';
-import styled from 'styled-components';
 
 // Tạo mã xác thực ngẫu nhiên (sẽ không hiển thị ở profile)
 const generateVerificationCode = () => {
@@ -18,52 +15,10 @@ const generateVerificationCode = () => {
   return code;
 };
 
-const QRCodeContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  border-radius: 8px;
-  border: 1px solid #eaeaea;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  background-color: white;
-  min-height: 300px;
-  width: 100%;
-  max-width: 320px;
-  margin: 0 auto;
-`;
-
-const QRImage = styled.img`
-  width: 220px;
-  height: 220px;
-  margin-bottom: 15px;
-`;
-
-const PaymentInstructions = styled.div`
-  margin-top: 15px;
-  text-align: center;
-  color: #555;
-  font-size: 14px;
-`;
-
-const QRPlaceholder = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: 220px;
-  height: 220px;
-  border: 2px dashed #d9d9d9;
-  border-radius: 8px;
-  color: #999;
-  margin-bottom: 15px;
-`;
-
 const PaymentQRCode = ({ bookingId, isProfilePage = true }) => {
   const [payment, setPayment] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState(null);
   const [notFound, setNotFound] = useState(false);
   const [verificationCode, setVerificationCode] = useState("");
   const [showLargeQR, setShowLargeQR] = useState(false);
@@ -72,7 +27,7 @@ const PaymentQRCode = ({ bookingId, isProfilePage = true }) => {
     if (!bookingId) return;
 
     setLoading(true);
-    setError(false);
+    setError(null);
     setNotFound(false);
 
     try {
@@ -188,54 +143,35 @@ const PaymentQRCode = ({ bookingId, isProfilePage = true }) => {
     }
   };
 
-  const handleImageError = () => {
-    setError(true);
-  };
-
-  const renderQRContent = () => {
-    if (loading) {
-      return (
-        <QRPlaceholder>
-          <LoadingOutlined style={{ fontSize: 48, marginBottom: 10 }} />
-          <span>Đang tải mã QR...</span>
-        </QRPlaceholder>
-      );
-    }
-
-    if (error || !payment) {
-      return (
-        <Result
-          status="warning"
-          title="Không thể tải mã QR"
-          subTitle="Vui lòng thử lại sau"
-          extra={
-            <Button 
-              type="primary" 
-              icon={<ReloadOutlined />} 
-              onClick={fetchPaymentDetails}
-            >
-              Thử lại
-            </Button>
-          }
-        />
-      );
-    }
-
+  if (loading) {
     return (
-      <>
-        <QRImage 
-          src={getQRData()} 
-          alt="Mã QR thanh toán" 
-          onError={handleImageError} 
-        />
-        {payment.amount && (
-          <div>
-            <strong>Số tiền:</strong> {formatCurrency(payment.amount)}
-          </div>
-        )}
-      </>
+      <div className="flex justify-center items-center p-2">
+        <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-primary"></div>
+      </div>
     );
-  };
+  }
+
+  if (error) {
+    return (
+      <div className="text-center p-2">
+        <p className="text-red-500 text-sm">{error}</p>
+        <span
+          onClick={fetchPaymentDetails}
+          className="text-xs text-[var(--primary-color)] cursor-pointer mt-1"
+        >
+          Thử lại
+        </span>
+      </div>
+    );
+  }
+
+  if (notFound || !payment) {
+    return (
+      <div className="text-center p-2">
+        <p className="text-gray-500 text-sm">Chưa có thông tin thanh toán</p>
+      </div>
+    );
+  }
 
   // Modal hiển thị QR lớn
   const QRModal = () => (
