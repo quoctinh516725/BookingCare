@@ -75,7 +75,32 @@ const getPaymentByBookingId = async (bookingId) => {
         if (error.response?.status === 404) {
             console.log(`Không tìm thấy thông tin thanh toán cho booking ID: ${bookingId}`);
             
-            // Trả về dữ liệu mẫu thay vì báo lỗi
+            // Thử tạo mới thanh toán tự động
+            try {
+                console.log(`Đang thử tạo thanh toán mới cho booking ID: ${bookingId}`);
+                const accessToken = getAccessToken();
+                
+                if (accessToken) {
+                    // Gọi API để tạo thanh toán mới
+                    const createResponse = await axiosJWT.post(`/api/v1/payments/create/${bookingId}`, {}, {
+                        headers: { Authorization: `Bearer ${accessToken}` }
+                    });
+                    
+                    if (createResponse.data && createResponse.data.success) {
+                        console.log(`Đã tạo thanh toán mới thành công cho booking ID: ${bookingId}`);
+                        return {
+                            success: true,
+                            data: createResponse.data.data
+                        };
+                    }
+                }
+                
+                console.log(`Không thể tạo thanh toán mới cho booking ID: ${bookingId}, sử dụng dữ liệu mẫu`);
+            } catch (createError) {
+                console.error(`Lỗi khi tạo thanh toán mới: ${createError.message}`);
+            }
+            
+            // Trả về dữ liệu mẫu nếu không thể tạo thanh toán
             return {
                 success: true,
                 data: {

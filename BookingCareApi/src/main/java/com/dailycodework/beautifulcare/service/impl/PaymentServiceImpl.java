@@ -24,6 +24,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -91,10 +92,33 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public PaymentResponse getPaymentByBookingId(UUID bookingId) {
         log.info("Fetching payment for booking ID: {}", bookingId);
-        Payment payment = paymentRepository.findByBookingId(bookingId)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment not found for booking ID: " + bookingId));
         
-        return paymentMapper.toPaymentResponse(payment);
+        // Tìm thanh toán theo booking ID
+        Optional<Payment> paymentOptional = paymentRepository.findByBookingId(bookingId);
+        
+        // Nếu tìm thấy, trả về kết quả
+        if (paymentOptional.isPresent()) {
+            return paymentMapper.toPaymentResponse(paymentOptional.get());
+        }
+        
+        log.info("Payment not found for booking ID: {}. Attempting to create a new payment.", bookingId);
+        
+        try {
+            // Nếu không tìm thấy, tạo mới thanh toán
+            Booking booking = bookingRepository.findById(bookingId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Booking not found with ID: " + bookingId));
+            
+            // Tạo mới thanh toán
+            Payment newPayment = paymentMapper.toPayment(booking);
+            newPayment = paymentRepository.save(newPayment);
+            
+            log.info("Created new payment with ID: {} for booking ID: {}", newPayment.getId(), bookingId);
+            return paymentMapper.toPaymentResponse(newPayment);
+        } catch (Exception e) {
+            log.error("Failed to create payment for booking ID: {}. Error: {}", bookingId, e.getMessage(), e);
+            // Vẫn ném ngoại lệ khi không thể tạo mới
+            throw new ResourceNotFoundException("Payment not found for booking ID: " + bookingId + " and failed to create a new one");
+        }
     }
 
     @Override

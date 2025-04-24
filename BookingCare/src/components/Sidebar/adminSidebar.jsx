@@ -223,14 +223,7 @@ function AdminSidebar() {
                   >
                     Danh sách chuyên viên
                   </PermissionMenuItem>
-                  <PermissionMenuItem
-                    permission="specialist:view"
-                    to="/admin/specialists/categories"
-                    icon="fas fa-folder"
-                    location={location}
-                  >
-                    Danh mục
-                  </PermissionMenuItem>
+                  
                 </div>
               )}
             </div>

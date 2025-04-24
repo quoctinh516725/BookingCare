@@ -179,12 +179,36 @@ public class BookingServiceImpl implements BookingService {
 
         Booking savedBooking = bookingRepository.save(booking);
         
-        // Tự động tạo thông tin thanh toán cho đặt lịch
-        try {
-            log.info("Creating payment for new booking with ID: {}", savedBooking.getId());
-            paymentService.createPaymentForBooking(savedBooking.getId());
-        } catch (Exception e) {
-            log.error("Failed to create payment for booking ID {}: {}", savedBooking.getId(), e.getMessage(), e);
+        // Tự động tạo thông tin thanh toán cho đặt lịch - cải thiện xử lý lỗi
+        boolean paymentCreated = false;
+        int maxRetries = 3;
+        Exception lastException = null;
+        
+        for (int retryCount = 0; retryCount < maxRetries && !paymentCreated; retryCount++) {
+            try {
+                log.info("Creating payment for new booking with ID: {} (attempt {}/{})", 
+                        savedBooking.getId(), retryCount + 1, maxRetries);
+                paymentService.createPaymentForBooking(savedBooking.getId());
+                paymentCreated = true;
+                log.info("Payment created successfully for booking ID: {}", savedBooking.getId());
+            } catch (Exception e) {
+                lastException = e;
+                log.error("Failed to create payment for booking ID {} (attempt {}/{}): {}", 
+                        savedBooking.getId(), retryCount + 1, maxRetries, e.getMessage());
+                
+                try {
+                    // Đợi một chút trước khi thử lại
+                    Thread.sleep(500);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+        
+        if (!paymentCreated && lastException != null) {
+            log.error("All attempts to create payment for booking ID {} failed. Last error: {}", 
+                    savedBooking.getId(), lastException.getMessage(), lastException);
             // Không ném lại exception vì booking đã được tạo thành công
         }
 
